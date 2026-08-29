@@ -1,44 +1,57 @@
 "use client";
-import { useState } from "react";
-import Link from 'next/link';
-import './header.css';
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import "./header.css";
+
+const navLinks = [
+  { href: "#about", label: "Sobre" },
+  { href: "#pain-points", label: "Temas" },
+  { href: "#process", label: "Como funciona" },
+  { href: "#testimonials", label: "Depoimentos" },
+  { href: "#courses", label: "Formação" },
+  { href: "#questions", label: "Dúvidas" },
+];
 
 export default function Header() {
-    const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-    return (
-        <header className="navbar">
-            <div className="container">
-                <div className="logo-container">
-                    <div className="initials">
-                        <span className="e">E</span><span className="m">M</span>
-                    </div>
-                    <div className="name">ELLEN MACHADO</div>
-                    <div className="profession">PSICÓLOGA</div>
-                    <div className="register">12/27784</div>
-                </div>
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-                <button
-                    className="menu-toggle"
-                    onClick={() => setMenuOpen(!menuOpen)}
-                    aria-label="Abrir menu"
-                >
-                    ☰
-                </button>
+  return (
+    <header className={`nav ${scrolled ? "is-solid" : ""}`}>
+      <div className="container nav-row">
+        <Link href="#hero" className="brand" onClick={() => setOpen(false)}>
+          Ellen Machado
+          <small>Psicóloga</small>
+        </Link>
 
-                <nav className={`nav-links ${menuOpen ? "active" : ""}`}>
-                    <Link href="#hero" onClick={() => setMenuOpen(false)}>Início</Link>
-                    <Link href="#about" onClick={() => setMenuOpen(false)}>Sobre</Link>
-                    <Link href="#testimonials" onClick={() => setMenuOpen(false)}>Depoimentos</Link>
-                    <Link href="#questions" onClick={() => setMenuOpen(false)}>Dúvidas Frequentes</Link>
-                    <Link href="#articles" onClick={() => setMenuOpen(false)}>Artigos</Link>
-                    <Link href="#social" onClick={() => setMenuOpen(false)}>Redes Sociais</Link>
-                </nav>
+        <nav className={open ? "is-open" : ""}>
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-                <div className={`nav-actions ${menuOpen ? "active" : ""}`}>
-                    <Link href="#contact" className="btn outline" onClick={() => setMenuOpen(false)}>Entrar em Contato</Link>
-                </div>
-            </div>
-        </header>
-    )
+        <Link href="#contact" className="btn-primary nav-cta" onClick={() => setOpen(false)}>
+          Agendar conversa
+        </Link>
+
+        <button
+          className={`burger ${open ? "is-open" : ""}`}
+          onClick={() => setOpen(!open)}
+          aria-label="Menu"
+        >
+          <span />
+          <span />
+        </button>
+      </div>
+    </header>
+  );
 }

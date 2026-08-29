@@ -1,218 +1,48 @@
-.frequently-questions-section {
-    border-radius: 0 0 20px 20px;
-    background: var(--primary);
-    padding: 120px 20px 100px;
-    position: relative;
+.faq {
+  padding: 110px 0;
+  background: var(--white);
 }
 
-.frequently-questions-container {
-    transform: translateY(-70px);
-    background: var(--background);
-    border-radius: 30px;
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    gap: 40px;
-    padding: 60px 40px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    position: relative;
-    top: -100px;
-    z-index: 2;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
+.faq h2 {
+  text-align: center;
+  font-size: clamp(2rem, 3.8vw, 2.9rem);
+  font-weight: 500;
+  color: var(--teal);
+  margin-bottom: 48px;
 }
 
-.frequently-questions-image img {
-    max-width: 300px;
-    height: auto;
+.faq-list {
+  max-width: 760px;
+  margin: 0 auto;
 }
 
-.frequently-questions-content {
-    flex: 1;
-    min-width: 300px;
+.faq-list article {
+  border-bottom: 1px solid #e4ecee;
 }
 
-.frequently-questions-content h2 {
-    font-size: 1.8rem;
-    margin-bottom: 30px;
-    color: var(--light-text);
-}
-
-.frequently-questions-content h2 span {
-    color: var(--primary);
-    font-weight: 700;
-}
-
-.feature-card {
-  cursor: pointer;
-  display: flex;
-  gap: 15px;
-  background: var(--badge-secondary);
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-  transition: all 0.3s ease;
-}
-
-.feature-card div {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+.faq-list button {
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
 }
 
-.feature-card:hover {
-    background: var(--tertiary);
-}
-
-.feature-card.active {
-    background: var(--badge-primary);
-}
-
-.feature-card.active div {
-  align-items: start;
-  flex-direction: column;
-}
-
-.feature-card svg {
-  margin-top: 5px;
-  animation: pulse infinite 1s ease-in;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.feature-card.active svg {
-  display: none;
-  color: var(--light-text);
-}
-
-.feature-card .icon {
-  font-size: 1.5rem;
-  color: var(--light-text);
+.faq-list svg {
+  color: var(--accent);
   flex-shrink: 0;
 }
 
-.feature-card p {
-    margin: 0;
-    font-size: 0.95rem;
-    color: var(--dark-text);
-}
-
-.feature-card .subtext {
-    font-size: 0.85rem;
-    color: var(--light-text);
-    margin-top: 5px;
-}
-
-@media (max-width: 1024px) {
-  .frequently-questions-section {
-    padding: 100px 15px 80px;
-  }
-
-  .frequently-questions-container {
-    flex-direction: column;
-    gap: 30px;
-    padding: 40px 20px;
-    max-width: 90%;
-    top: -60px;
-    transform: translateY(-50px);
-  }
-
-  .frequently-questions-image img {
-    max-width: 250px;
-  }
-
-  .frequently-questions-content {
-    min-width: auto;
-    width: 100%;
-  }
-
-  .frequently-questions-content h2 {
-    font-size: 1.5rem;
-    margin-bottom: 25px;
-  }
-
-  .feature-card {
-    padding: 15px;
-    gap: 12px;
-  }
-
-  .feature-card .icon {
-    font-size: 1.3rem;
-  }
-
-  .feature-card p {
-    font-size: 0.9rem;
-  }
-
-  .feature-card .subtext {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .frequently-questions-section {
-    padding: 70px 10px 60px;
-  }
-
-  .frequently-questions-container {
-    padding: 30px 15px;
-    gap: 20px;
-    top: -40px;
-    transform: translateY(-80px);
-  }
-
-  .frequently-questions-image img {
-    max-width: 180px;
-  }
-
-  .frequently-questions-content h2 {
-    font-size: 1.7rem;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-
-  .feature-card {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 12px;
-    gap: 10px;
-  }
-
-  .feature-card .icon {
-    font-size: 1.1rem;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .feature-card div {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .feature-card p {
-    font-size: 0.85rem;
-    text-align: center;
-    width: 100%;
-  }
-
-  .feature-card .subtext {
-    font-size: 0.75rem;
-  }
+.faq-list p {
+  padding: 0 0 22px;
+  color: var(--muted);
+  line-height: 1.7;
 }

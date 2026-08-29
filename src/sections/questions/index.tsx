@@ -1,51 +1,29 @@
 "use client";
 
-import faqData from '@/data/faqData';
-import './questions.css';
-import { useState } from 'react';
-import { RiArrowDropDownLine } from 'react-icons/ri';
+import { useState } from "react";
+import faqData from "@/data/faqData";
+import { RiAddLine, RiSubtractLine } from "react-icons/ri";
+import "./questions.css";
 
 export default function FrequentlyQuestions() {
-  const [activeId, setActiveId] = useState<number | null>(1);
-
-  const toggle = (id: number) => {
-    setActiveId((prev) => (prev === id ? null : id));
-  };
+  const [open, setOpen] = useState<number | null>(1);
 
   return (
-    <section className="frequently-questions-section" id="questions">
-      <div className="frequently-questions-container">
-        <div className="frequently-questions-image">
-          <img src="/images/frequently_questions.png" alt="Pessoas com dúvidas" />
-        </div>
-        <div className="frequently-questions-content">
-          <h2>
-            <span>Dúvidas frequentes</span>
-          </h2>
-          {faqData.map(({ id, icon, question, answer }) => (
-            <div
-                key={id}
-                className={`feature-card ${activeId === id ? "active" : ""}`}
-                onClick={() => toggle(id)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggle(id);
-                    }
-                }}
-                role="button"
-                aria-expanded={activeId === id}
-            >
-                <span className="icon">{icon}</span>
-                <div>
-                    <p>
-                    <strong>{question}</strong>
-                    </p>
-                    {activeId === id && <p className="subtext">{answer}</p>}
-                    <RiArrowDropDownLine size={35}/>
-                </div>
-            </div>
+    <section className="faq" id="questions">
+      <div className="container">
+        <h2>Dúvidas frequentes</h2>
+        <div className="faq-list">
+          {faqData.map((item) => (
+            <article key={item.id} className={open === item.id ? "is-open" : ""}>
+              <button
+                type="button"
+                onClick={() => setOpen(open === item.id ? null : item.id)}
+              >
+                {item.question}
+                {open === item.id ? <RiSubtractLine size={20} /> : <RiAddLine size={20} />}
+              </button>
+              {open === item.id && <p>{item.answer}</p>}
+            </article>
           ))}
         </div>
       </div>

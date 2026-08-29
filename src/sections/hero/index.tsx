@@ -1,27 +1,40 @@
-import Link from 'next/link';
-import './hero.css';
-import Image from 'next/image';
+import Link from "next/link";
+import Image from "next/image";
+import { HiOutlineCalendar, HiOutlineLocationMarker } from "react-icons/hi";
+import "./hero.css";
 
 export default function Hero() {
-    return(
-        <section className="hero" id='hero'>
-            <div className="container hero-content">
-                <div className="hero-text">
-                    <span className="badge">Para você que deseja ser ouvido com empatia, cuidado e sem julgamentos</span>
-                    <h1>Cuidar da mente<br />também é um ato de coragem</h1>
-                    <p>Está em busca de um espaço acolhedor para se conhecer melhor?</p>
-                    <Link href="#contact" className="btn solid">Agendar conversa</Link>
-                </div>
-                <div className="hero-image">
-                    <Image
-                        src="/images/brave.png"
-                        alt="Ilustração de pessoas felizes"
-                        width={500}
-                        height={500}
-                        priority
-                    />
-                </div>
-            </div>
-        </section>
-    )
+  return (
+    <section className="hero" id="hero">
+      <div className="container hero-grid">
+        <div className="hero-copy">
+          <h1>
+            Cuidar da mente também é um ato de{" "}
+            <em>coragem</em>
+          </h1>
+          <p>
+            Está em busca de um espaço acolhedor para se conhecer melhor?
+          </p>
+          <Link href="#contact" className="btn-primary">
+            <HiOutlineCalendar size={18} />
+            Agendar conversa
+          </Link>
+          <div className="hero-place">
+            <HiOutlineLocationMarker size={16} />
+            Atendimento online e presencial em Lages - SC
+          </div>
+        </div>
+
+        <div className="hero-photo">
+          <Image
+            src="/images/profile.jpg"
+            alt="Ellen Santos Machado, psicóloga"
+            width={560}
+            height={720}
+            priority
+          />
+        </div>
+      </div>
+    </section>
+  );
 }

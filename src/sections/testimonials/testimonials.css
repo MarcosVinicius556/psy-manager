@@ -1,0 +1,149 @@
+.quotes {
+  padding: 110px 0 120px;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(141, 180, 140, 0.22), transparent 40%),
+    var(--teal);
+  color: var(--white);
+  overflow: hidden;
+}
+
+.quotes-kicker {
+  text-align: center;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--leaf);
+  margin-bottom: 10px;
+}
+
+.quotes h2 {
+  text-align: center;
+  font-size: clamp(2.1rem, 4vw, 3.1rem);
+  font-weight: 500;
+  margin-bottom: 56px;
+}
+
+.quotes-stage {
+  position: relative;
+  max-width: 720px;
+  height: 420px;
+  margin: 0 auto 36px;
+}
+
+.quote-card {
+  position: absolute;
+  inset: 0;
+  background: var(--white);
+  color: var(--ink);
+  border-radius: 28px;
+  padding: 40px 44px 36px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
+}
+
+.quote-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--leaf);
+  margin-bottom: 16px;
+}
+
+.quote-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quote-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.quote-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  line-height: 1.55;
+  color: var(--ink);
+  flex: 1;
+  overflow: auto;
+}
+
+.quote-meta strong {
+  display: block;
+  font-size: 1rem;
+  margin-top: 18px;
+}
+
+.quote-meta span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.quotes-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.quotes-nav > button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: var(--white);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: 0.25s;
+}
+
+.quotes-nav > button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.quotes-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.quotes-dots button {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  padding: 0;
+  transition: 0.3s;
+}
+
+.quotes-dots .is-on {
+  width: 28px;
+  background: var(--accent);
+}
+
+.quotes-note {
+  text-align: center;
+  margin-top: 22px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 700px) {
+  .quotes-stage {
+    height: 480px;
+  }
+
+  .quote-card {
+    padding: 28px 22px;
+  }
+}

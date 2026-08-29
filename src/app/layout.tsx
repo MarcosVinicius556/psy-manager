@@ -1,9 +1,8 @@
 import '../styles/globals.css';
 import type { Metadata } from 'next';
 import Header from '@/components/header';
-import Footer from '@/components/footer';
 import Script from 'next/script';
-import { Inter } from "next/font/google";
+import { Inter, Cormorant_Garamond } from "next/font/google";
 
 export const metadata: Metadata = {
   title: "Psicóloga Ellen Santos Machado | Atendimento Humanizado para Ansiedade, Depressão e Autoconhecimento",
@@ -66,13 +65,24 @@ export const metadata: Metadata = {
   category: "business"
 };
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "600"] });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-inter",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+});
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   let measurementId = process.env.GA_MEASUREMENT_ID;
   return (
-    <html lang="pt-BR" className={inter.className}>
+    <html lang="pt-BR" className={`${inter.variable} ${cormorant.variable}`}>
       <head>
           <meta
             name="google-site-verification"
@@ -130,7 +140,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         
           <Header />
           {children}
-          <Footer />
         </body>
       </html>
   );
