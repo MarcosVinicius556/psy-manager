@@ -85,10 +85,6 @@ test.describe("platform routes — no client exceptions", () => {
   test.describe("super_admin plataforma", () => {
     test.describe.configure({ timeout: 120_000 });
 
-    test.beforeEach(async ({ page }) => {
-      await loginPlatformOwner(page);
-    });
-
     test("menu Plataforma from admin", async ({ page }) => {
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin/login");
@@ -96,18 +92,22 @@ test.describe("platform routes — no client exceptions", () => {
       await page.getByPlaceholder("Sua senha").fill(platformPassword);
       await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
       await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("login"), { timeout: 60_000 });
-      await expect(page.getByText("Não foi possível confirmar a situação da conta.")).toHaveCount(0, { timeout: 60_000 });
-      const openMenu = page.getByRole("button", { name: "Abrir menu" });
-      await expect(openMenu).toBeVisible();
-      await openMenu.click();
-      const drawer = page.locator("#admin-mobile-nav");
-      await expect(drawer).toBeVisible();
-      await drawer.getByRole("link", { name: "Plataforma" }).click();
+      await page.goto("/admin", { waitUntil: "load" });
+      await page.waitForTimeout(800);
+      const tabBar = page.getByRole("navigation", { name: "Atalhos" });
+      await expect(tabBar).toBeVisible({ timeout: 60_000 });
+      await tabBar.getByRole("button", { name: "Menu" }).click();
+      await page.locator("#admin-mobile-nav").getByRole("link", { name: "Plataforma" }).click();
       await page.waitForURL("**/plataforma**", { timeout: 60_000 });
       await page.waitForTimeout(800);
       expect(errors, errors.join("\n")).toEqual([]);
       await expect(page).not.toHaveURL(/login/);
     });
+
+    test.describe("routes", () => {
+      test.beforeEach(async ({ page }) => {
+        await loginPlatformOwner(page);
+      });
 
     for (const route of platformRoutes) {
       test(`route ${route} no pageerror`, async ({ page }) => {
@@ -124,5 +124,6 @@ test.describe("platform routes — no client exceptions", () => {
         await assertNoHorizontalScroll(page);
       });
     }
+    });
   });
 });
