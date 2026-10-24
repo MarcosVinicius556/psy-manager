@@ -50,12 +50,15 @@ test.describe("interactive buttons — mobile and desktop", () => {
       await loginAsDemo(page);
     });
 
-    test("pacientes FAB opens novo paciente dialog", async ({ page }, testInfo) => {
+    test("pacientes create opens novo paciente dialog", async ({ page }, testInfo) => {
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin/pacientes", { waitUntil: "domcontentloaded" });
-      const fab = page.getByRole("button", { name: "Novo paciente" });
-      await expectReceivesPointerAtCenter(fab);
-      await fab.click();
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
+      const create = isMobile
+        ? page.getByRole("button", { name: "Criar", exact: true })
+        : page.getByRole("button", { name: "Novo paciente" }).first();
+      await expectReceivesPointerAtCenter(create);
+      await create.click();
       await expect(page.getByRole("dialog", { name: /novo paciente/i })).toBeVisible();
       expect(errors, errors.join("\n")).toEqual([]);
       if (testInfo.project.name === "mobile-412") {
@@ -88,7 +91,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      await page.locator(".admin-tabbar").getByRole("button", { name: "Menu" }).click();
+      await page.getByRole("button", { name: "Abrir menu" }).click();
       const legal = page.locator("#admin-mobile-nav").getByRole("button", { name: "Legal" });
       await expect(legal).toHaveAttribute("aria-expanded", "false");
       await page.screenshot({ path: path.join(artifactRoot, "admin-menu-legal-collapsed-412.png"), fullPage: true });
@@ -108,7 +111,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      const menuBtn = page.locator(".admin-tabbar").getByRole("button", { name: "Menu" });
+      const menuBtn = page.getByRole("button", { name: "Abrir menu" });
       await expectReceivesPointerAtCenter(menuBtn);
       await menuBtn.click();
       await expect(page.locator("#admin-mobile-nav")).toHaveAttribute("aria-hidden", "false");

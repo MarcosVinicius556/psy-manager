@@ -7,7 +7,6 @@ import Drawer from "@/components/admin/Drawer";
 import PatientForm from "@/components/admin/PatientForm";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
-import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -59,7 +58,7 @@ function PatientsContent() {
   if (loading) return <ListSkeleton rows={6} />;
 
   return (
-    <div className="admin-fab-pad">
+    <div>
       <PageTitle
         title="Pacientes"
         subtitle="Cadastro e acompanhamento."
@@ -69,7 +68,6 @@ function PatientsContent() {
           </button>
         }
       />
-      <FloatingActionButton label="Novo paciente" onClick={() => replaceQuery({ novo: "1", edit: null })} />
       <div className="sticky top-14 z-10 mb-4 space-y-3 bg-paper/95 py-3 backdrop-blur-md md:static md:bg-transparent md:p-0">
         <SegmentedControl
           ariaLabel="Filtrar pacientes"

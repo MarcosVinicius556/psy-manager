@@ -10,7 +10,6 @@ import FileAttachments, { ReceiptLinks } from "@/components/admin/FileAttachment
 import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
 import PatientForm from "@/components/admin/PatientForm";
 import ReceivePayment from "@/components/admin/ReceivePayment";
-import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import StackedRow from "@/components/admin/mobile/StackedRow";
@@ -175,7 +174,7 @@ export default function PatientDetailPage() {
   if (!patient) return <Empty>Paciente não encontrado.</Empty>;
 
   return (
-    <div className="admin-fab-pad">
+    <div>
       <PageTitle
         title={patient.nome}
         subtitle={`${maskPhone(patient.telefone)}${patient.email ? ` · ${patient.email}` : ""}`}
@@ -190,7 +189,6 @@ export default function PatientDetailPage() {
           </div>
         }
       />
-      <FloatingActionButton label="Agendar" onClick={() => setScheduling(true)} />
       <div className="mb-4">
         <Pill tone={patient.status === "ativo" ? "sage" : "muted"}>{labelPatientStatus(patient.status)}</Pill>
       </div>

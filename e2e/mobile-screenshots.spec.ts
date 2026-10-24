@@ -70,6 +70,18 @@ test.describe("mobile UX screenshots (after)", () => {
       });
     }
 
+    test("auth mobile tab bar states", async ({ page }, testInfo) => {
+      if (testInfo.project.name !== "mobile-412") return;
+      const dir = shotDir(testInfo.project.name, "after");
+      fs.mkdirSync(dir, { recursive: true });
+      await page.goto("/admin/agenda", { waitUntil: "networkidle" });
+      await page.screenshot({ path: path.join(dir, "admin-agenda-tab-active.png"), fullPage: false });
+      await page.getByRole("link", { name: "Pacientes", exact: true }).click();
+      await page.waitForURL("**/admin/pacientes**");
+      await page.waitForTimeout(450);
+      await page.screenshot({ path: path.join(dir, "admin-nav-pill-slide.png"), fullPage: false });
+    });
+
     test("auth dashboard widgets scroll", async ({ page }, testInfo) => {
       if (testInfo.project.name !== "mobile-412") return;
       await page.goto("/admin", { waitUntil: "networkidle" });
@@ -84,10 +96,12 @@ test.describe("mobile UX screenshots (after)", () => {
       if (testInfo.project.name !== "mobile-412") return;
       await page.goto("/admin/pacientes", { waitUntil: "networkidle" });
       await expect(page.locator(".admin-desktop-only .btn-primary")).toBeHidden();
-      await expect(page.getByRole("button", { name: "Novo paciente", exact: true })).toHaveCount(1);
+      await expect(page.getByRole("button", { name: "Criar", exact: true })).toHaveCount(1);
+      await expect(page.getByRole("button", { name: "Novo paciente", exact: true })).toHaveCount(0);
       await page.goto("/admin/financeiro", { waitUntil: "networkidle" });
       await expect(page.locator(".admin-desktop-only .btn-primary")).toBeHidden();
-      await expect(page.getByRole("button", { name: "Novo lançamento", exact: true })).toHaveCount(1);
+      await expect(page.getByRole("button", { name: "Criar", exact: true })).toHaveCount(1);
+      await expect(page.getByRole("button", { name: "Novo lançamento", exact: true })).toHaveCount(0);
     });
 
     test("auth paciente detalhe + axe financeiro", async ({ page }, testInfo) => {
