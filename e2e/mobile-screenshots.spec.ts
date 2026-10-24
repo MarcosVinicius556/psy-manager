@@ -7,6 +7,7 @@ import { loginAsDemo } from "./helpers/login";
 
 const publicScreens = [
   { name: "landing", path: "/" },
+  { name: "cookies", path: "/cookies" },
   { name: "admin-login", path: "/admin/login" },
   { name: "plataforma-login", path: "/plataforma/login" },
 ] as const;
@@ -95,7 +96,15 @@ test.describe("mobile UX screenshots (after)", () => {
       await assertNoHorizontalScroll(page);
       const dir = shotDir(testInfo.project.name, "after");
       fs.mkdirSync(dir, { recursive: true });
-      await page.screenshot({ path: path.join(dir, "admin-paciente-detalhe.png"), fullPage: true });
+      await page.screenshot({ path: path.join(dir, "admin-paciente-prontuario.png"), fullPage: true });
+      await page.getByRole("tab", { name: "Agenda" }).click();
+      await assertNoHorizontalScroll(page);
+      await page.screenshot({ path: path.join(dir, "admin-paciente-agenda.png"), fullPage: true });
+
+      await page.goto("/admin/configuracoes", { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Definir horário de trabalho" }).click();
+      await assertNoHorizontalScroll(page);
+      await page.screenshot({ path: path.join(dir, "admin-config-horarios-modal.png"), fullPage: false });
 
       await page.goto("/admin/financeiro");
       const axe = await new AxeBuilder({ page }).analyze();

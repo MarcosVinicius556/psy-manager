@@ -73,7 +73,6 @@ function PatientsContent() {
       <div className="sticky top-14 z-10 mb-4 space-y-3 bg-paper/95 py-3 backdrop-blur-md md:static md:bg-transparent md:p-0">
         <SegmentedControl
           ariaLabel="Filtrar pacientes"
-          layout="equal"
           value={status}
           onChange={setStatus}
           options={[

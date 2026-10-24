@@ -31,8 +31,11 @@ const adminRoutes = [
   "/admin/usuarios",
   "/admin/operacional/contrato",
   "/admin/operacional/relatorios",
+  "/admin/operacional/consentimento",
 ] as const;
 
+/** Routes may not declare data-allow-horizontal-scroll unless listed here (count per route). */
+const horizontalScrollAllowlist: Record<string, number> = {};
 
 async function assertNoHorizontalOverflow(page: Page) {
   const result = await page.evaluate(() => {
@@ -56,6 +59,12 @@ async function assertNoHorizontalOverflow(page: Page) {
   expect(result.offenders, `overflow-x scroll containers: ${result.offenders.join(", ")}`).toEqual([]);
 }
 
+async function assertHorizontalScrollOptInAllowlist(page: Page, routeKey: string) {
+  const count = await page.locator("[data-allow-horizontal-scroll='true']").count();
+  const allowed = horizontalScrollAllowlist[routeKey] ?? 0;
+  expect(count, `route ${routeKey}: ${count} opt-outs, allowed ${allowed}`).toBe(allowed);
+}
+
 async function assertMobileListCardsContained(page: Page) {
   const violations = await page.evaluate(() => {
     const lists = document.querySelectorAll<HTMLElement>("[data-mobile-list]");
@@ -75,6 +84,12 @@ async function assertMobileListCardsContained(page: Page) {
   expect(violations, violations.join("; ")).toEqual([]);
 }
 
+async function auditPage(page: Page, routeKey: string) {
+  await assertNoHorizontalOverflow(page);
+  await assertHorizontalScrollOptInAllowlist(page, routeKey);
+  await assertMobileListCardsContained(page);
+}
+
 test.describe("no horizontal scroll", () => {
   test.setTimeout(120_000);
   test.beforeAll(() => {
@@ -84,7 +99,7 @@ test.describe("no horizontal scroll", () => {
   for (const route of publicRoutes) {
     test(`public ${route}`, async ({ page }) => {
       await page.goto(route, { waitUntil: "networkidle" });
-      await assertNoHorizontalOverflow(page);
+      await auditPage(page, route);
     });
   }
 
@@ -96,9 +111,27 @@ test.describe("no horizontal scroll", () => {
     for (const route of adminRoutes) {
       test(`admin route ${route}`, async ({ page }) => {
         await page.goto(route, { waitUntil: "networkidle" });
-        await assertNoHorizontalOverflow(page);
-        await assertMobileListCardsContained(page);
+        await auditPage(page, route);
       });
     }
+
+    test("modals and drawers", async ({ page }) => {
+      await page.goto("/admin/configuracoes", { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Definir horário de trabalho" }).click();
+      await expect(page.getByRole("dialog", { name: /horários de atendimento/i })).toBeVisible();
+      await auditPage(page, "/admin/configuracoes:work-hours");
+
+      await page.getByRole("button", { name: "Fechar" }).click();
+
+      await page.goto("/admin/pacientes/pat-ana", { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Editar" }).click();
+      await expect(page.getByRole("heading", { name: /editar paciente/i })).toBeVisible();
+      await auditPage(page, "/admin/pacientes/pat-ana:edit-drawer");
+      await page.keyboard.press("Escape");
+
+      await page.getByRole("button", { name: "Novo atendimento" }).first().click();
+      await expect(page.getByRole("heading", { name: /novo atendimento/i })).toBeVisible();
+      await auditPage(page, "/admin/pacientes/pat-ana:schedule-drawer");
+    });
   });
 });

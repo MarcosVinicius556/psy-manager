@@ -140,7 +140,6 @@ function FinanceContent() {
       <div className="mb-4">
         <SegmentedControl
           ariaLabel="Visão do financeiro"
-          layout="equal"
           value={view}
           onChange={setView}
           options={[

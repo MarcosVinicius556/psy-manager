@@ -1,14 +1,23 @@
 import { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/site";
+
+const paths: MetadataRoute.Sitemap = [
+  { url: "/", changeFrequency: "monthly", priority: 1 },
+  { url: "/cadastro", changeFrequency: "monthly", priority: 0.8 },
+  { url: "/termos", changeFrequency: "yearly", priority: 0.3 },
+  { url: "/privacidade", changeFrequency: "yearly", priority: 0.3 },
+  { url: "/cookies", changeFrequency: "yearly", priority: 0.3 },
+  { url: "/seguranca", changeFrequency: "yearly", priority: 0.3 },
+  { url: "/suboperadores", changeFrequency: "yearly", priority: 0.3 },
+  { url: "/dpa", changeFrequency: "yearly", priority: 0.3 },
+];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    { url: "/", lastModified: new Date(), changeFrequency: "monthly", priority: 1 },
-    { url: "/cadastro", lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: "/termos", lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: "/privacidade", lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: "/cookies", lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: "/seguranca", lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: "/suboperadores", lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: "/dpa", lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-  ];
+  const base = getSiteUrl();
+  const lastModified = new Date();
+  return paths.map((entry) => ({
+    ...entry,
+    url: `${base}${entry.url}`,
+    lastModified,
+  }));
 }

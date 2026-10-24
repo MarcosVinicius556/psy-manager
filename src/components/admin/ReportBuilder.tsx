@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { HiOutlineChevronDown, HiOutlineChevronUp, HiOutlinePlus, HiOutlineStar, HiOutlineTrash, HiStar } from "react-icons/hi";
 import DateField from "@/components/admin/DateField";
 import Select from "@/components/admin/Select";
-import { DataTable, Empty, Field, Td, Th, fieldClass } from "@/components/admin/ui";
+import { DataTable, Empty, Field, MobileListGrid, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import {
   defaultDefinition,
   describeReport,
@@ -430,24 +430,45 @@ export default function ReportBuilder({
             {preview.count === 0 ? (
               <Empty>Nenhum registro combina com estes filtros.</Empty>
             ) : (
-              <DataTable minWidth={Math.max(520, preview.headers.length * 140)}>
-                <thead>
-                  <tr>
-                    {preview.headers.map((header) => (
-                      <Th key={header}>{header}</Th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                <MobileListGrid>
                   {preview.table.map((row, index) => (
-                    <tr key={index}>
-                      {row.map((cell, cellIndex) => (
-                        <Td key={`${index}-${cellIndex}`}>{cell}</Td>
-                      ))}
-                    </tr>
+                    <article
+                      key={index}
+                      className="rounded-md border border-[#e7eee8] bg-white p-4 shadow-[0_8px_24px_rgba(61,82,64,0.06)]"
+                    >
+                      <dl className="grid gap-2 text-sm">
+                        {preview.headers.map((header, cellIndex) => (
+                          <div key={header} className="min-w-0">
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-teal/80">{header}</dt>
+                            <dd className="mt-0.5 break-words text-ink [overflow-wrap:anywhere]">{row[cellIndex] ?? "—"}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </article>
                   ))}
-                </tbody>
-              </DataTable>
+                </MobileListGrid>
+                <ResponsiveTableWrap>
+                  <DataTable minWidth={Math.max(520, preview.headers.length * 140)}>
+                    <thead>
+                      <tr>
+                        {preview.headers.map((header) => (
+                          <Th key={header}>{header}</Th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.table.map((row, index) => (
+                        <tr key={index}>
+                          {row.map((cell, cellIndex) => (
+                            <Td key={`${index}-${cellIndex}`}>{cell}</Td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </DataTable>
+                </ResponsiveTableWrap>
+              </>
             )}
           </div>
         </section>

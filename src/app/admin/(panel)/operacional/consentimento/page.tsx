@@ -50,18 +50,14 @@ export default function PatientConsentTemplatePage() {
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={downloadTemplate}
-          className="inline-flex min-h-11 items-center rounded-full bg-teal px-5 text-sm font-semibold text-white"
-        >
+        <button type="button" onClick={downloadTemplate} className="btn-primary">
           Baixar modelo (.txt)
         </button>
-        <Link href="/privacidade" className="inline-flex min-h-11 items-center rounded-full border border-[#d7e0d8] px-5 text-sm font-semibold text-teal">
+        <Link href="/privacidade" className="btn-text">
           Política de Privacidade
         </Link>
       </div>
-      <pre className="overflow-x-auto rounded-2xl border border-[#d7e0d8] bg-white p-4 text-xs leading-relaxed text-muted whitespace-pre-wrap" data-allow-horizontal-scroll="true">
+      <pre className="rounded-2xl border border-[#d7e0d8] bg-white p-4 text-xs leading-relaxed text-muted whitespace-pre-wrap break-words">
         {TCLE_TEMPLATE}
       </pre>
     </div>

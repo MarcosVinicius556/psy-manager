@@ -94,6 +94,26 @@ export default function SettingsPage() {
     setOpenSlots((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   }
 
+  function copyDayToOthers(sourceDay: number) {
+    const sourceTimes = new Set(
+      openSlots.filter((key) => key.startsWith(`${sourceDay}|`)).map((key) => key.split("|")[1] ?? "")
+    );
+    setOpenSlots((current) => {
+      const kept = current.filter((key) => {
+        const day = key.split("|")[0];
+        return day === String(sourceDay);
+      });
+      const copied: string[] = [];
+      for (const day of WEEKDAY_OPTIONS) {
+        if (day.value === sourceDay) continue;
+        for (const time of sourceTimes) {
+          copied.push(`${day.value}|${time}`);
+        }
+      }
+      return [...kept, ...copied];
+    });
+  }
+
   function closePassword() {
     setPasswordOpen(false);
     setCurrentPassword("");
@@ -424,52 +444,98 @@ export default function SettingsPage() {
                 </button>
               </div>
               <form onSubmit={onHours} className="mt-5 flex min-h-0 flex-1 flex-col">
-                <div className="min-h-0 flex-1 overflow-auto">
-                  <table className="w-full min-w-[760px] border-separate border-spacing-1">
-                    <thead>
-                      <tr>
-                        <th className="sticky left-0 top-0 z-10 rounded-md bg-teal px-3 py-2 text-left text-xs font-semibold text-white">
-                          Horário
-                        </th>
-                        {WEEKDAY_OPTIONS.map((day) => (
-                          <th
-                            key={day.value}
-                            className="sticky top-0 z-10 rounded-md bg-teal px-2 py-2 text-center text-xs font-semibold text-white"
-                          >
-                            {day.label}
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <div className="space-y-3 md:hidden">
+                    {WEEKDAY_OPTIONS.map((day) => {
+                      const dayCount = hours.filter((time) => enabled.has(`${day.value}|${time}`)).length;
+                      return (
+                        <details
+                          key={day.value}
+                          className="rounded-md border border-[#d7e0d8] bg-paper open:bg-white"
+                        >
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-teal [&::-webkit-details-marker]:hidden">
+                            <span>{day.label}</span>
+                            <span className="text-xs font-medium text-muted">
+                              {dayCount === 0 ? "Nenhum horário" : `${dayCount} horário${dayCount === 1 ? "" : "s"}`}
+                            </span>
+                          </summary>
+                          <div className="border-t border-[#e7eee8] px-4 pb-4 pt-3">
+                            <div className="flex flex-wrap gap-2">
+                              {hours.map((time) => {
+                                const key = `${day.value}|${time}`;
+                                const on = enabled.has(key);
+                                return (
+                                  <button
+                                    key={key}
+                                    type="button"
+                                    aria-pressed={on}
+                                    onClick={() => toggleSlot(key)}
+                                    className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                                      on
+                                        ? "border-teal bg-teal text-white"
+                                        : "border-[#d7e0d8] bg-white text-ink hover:border-teal"
+                                    }`}
+                                  >
+                                    {time}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <button type="button" className="btn-text mt-4" onClick={() => copyDayToOthers(day.value)}>
+                              Copiar para os outros dias
+                            </button>
+                          </div>
+                        </details>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden md:block">
+                    <table className="w-full min-w-[760px] border-separate border-spacing-1">
+                      <thead>
+                        <tr>
+                          <th className="sticky left-0 top-0 z-10 rounded-md bg-teal px-3 py-2 text-left text-xs font-semibold text-white">
+                            Horário
                           </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hours.map((time) => (
-                        <tr key={time}>
-                          <th className="sticky left-0 rounded-md bg-sky-soft px-3 py-1 text-left text-xs font-semibold text-teal">
-                            {time}
-                          </th>
-                          {WEEKDAY_OPTIONS.map((day) => {
-                            const key = `${day.value}|${time}`;
-                            const on = enabled.has(key);
-                            return (
-                              <td key={key}>
-                                <button
-                                  type="button"
-                                  aria-pressed={on}
-                                  aria-label={`${day.label} ${time}`}
-                                  onClick={() => toggleSlot(key)}
-                                  className={`h-11 w-full rounded-md border transition-colors duration-300 sm:h-8 ${
-                                    on
-                                      ? "border-teal bg-teal hover:bg-transparent"
-                                      : "border-[#d7e0d8] bg-white hover:border-teal hover:bg-sky-soft"
-                                  }`}
-                                />
-                              </td>
-                            );
-                          })}
+                          {WEEKDAY_OPTIONS.map((day) => (
+                            <th
+                              key={day.value}
+                              className="sticky top-0 z-10 rounded-md bg-teal px-2 py-2 text-center text-xs font-semibold text-white"
+                            >
+                              {day.label}
+                            </th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {hours.map((time) => (
+                          <tr key={time}>
+                            <th className="sticky left-0 rounded-md bg-sky-soft px-3 py-1 text-left text-xs font-semibold text-teal">
+                              {time}
+                            </th>
+                            {WEEKDAY_OPTIONS.map((day) => {
+                              const key = `${day.value}|${time}`;
+                              const on = enabled.has(key);
+                              return (
+                                <td key={key}>
+                                  <button
+                                    type="button"
+                                    aria-pressed={on}
+                                    aria-label={`${day.label} ${time}`}
+                                    onClick={() => toggleSlot(key)}
+                                    className={`h-8 w-full rounded-md border transition-colors duration-300 ${
+                                      on
+                                        ? "border-teal bg-teal hover:bg-transparent"
+                                        : "border-[#d7e0d8] bg-white hover:border-teal hover:bg-sky-soft"
+                                    }`}
+                                  />
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
