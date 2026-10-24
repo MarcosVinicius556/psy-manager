@@ -2,6 +2,7 @@ import { FirebaseError } from "firebase/app";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, runTransaction, setDoc, updateDoc, type DocumentData } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/admin/firebase";
+import { recordActivationEvent } from "./activation-events";
 import {
   buildReplayDeniedAccount,
   buildTrialAccount,
@@ -158,6 +159,7 @@ export async function registerWorkspace(input: { nome: string; email: string; pa
       createdAt: stamp,
     });
     await setDoc(doc(getFirebaseDb(), "directory", email), { uid, email, nome: input.nome.trim(), foto: "", ownerUid: uid });
+    await recordActivationEvent(uid, "signup", stamp);
   } catch (error) {
     console.error(error);
     throw new Error("A conta de acesso foi criada, mas o ambiente não foi concluído. Entre com o mesmo e-mail para tentar de novo.");

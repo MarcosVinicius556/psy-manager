@@ -8,6 +8,7 @@ import { ensureNotices, listInbox, loadPlans, publishedOrDefault, readAccount, r
 import { setClinicWriteGate, ClinicAccessError } from "./guard";
 import { noticeContent, resolveAccess, writesAllowed, type AccessDecision, type AccountRecord, type PlanDefinition } from "./model";
 import { deliverOperationalEmail } from "./email-client";
+import { maybeRecordAtivo7Dias } from "./activation-events";
 
 type SaasContextValue = {
   ready: boolean;
@@ -72,6 +73,7 @@ export function SaasProvider({ children }: { children: ReactNode }) {
     } catch (seenError) {
       console.error(seenError);
     }
+    void maybeRecordAtivo7Dias(reconciled.uid, reconciled.createdAt);
   }
 
   useEffect(() => {

@@ -64,6 +64,7 @@ A lista completa está em [`.env.example`](.env.example).
 
 Anexos clínicos usam entrega `authenticated` no Cloudinary; ver `docs/security/cloudinary-assets.md` e `npm run migrate:cloudinary-auth` (dry-run).
 | `EMAIL_TO`, `GMAIL_APP_PASSWORD` | Só servidor | SMTP. Sem elas o e-mail não sai |
+| `CRON_SECRET` | Só servidor | Protege o cron diário de avisos de trial (`/api/cron/trial-notifications`). Na Vercel, gere um valor aleatório longo e configure o mesmo nome no dashboard |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Cliente | E-mail público de contato |
 
 Não existe gateway de pagamento nestas variáveis. A contratação não confirma pagamento até um provedor real ser ligado.

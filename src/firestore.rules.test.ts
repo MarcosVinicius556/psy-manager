@@ -295,4 +295,45 @@ describe("platform and rate limits", () => {
     const db = env.authenticatedContext(ownerUid).firestore();
     await assertFails(setDoc(doc(db, "apiEmailRateLimits", ownerUid), { count: 1 }));
   });
+
+  it("owner records activation event once", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "activationEvents", `${ownerUid}_signup`), {
+        accountId: ownerUid,
+        event: "signup",
+        at: new Date().toISOString(),
+      })
+    );
+    await assertFails(
+      setDoc(doc(db, "activationEvents", `${ownerUid}_signup`), {
+        accountId: ownerUid,
+        event: "signup",
+        at: new Date().toISOString(),
+      })
+    );
+  });
+
+  it("psychologist cannot read activation events", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "activationEvents", `${ownerUid}_signup`), {
+        accountId: ownerUid,
+        event: "signup",
+        at: new Date().toISOString(),
+      });
+    });
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(getDoc(doc(db, "activationEvents", `${ownerUid}_signup`)));
+  });
+
+  it("clients cannot write trial notice markers", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      setDoc(doc(db, "trialNoticeMarkers", `${ownerUid}_trial_7`), {
+        accountId: ownerUid,
+        kind: "trial_7",
+        sentAt: new Date().toISOString(),
+      })
+    );
+  });
 });
