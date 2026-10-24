@@ -52,8 +52,8 @@ export const featureShowcase = [
   },
   {
     label: "Prontuário",
-    title: "Ficha clínica sem misturar com a vitrine",
-    text: "Dados cadastrais, TCLE, contrato e linha do tempo das sessões concluídas — o recorte é psicologia, não clínica médica genérica.",
+    title: "Prontuário e ficha do paciente no mesmo lugar",
+    text: "Cadastro, TCLE, contrato e linha do tempo das sessões — estrutura voltada ao consultório de psicologia, com sigilo por profissional.",
     bullets: ["Evolução por sessão", "Anexos na ficha", "Acesso só da sua conta"],
     shot: landingScreenshots.pacienteProntuario,
     frame: "browser" as const,

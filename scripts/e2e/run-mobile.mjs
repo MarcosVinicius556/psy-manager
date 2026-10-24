@@ -75,6 +75,7 @@ async function main() {
     "playwright",
     "test",
     "e2e/mobile-screenshots.spec.ts",
+    "e2e/mobile-bottom-nav.spec.ts",
     "e2e/landing-header.spec.ts",
     "e2e/platform-no-crash.spec.ts",
     "e2e/no-horizontal-scroll.spec.ts",

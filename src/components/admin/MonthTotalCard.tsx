@@ -28,6 +28,8 @@ type MonthTotalCardProps = {
   /** When true, an increase is shown in red and a decrease in green (e.g. expenses or overdue). */
   invertTone?: boolean;
   footnote?: string;
+  /** Recent months for the mini sparkline (oldest → newest). */
+  sparkline?: number[];
 };
 
 export default function MonthTotalCard({
@@ -40,6 +42,7 @@ export default function MonthTotalCard({
   onMonth,
   invertTone = false,
   footnote,
+  sparkline,
 }: MonthTotalCardProps) {
   const change = monthChange(value, previous);
   const upGood = invertTone ? "text-[#b42318]" : "text-[#1f7a45]";
@@ -49,8 +52,8 @@ export default function MonthTotalCard({
     <Card>
       <div className="flex items-start justify-between gap-3">
         <CardTitle>{title}</CardTitle>
-        <div className="flex h-12 w-14 items-end justify-end">
-          <SparkBars values={[previous, value]} className="h-10 w-full" />
+        <div className="flex h-8 w-14 shrink-0 items-center justify-end">
+          {sparkline && sparkline.length > 1 ? <SparkBars values={sparkline} /> : null}
         </div>
       </div>
       {onMonth && minMonth && maxMonth ? (

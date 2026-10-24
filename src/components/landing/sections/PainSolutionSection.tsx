@@ -10,7 +10,7 @@ export default function PainSolutionSection() {
           Menos planilha, mais tempo com o paciente
         </h2>
         <p className="mt-4 max-w-2xl text-muted">
-          O Psy Manager não substitui a página pública da clínica. É o painel de operação: agenda, prontuário, financeiro e documentos com a mesma linguagem do consultório.
+          Um sistema pensado para a rotina do psicólogo: marcar sessão, registrar evolução, cobrar e emitir documentos sem depender de planilhas ou de vários apps soltos.
         </p>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {painPoints.map((item) => (

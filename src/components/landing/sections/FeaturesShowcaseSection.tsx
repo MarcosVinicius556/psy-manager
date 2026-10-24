@@ -8,10 +8,10 @@ export default function FeaturesShowcaseSection() {
       <div className="site-container">
         <SectionLabel>Funcionalidades</SectionLabel>
         <h2 className="landing-display mt-4 max-w-2xl text-[clamp(1.85rem,1.1rem+2.6vw,3rem)] leading-[1.08] tracking-[-0.03em]">
-          O produto real — capturas do painel
+          Veja o painel como você vai usar
         </h2>
         <p className="mt-4 max-w-2xl text-muted">
-          Imagens geradas no ambiente de demonstração, com nomes fictícios. Sem mockups desenhados: é o mesmo admin que você usa após o login.
+          Telas reais do sistema, com dados de demonstração e nomes fictícios — o mesmo visual após o login.
         </p>
 
         <div className="mt-12 space-y-16 sm:mt-20 sm:space-y-24">

@@ -18,7 +18,10 @@
     "e2e:seed": "tsx scripts/e2e/seed-emulator.ts",
     "landing:seed": "tsx scripts/landing/seed-landing-demo.ts",
     "landing:screenshots": "node scripts/landing/run-screenshots.mjs",
-    "migrate:cloudinary-auth": "tsx scripts/migrate-cloudinary-to-authenticated.ts"
+    "migrate:cloudinary-auth": "tsx scripts/migrate-cloudinary-to-authenticated.ts",
+    "backup:export": "tsx scripts/backup/export-firestore.ts",
+    "backup:run": "tsx scripts/backup/run-backup.ts",
+    "backup:verify": "firebase emulators:exec --project backup-verify-src --only firestore,auth \"tsx scripts/backup/verify.ts\""
   },
   "dependencies": {
     "cloudinary": "^2.11.0",

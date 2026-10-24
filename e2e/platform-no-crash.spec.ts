@@ -86,13 +86,13 @@ test.describe("platform routes — no client exceptions", () => {
       await page.goto("/admin", { waitUntil: "load" });
       await page.waitForTimeout(800);
 
-      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 1024;
       if (isMobile) {
-        await page.getByRole("button", { name: "Abrir menu" }).click();
+        await page.getByTestId("mobile-tabbar-menu").click();
       }
 
       const plataformaLink = isMobile
-        ? page.locator("#admin-mobile-nav a[href='/plataforma']")
+        ? page.getByTestId("admin-mobile-menu-sheet").locator("a[href='/plataforma']")
         : page.locator("aside a[href='/plataforma']");
       await expect(plataformaLink).toBeVisible({ timeout: 60_000 });
       await plataformaLink.click();
