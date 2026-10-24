@@ -14,6 +14,7 @@ import {
   HiOutlineX,
 } from "react-icons/hi";
 import { OnboardingCard } from "@/components/admin/AccountStatus";
+import { AdminStaggerItem } from "@/components/admin/motion/AdminPageMotion";
 import { Card, Empty, PageTitle } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import {
@@ -302,21 +303,36 @@ export default function CustomizableDashboard() {
                   overId === widget.id && dragId !== widget.id ? "outline-teal" : "outline-leaf"
                 } ${dragId === widget.id ? "opacity-50" : ""}`
               : "";
-            return (
-              <div
-                key={widget.id}
-                className={`flex min-w-0 flex-col [&>section]:flex-1 ${widgetGridClass(widget)} ${editClasses}`}
-                draggable={editing}
-                onDragStart={editing ? (event) => onDragStart(event, widget.id) : undefined}
-                onDragOver={editing ? (event) => onDragOver(event, widget.id) : undefined}
-                onDrop={editing ? (event) => onDrop(event, widget.id) : undefined}
-                onDragEnd={editing ? clearDrag : undefined}
-              >
+            const cellClass = `flex min-w-0 flex-col [&>section]:flex-1 ${widgetGridClass(widget)} ${editClasses}`;
+            const body = (
+              <>
                 {editing ? (
                   <WidgetToolbar widget={widget} first={index === 0} last={index === visible.length - 1} onChange={update} />
                 ) : null}
                 <Widget />
-              </div>
+              </>
+            );
+
+            if (editing) {
+              return (
+                <div
+                  key={widget.id}
+                  className={cellClass}
+                  draggable
+                  onDragStart={(event) => onDragStart(event, widget.id)}
+                  onDragOver={(event) => onDragOver(event, widget.id)}
+                  onDrop={(event) => onDrop(event, widget.id)}
+                  onDragEnd={clearDrag}
+                >
+                  {body}
+                </div>
+              );
+            }
+
+            return (
+              <AdminStaggerItem key={widget.id} className={cellClass}>
+                {body}
+              </AdminStaggerItem>
             );
           })}
         </div>

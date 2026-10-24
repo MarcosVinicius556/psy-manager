@@ -24,7 +24,7 @@ export default function ListCard({
   children?: ReactNode;
 }) {
   const className =
-    "box-border flex w-full max-w-full min-w-0 min-h-[4.5rem] gap-3 overflow-hidden rounded-md border border-[#e7eee8] bg-white px-4 py-3 text-left shadow-[0_8px_24px_rgba(61,82,64,0.06)] transition-colors active:bg-sky-soft/60";
+    "motion-press admin-card box-border flex w-full max-w-full min-w-0 min-h-[4.5rem] gap-3 overflow-hidden border border-[#e7eee8] bg-white px-4 py-3.5 text-left transition-colors active:bg-sky-soft/60";
 
   const body = (
     <>

@@ -1,16 +1,25 @@
 "use client";
 
 import type { ReactNode } from "react";
+import StaggerChildren from "@/components/admin/motion/StaggerChildren";
 import { AdminAccountNotices } from "@/components/admin/AccountStatus";
 import { useOptionalAdminPageMeta, useSetAdminPageMeta } from "@/lib/admin/page-meta-context";
 import { useOptionalSaas } from "@/lib/saas/context";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`min-w-0 overflow-hidden rounded-md bg-white p-4 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-6 ${className}`}>
+    <section className={`admin-card min-w-0 overflow-hidden bg-white p-5 sm:p-6 ${className}`}>
       {children}
     </section>
   );
+}
+
+export function CardTitle({ children }: { children: ReactNode }) {
+  return <p className="text-xs font-semibold tracking-wide text-muted uppercase">{children}</p>;
+}
+
+export function CardMetric({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <p className={`font-num text-4xl font-bold leading-none text-teal sm:text-5xl ${className}`}>{children}</p>;
 }
 
 export function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
@@ -118,8 +127,8 @@ export function ResponsiveTableWrap({ children, className = "" }: { children: Re
 
 export function MobileListGrid({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`mobile-list-grid admin-mobile-only ${className}`} data-mobile-list>
-      {children}
+    <div className={`mobile-list-grid admin-mobile-only ${className}`} data-mobile-list data-admin-stagger-grid>
+      <StaggerChildren>{children}</StaggerChildren>
     </div>
   );
 }
