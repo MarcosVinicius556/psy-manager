@@ -68,8 +68,8 @@ export const landingScreenshots = {
 } satisfies Record<string, LandingShot>;
 
 export const heroFanShots = [
-  landingScreenshots.agendaSemana,
   landingScreenshots.pacienteProntuario,
   landingScreenshots.financeiro,
   landingScreenshots.reciboPdf,
+  landingScreenshots.agendaSemana,
 ];

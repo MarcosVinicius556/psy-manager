@@ -3,6 +3,8 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import { assertNoForbiddenScreenshotText, waitForClinicLoaded } from "./assert-screenshot-content.mjs";
+
 function e2eFeedbackDocId(sequence) {
   const tail = String(sequence).padStart(12, "0");
   return ["00000000", "0000", "4000", "8000", tail].join("-");
@@ -14,37 +16,84 @@ const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
 const outDir = path.join(process.cwd(), "public", "landing");
 
 const shots = [
-  { name: "admin-inicio", route: "/admin", desktop: true, prepare: dismissCookies },
+  {
+    name: "admin-inicio",
+    route: "/admin",
+    desktop: true,
+    admin: true,
+    prepare: dismissCookies,
+    ready: async (page) => {
+      await page.getByRole("heading", { name: "Início" }).waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByText(/Total (recebido|a receber)/i).first().waitFor({ state: "visible", timeout: 60_000 });
+    },
+  },
   {
     name: "agenda-semana",
     route: "/admin/agenda",
     desktop: true,
+    admin: true,
     prepare: async (page) => {
       await dismissCookies(page);
       const week = page.getByRole("button", { name: "Semana" });
       if (await week.count()) await week.click();
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(500);
+    },
+    ready: async (page) => {
+      await page.getByText("Ana Souza").first().waitFor({ state: "visible", timeout: 60_000 });
     },
   },
   {
     name: "paciente-prontuario",
     route: "/admin/pacientes/pat-ana",
     desktop: true,
+    admin: true,
     prepare: dismissCookies,
+    ready: async (page) => {
+      await page.getByRole("heading", { name: "Ana Souza" }).waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByText("Linha do tempo").waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByText("Visualizar").first().waitFor({ state: "visible", timeout: 60_000 });
+    },
   },
-  { name: "financeiro", route: "/admin/financeiro", desktop: true, prepare: dismissCookies },
-  { name: "receita-saude", route: "/admin/financeiro/receita-saude", desktop: true, prepare: dismissCookies },
+  {
+    name: "financeiro",
+    route: "/admin/financeiro",
+    desktop: true,
+    admin: true,
+    prepare: dismissCookies,
+    ready: async (page) => {
+      await page.getByRole("heading", { name: "Contas a receber" }).waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByText("Ana Souza").first().waitFor({ state: "visible", timeout: 60_000 });
+    },
+  },
+  {
+    name: "receita-saude",
+    route: "/admin/financeiro/receita-saude",
+    desktop: true,
+    admin: true,
+    prepare: dismissCookies,
+    ready: async (page) => {
+      await page.getByText(/Receita Saúde/i).first().waitFor({ state: "visible", timeout: 60_000 });
+    },
+  },
   {
     name: "avaliacao-paciente",
     route: `/feedback/${e2eFeedbackDocId(1)}`,
     desktop: true,
+    admin: false,
     prepare: dismissCookies,
+    ready: async (page) => {
+      await page.getByText(/Ana Souza/i).first().waitFor({ state: "visible", timeout: 60_000 });
+    },
   },
   {
     name: "avaliacao-paciente-mobile",
     route: `/feedback/${e2eFeedbackDocId(1)}`,
     desktop: false,
+    admin: false,
     prepare: dismissCookies,
+    ready: async (page) => {
+      await page.getByText(/Ana Souza/i).first().waitFor({ state: "visible", timeout: 60_000 });
+    },
   },
 ];
 
@@ -59,8 +108,15 @@ async function dismissCookies(page) {
 async function login(page) {
   await page.goto(`${baseURL}/admin/login`, { waitUntil: "domcontentloaded" });
   await dismissCookies(page);
-  await page.getByPlaceholder("Seu e-mail").fill(demoEmail);
-  await page.getByPlaceholder("Sua senha").fill(demoPassword);
+  const email = page.locator('input[autocomplete="email"]');
+  const password = page.locator('input[autocomplete="current-password"]');
+  await email.waitFor({ state: "visible", timeout: 120_000 });
+  if (await page.getByRole("heading", { name: "Painel indisponível no momento" }).isVisible().catch(() => false)) {
+    await page.getByRole("button", { name: "Tentar novamente" }).click();
+    await email.waitFor({ state: "visible", timeout: 120_000 });
+  }
+  await email.fill(demoEmail);
+  await password.fill(demoPassword);
   await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("/login"), {
     timeout: 120_000,
@@ -76,11 +132,25 @@ async function saveWebpAvif(pngBuffer, name) {
   return { webp, avif };
 }
 
-async function capture(page, name) {
+async function captureTarget(page, admin) {
+  if (!admin) {
+    return page;
+  }
+  const content = page.locator("div.mx-auto.max-w-\\[1200px\\]").first();
+  await content.waitFor({ state: "visible", timeout: 60_000 });
+  return content;
+}
+
+async function capture(page, shot) {
   await page.waitForLoadState("networkidle", { timeout: 60_000 }).catch(() => {});
-  await page.waitForTimeout(800);
-  const png = await page.screenshot({ type: "png", fullPage: false });
-  return saveWebpAvif(png, name);
+  if (shot.admin) await waitForClinicLoaded(page);
+  if (shot.ready) await shot.ready(page);
+  await assertNoForbiddenScreenshotText(page);
+  await page.waitForTimeout(300);
+  const target = await captureTarget(page, shot.admin);
+  const png = await target.screenshot({ type: "png", animations: "disabled" });
+  await assertNoForbiddenScreenshotText(page);
+  return png;
 }
 
 async function main() {
@@ -89,7 +159,7 @@ async function main() {
 
   const desktopContext = await browser.newContext({
     viewport: { width: 1440, height: 900 },
-    deviceScaleFactor: 1,
+    deviceScaleFactor: 2,
   });
   const desktopPage = await desktopContext.newPage();
   await login(desktopPage);
@@ -98,7 +168,8 @@ async function main() {
   for (const shot of shots.filter((s) => s.desktop)) {
     await desktopPage.goto(`${baseURL}${shot.route}`, { waitUntil: "domcontentloaded" });
     if (shot.prepare) await shot.prepare(desktopPage);
-    written.push(await capture(desktopPage, shot.name));
+    const png = await capture(desktopPage, shot);
+    written.push(await saveWebpAvif(png, shot.name));
   }
   await desktopContext.close();
 
@@ -110,7 +181,8 @@ async function main() {
   for (const shot of shots.filter((s) => !s.desktop)) {
     await mobilePage.goto(`${baseURL}${shot.route}`, { waitUntil: "domcontentloaded" });
     if (shot.prepare) await shot.prepare(mobilePage);
-    written.push(await capture(mobilePage, shot.name));
+    const png = await capture(mobilePage, shot);
+    written.push(await saveWebpAvif(png, shot.name));
   }
   await mobileContext.close();
 

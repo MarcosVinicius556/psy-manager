@@ -63,7 +63,22 @@ async function main() {
     termsAcceptedAt: now,
   });
 
-  await db.doc(`users/${uid}`).set({ ...trial, role: "super_admin" }, { merge: true });
+  await db.doc(`users/${uid}`).set({ ...trial, role: "super_admin", onboardingDismissed: true }, { merge: true });
+
+  await db.collection("memberPrivate").doc(uid).set(
+    {
+      ownerUid: uid,
+      cpf: "52998224725",
+      crpNumero: "12345",
+      crpRegiao: "06",
+      enderecoLogradouro: "Rua das Flores, 120 — Sala 302",
+      enderecoCidade: "Chapecó",
+      enderecoUf: "SC",
+      enderecoCep: "89801000",
+      updatedAt: now,
+    },
+    { merge: true }
+  );
   await seedLegalAcceptances(uid);
   await db.doc(`trialClaims/${DEMO_EMAIL}`).set({
     email: DEMO_EMAIL,
