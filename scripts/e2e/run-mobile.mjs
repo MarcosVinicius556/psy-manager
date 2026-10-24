@@ -78,6 +78,8 @@ async function main() {
     "e2e/landing-header.spec.ts",
     "e2e/platform-no-crash.spec.ts",
     "e2e/no-horizontal-scroll.spec.ts",
+    "e2e/interactive-buttons.spec.ts",
+    "e2e/agenda-calendar.spec.ts",
   ]);
   shutdown();
 }

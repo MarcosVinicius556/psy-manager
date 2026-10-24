@@ -19,6 +19,7 @@ export default defineConfig({
     { name: "mobile-360", use: { ...devices["Pixel 5"], viewport: { width: 360, height: 780 } } },
     { name: "mobile-390", use: { viewport: { width: 390, height: 844 } } },
     { name: "mobile-412", use: { viewport: { width: 412, height: 915 } } },
+    { name: "desktop-1280", use: { viewport: { width: 1280, height: 900 } } },
     { name: "desktop-1440", use: { viewport: { width: 1440, height: 900 } } },
   ],
 });

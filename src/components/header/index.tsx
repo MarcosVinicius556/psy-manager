@@ -108,7 +108,7 @@ export default function Header() {
     {open && (
       <button
         type="button"
-        className="fixed inset-0 z-[999] bg-teal/30 xl:hidden"
+        className="fixed inset-0 z-[1002] bg-teal/30 xl:hidden"
         aria-label="Fechar menu"
         onClick={() => setOpen(false)}
       />
@@ -120,7 +120,7 @@ export default function Header() {
       aria-label="Seções"
       inert={open ? undefined : true}
       aria-hidden={open ? undefined : true}
-      className={`landing fixed inset-y-0 right-0 z-[1001] flex w-[min(20rem,86vw)] flex-col gap-1 overflow-y-auto bg-paper px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] shadow-[-20px_0_40px_rgba(61,82,64,0.1)] transition-transform duration-300 ease-in-out xl:hidden ${
+      className={`landing fixed inset-y-0 right-0 z-[1002] flex w-[min(20rem,86vw)] flex-col gap-1 overflow-y-auto bg-paper px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] shadow-[-20px_0_40px_rgba(61,82,64,0.1)] transition-transform duration-300 ease-in-out xl:hidden ${
         open ? "translate-x-0" : "pointer-events-none translate-x-full"
       }`}
     >

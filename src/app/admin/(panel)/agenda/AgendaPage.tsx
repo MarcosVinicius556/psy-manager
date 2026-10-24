@@ -12,6 +12,7 @@ import SetupNeeded from "@/components/admin/SetupNeeded";
 import DayStrip from "@/components/admin/mobile/DayStrip";
 import DesktopOnly from "@/components/admin/mobile/DesktopOnly";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
+import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
@@ -37,7 +38,8 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const initial = params.get("date") || todayISO();
+  const dateParam = params.get("date");
+  const initial = dateParam || todayISO();
   const { user } = useAuth();
   const { appointments, patients, members, locations, loading, patientName, memberName, locationName } = useClinic();
   const [period, setPeriod] = useState<Period>(locationId ? "hoje" : "mes");
@@ -58,6 +60,12 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   useEffect(() => {
     if (locationId) setPlaceId(locationId);
   }, [locationId]);
+
+  useEffect(() => {
+    if (!dateParam) return;
+    setSelected(dateParam);
+    setMonth(dateParam.slice(0, 7));
+  }, [dateParam]);
 
   useEffect(() => {
     let active = true;
@@ -145,6 +153,12 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
     }
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  function selectDate(date: string) {
+    setSelected(date);
+    setMonth(date.slice(0, 7));
+    replaceQuery({ date });
   }
 
   function closeDrawer() {
@@ -237,7 +251,19 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           />
         </div>
       )}
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+      <div className="mb-4 md:hidden">
+        <SegmentedControl
+          value={period}
+          ariaLabel="Período da agenda"
+          options={[
+            { value: "hoje", label: "Hoje" },
+            { value: "semana", label: "Semana" },
+            { value: "mes", label: "Mês" },
+          ]}
+          onChange={setPeriod}
+        />
+      </div>
+      <div className="mb-4 hidden flex-wrap gap-2 md:flex">
         {(
           [
             ["hoje", "Hoje"],
@@ -257,18 +283,11 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
       </div>
       {(period === "hoje" || period === "semana") && (
         <div className="mb-4 md:hidden">
-          <DayStrip
-            selected={selected}
-            marks={marks}
-            onSelect={(date) => {
-              setSelected(date);
-              setMonth(date.slice(0, 7));
-            }}
-          />
+          <DayStrip selected={selected} marks={marks} onSelect={selectDate} />
         </div>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <Card className={`max-lg:order-2 ${period === "hoje" ? "max-md:hidden" : ""}`}>
+        <Card className={`max-lg:order-2 ${period === "hoje" || period === "semana" ? "max-md:hidden" : ""}`}>
           <p className="mb-3 text-sm text-ink">
             Marcações do local <strong>{placeName}</strong>
           </p>
@@ -281,14 +300,13 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
               setPeriod("mes");
             }}
             onSelect={(date) => {
-              setSelected(date);
-              setMonth(date.slice(0, 7));
+              selectDate(date);
               if (period === "mes") setPeriod("hoje");
             }}
           />
         </Card>
-        <Card className="max-lg:order-1">
-          <h2 className="mb-1 text-2xl font-medium text-teal">{formatDate(selected)}</h2>
+        <Card className={`max-lg:order-1 ${period === "mes" ? "max-md:hidden" : ""}`} data-agenda-day-card>
+          <h2 className="mb-1 text-2xl font-medium text-teal" data-agenda-selected-date>{formatDate(selected)}</h2>
           <p className="mb-1 text-sm font-medium text-ink">{placeName}</p>
           <p className="mb-4 text-sm text-muted">
             {dayRanges
