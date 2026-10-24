@@ -16,6 +16,8 @@
     "verify": "npm run typecheck && npm run lint && npm test && npm run test:rules && npm run build",
     "e2e:mobile": "node scripts/e2e/run-mobile.mjs",
     "e2e:seed": "tsx scripts/e2e/seed-emulator.ts",
+    "landing:seed": "tsx scripts/landing/seed-landing-demo.ts",
+    "landing:screenshots": "node scripts/landing/run-screenshots.mjs",
     "migrate:cloudinary-auth": "tsx scripts/migrate-cloudinary-to-authenticated.ts"
   },
   "dependencies": {
@@ -49,6 +51,7 @@
     "eslint-config-next": "^15.5.28",
     "firebase-tools": "^14.0.0",
     "postcss": "^8.5.26",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.20.0",
     "typescript": "^5",

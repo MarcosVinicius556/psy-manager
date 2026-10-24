@@ -11,6 +11,7 @@ export async function loginAsDemo(page: Page) {
   await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("/login"), {
     timeout: 90_000,
   });
-  await expect(page.getByRole("button", { name: "Abrir menu" })).toBeVisible({ timeout: 90_000 });
-  await expect(page.locator(".admin-tabbar")).toBeVisible({ timeout: 90_000 });
+  const mobileMenu = page.getByRole("button", { name: "Abrir menu" });
+  const desktopHome = page.getByRole("link", { name: "Início" }).first();
+  await expect(mobileMenu.or(desktopHome)).toBeVisible({ timeout: 90_000 });
 }
