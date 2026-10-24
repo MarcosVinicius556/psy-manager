@@ -12,10 +12,10 @@ export default function LandingFaq() {
             <h2 className="landing-display mt-4 text-[clamp(1.85rem,1.1rem+2.6vw,3rem)] leading-[1.08] tracking-[-0.03em]">
               O que já dá para saber antes de entrar
             </h2>
-            <div className="mt-8 grid gap-3">
+            <div className="mt-8 grid gap-4">
               {faqItems.map(([question, answer]) => (
                 <details key={question} className="landing-card-v2 rounded-[18px] border border-[#e8e4dc] bg-white p-5">
-                  <summary className="cursor-pointer text-lg font-semibold text-teal">{question}</summary>
+                  <summary className="flex min-h-11 cursor-pointer items-center text-lg font-semibold text-teal">{question}</summary>
                   <p className="mt-3 leading-relaxed text-muted">{answer}</p>
                 </details>
               ))}

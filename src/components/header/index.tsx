@@ -61,7 +61,7 @@ export default function Header() {
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
       <div className="site-container relative z-[1002] flex items-center justify-between gap-3">
-        <Link href="/" className="flex min-w-0 items-center" onClick={() => setOpen(false)} aria-label="Psy Manager">
+        <Link href="/" className="flex min-h-11 min-w-11 items-center" onClick={() => setOpen(false)} aria-label="Psy Manager">
           <BrandLogo
             variant="lockup"
             height={40}
