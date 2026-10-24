@@ -1,6 +1,6 @@
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { Appointment, Patient } from "@/lib/admin/types";
-import { appointmentEventTitle, appointmentToGoogleEventBody } from "./event-mapping";
+import { appointmentEventTitle, appointmentToGoogleEventBody, extractGoogleMeetLink } from "./event-mapping";
 import { locationIntegrationKey, userIntegrationKey } from "./integration-keys";
 import {
   createCalendarEvent,
@@ -46,6 +46,7 @@ async function syncOneCalendar(options: {
   eventField: "googleEventId" | "googleLocationEventId";
   title: string;
   includePatientInTitle: boolean;
+  withMeet?: boolean;
   clinicOwnerUid: string;
 }) {
   const integration = await readIntegration(options.integrationKey);
@@ -75,22 +76,36 @@ async function syncOneCalendar(options: {
   const resolvedTitle = options.includePatientInTitle
     ? appointmentEventTitle(integration.eventTitleMode, patient ?? undefined)
     : options.title;
-  const body = appointmentToGoogleEventBody(options.appointment, resolvedTitle);
+  const withMeet = Boolean(options.withMeet && options.appointment.modality === "online");
+  const body = appointmentToGoogleEventBody(options.appointment, resolvedTitle, undefined, {
+    withMeet,
+    meetRequestId: `psy-${options.appointmentId}`,
+  });
 
   if (existingEventId) {
-    await updateCalendarEvent(accessToken, calendarId, existingEventId, body);
-    return { ok: true, googleEventId: existingEventId };
+    const updated = await updateCalendarEvent(accessToken, calendarId, existingEventId, body);
+    const meetLink = withMeet ? extractGoogleMeetLink(updated) : null;
+    const ref = appointmentDoc(options.appointmentId);
+    if (ref && withMeet) {
+      await ref.update({
+        googleMeetLink: meetLink,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    return { ok: true, googleEventId: existingEventId, googleMeetLink: meetLink };
   }
 
-  const eventId = await createCalendarEvent(accessToken, calendarId, body);
+  const created = await createCalendarEvent(accessToken, calendarId, body);
+  const meetLink = withMeet ? extractGoogleMeetLink(created) : null;
   const ref = appointmentDoc(options.appointmentId);
   if (ref) {
     await ref.update({
-      [options.eventField]: eventId,
+      [options.eventField]: created.id,
+      ...(withMeet ? { googleMeetLink: meetLink } : {}),
       updatedAt: new Date().toISOString(),
     });
   }
-  return { ok: true, googleEventId: eventId };
+  return { ok: true, googleEventId: created.id, googleMeetLink: meetLink };
 }
 
 export async function syncAppointmentForUser(uid: string, appointmentId: string, action: "upsert" | "delete") {
@@ -111,6 +126,7 @@ export async function syncAppointmentTargets(appointmentId: string, action: "ups
     professionalUid &&
     professionalIntegrationApplies(professionalIntegration, appointment, professionalUid, memberIdForProfessional)
   ) {
+    const teleconsulta = appointment.modality === "online";
     results.professional = await syncOneCalendar({
       integrationKey: userIntegrationKey(professionalUid),
       appointmentId,
@@ -118,7 +134,8 @@ export async function syncAppointmentTargets(appointmentId: string, action: "ups
       action,
       eventField: "googleEventId",
       title: "Atendimento",
-      includePatientInTitle: true,
+      includePatientInTitle: !teleconsulta,
+      withMeet: teleconsulta,
       clinicOwnerUid: appointment.ownerUid || professionalUid,
     });
   }

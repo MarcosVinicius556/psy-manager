@@ -76,7 +76,7 @@ Sem o documento `super_admin` criado no console, o cadastro público não tem co
 - Revisão jurídica de termos, política, base legal de dados de saúde, retenção e canal do titular. O aceite atual não substitui isso.
 - Autenticação em duas etapas do proprietário: o Firebase permite MFA no projeto, e isso vale para o Authentication inteiro. Não foi ligado no código para não alterar o login de todos os profissionais sem essa decisão.
 - App Check, se o cadastro público passar a receber abuso além do limite que o próprio Firebase já aplica.
-- Job agendado, se quiser avisos de trial sem esperar a pessoa entrar. A regra de acesso já não depende desse job.
+- Há um cron diário na Vercel (`/api/cron/trial-notifications`) que cria avisos de trial (7, 3, 1 dia e encerramento) e tenta e-mail quando o SMTP está configurado. Ele exige `CRON_SECRET` no ambiente e no header `Authorization: Bearer …`. A regra de acesso continua independente desse job.
 
 ## Testes
 

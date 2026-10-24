@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, Empty, PageTitle } from "@/components/admin/ui";
 import { formatPrice, signupBuckets, summarizeAccounts, type AccountRecord, type PlanDefinition } from "@/lib/saas/model";
-import { listManagedAccounts, loadRemotePlans } from "@/lib/saas/platform-store";
+import type { ActivationEventRecord } from "@/lib/saas/activation-events";
+import { listActivationEvents, listManagedAccounts, loadRemotePlans } from "@/lib/saas/platform-store";
+import { ActivationMetricsPanel } from "@/components/plataforma/ActivationMetricsPanel";
 
 const periods = [
   { id: "7", label: "7 dias", days: 7 },
@@ -14,16 +16,18 @@ const periods = [
 
 export default function PlatformHomePage() {
   const [accounts, setAccounts] = useState<AccountRecord[]>([]);
+  const [events, setEvents] = useState<ActivationEventRecord[]>([]);
   const [plans, setPlans] = useState<PlanDefinition[]>([]);
   const [period, setPeriod] = useState("30");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([listManagedAccounts(), loadRemotePlans()])
-      .then(([nextAccounts, nextPlans]) => {
+    Promise.all([listManagedAccounts(), loadRemotePlans(), listActivationEvents()])
+      .then(([nextAccounts, nextPlans, nextEvents]) => {
         setAccounts(nextAccounts);
         setPlans(nextPlans);
+        setEvents(nextEvents);
       })
       .catch(() => setError("Não foi possível ler os indicadores."))
       .finally(() => setLoading(false));
@@ -84,6 +88,7 @@ export default function PlatformHomePage() {
             </Card>
           </div>
           {metrics.total === 0 && <div className="mt-4"><Empty>Ainda não há contas de profissionais para acompanhar.</Empty></div>}
+          <ActivationMetricsPanel events={events} accounts={accounts} />
         </>
       )}
     </div>

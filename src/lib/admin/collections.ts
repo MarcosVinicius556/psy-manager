@@ -22,6 +22,7 @@ import {
   pickMemberPrivateFields,
   stripMemberPrivateFields,
 } from "./member-private";
+import { recordActivationEvent } from "../saas/activation-events";
 import { buildLegacyAccount, buildReplayDeniedAccount, buildTrialAccount, expirePatch } from "../saas/model";
 import { reserveTrial } from "../saas/account-store";
 import { assertClinicWrite } from "../saas/guard";
@@ -40,7 +41,10 @@ import {
   type AppointmentInput,
   type AppointmentStatus,
   type ClinicalRecord,
+  type ClinicalNoteTemplate,
+  type ClinicalTemplateSectionDef,
   type ClinicAttachment,
+  type TcleAcceptance,
   type ClinicMember,
   type CareLocation,
   type DirectoryUser,
@@ -111,11 +115,40 @@ function mapAttachments(value: unknown) {
   return Array.isArray(value) ? value.map(mapAttachment).filter((item): item is ClinicAttachment => Boolean(item)) : [];
 }
 
+function mapSections(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw === "string") out[key] = raw;
+  }
+  return out;
+}
+
+function mapTcleAcceptance(value: unknown): Patient["tcleAceite"] {
+  const data = (value ?? {}) as Partial<Patient["tcleAceite"]> & { arquivo?: unknown };
+  if (!data || typeof data !== "object" || !text(data.acceptedAt)) return null;
+  const method = data.method === "digital" ? "digital" : data.method === "papel" ? "papel" : null;
+  if (!method) return null;
+  return {
+    acceptedAt: text(data.acceptedAt),
+    method,
+    arquivo: mapAttachment(data.arquivo),
+  };
+}
+
 function mapClinical(value: unknown): ClinicalRecord {
   const data = (value ?? {}) as Partial<ClinicalRecord>;
   const base = emptyClinical();
+  const approach = text(data.approach) as ClinicalRecord["approach"];
+  const allowedApproach = ["tcc", "psicanalise", "humanista", "sistemica", "livre", "custom"].includes(approach)
+    ? approach
+    : "";
   return {
     mood: (data.mood as Mood) || "",
+    approach: allowedApproach,
+    templateId: text(data.templateId),
+    sections: mapSections(data.sections),
+    restrictedNote: text(data.restrictedNote),
     clinicalEvolution: text(data.clinicalEvolution),
     notes: text(data.notes),
     aspectosCognitivos: text(data.aspectosCognitivos),
@@ -158,6 +191,7 @@ function mapPatient(id: string, data: DocumentData): Patient {
     foto: text(data.foto),
     fotoAsset: mapCloudinaryAsset(data.fotoAsset) ?? null,
     contratoAssinado: mapAttachment(data.contratoAssinado),
+    tcleAceite: mapTcleAcceptance(data.tcleAceite),
     status: data.status === "inativo" ? "inativo" : "ativo",
     createdAt: text(data.createdAt),
   };
@@ -193,6 +227,7 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
     accessUids: strings(data.accessUids),
     googleEventId: data.googleEventId ? text(data.googleEventId) : null,
     googleLocationEventId: data.googleLocationEventId ? text(data.googleLocationEventId) : null,
+    googleMeetLink: data.googleMeetLink ? text(data.googleMeetLink) : null,
     createdAt: text(data.createdAt),
     updatedAt: text(data.updatedAt),
   };
@@ -682,6 +717,11 @@ export async function setPatientSignedContract(id: string, file: ClinicAttachmen
   await updateDoc(doc(getFirebaseDb(), "patients", id), { contratoAssinado: file });
 }
 
+export async function setPatientTcleAcceptance(id: string, aceite: TcleAcceptance | null) {
+  assertClinicWrite();
+  await updateDoc(doc(getFirebaseDb(), "patients", id), { tcleAceite: aceite });
+}
+
 export async function createAppointment(input: AppointmentInput, accessUids: string[] = []) {
   assertClinicWrite();
   const now = new Date().toISOString();
@@ -718,6 +758,14 @@ export async function updateAppointment(id: string, patch: Partial<AppointmentIn
   const payload = stripClinicalFromAppointmentInput(rest as AppointmentInput);
   await updateDoc(doc(getFirebaseDb(), "appointments", id), {
     ...payload,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function updateAppointmentMeetLink(id: string, googleMeetLink: string | null) {
+  assertClinicWrite();
+  await updateDoc(doc(getFirebaseDb(), "appointments", id), {
+    googleMeetLink,
     updatedAt: new Date().toISOString(),
   });
 }
@@ -835,6 +883,7 @@ async function upsertPsychologistOnce(uid: string, email: string, extras?: { nom
       ? buildTrialAccount({ uid, email: normalized, nome: extras?.nome?.trim() || normalized.split("@")[0], clinicName: "", now: Date.now(), termsAcceptedAt: stamp })
       : buildReplayDeniedAccount({ uid, email: normalized, nome: extras?.nome?.trim() || normalized.split("@")[0], clinicName: "", now: Date.now(), termsAcceptedAt: stamp });
     await setDoc(userRef, account);
+    await recordActivationEvent(uid, "signup", stamp);
   } else {
     await setDoc(userRef, { uid, email: normalized, role }, { merge: true });
     const data = profile.data() ?? {};
@@ -1265,5 +1314,92 @@ export async function writeContractTemplate(input: { nome: string; conteudo: str
 export async function removeContractTemplate(id: string) {
   assertClinicWrite();
   await deleteDoc(doc(getFirebaseDb(), "contractTemplates", id));
+}
+
+function mapClinicalTemplateSection(value: unknown): ClinicalTemplateSectionDef | null {
+  const data = (value ?? {}) as Partial<ClinicalTemplateSectionDef>;
+  const key = text(data.key);
+  const label = text(data.label);
+  if (!key || !label) return null;
+  const mapTo = text(data.mapTo);
+  const allowed = new Set([
+    "clinicalEvolution",
+    "notes",
+    "aspectosCognitivos",
+    "aspectosEmocionais",
+    "intervencoes",
+    "objetivos",
+    "evolucaoSessao",
+  ]);
+  return {
+    key,
+    label,
+    mapTo: allowed.has(mapTo) ? (mapTo as ClinicalTemplateSectionDef["mapTo"]) : undefined,
+  };
+}
+
+function mapClinicalNoteTemplate(id: string, data: DocumentData): ClinicalNoteTemplate | null {
+  const nome = text(data.nome);
+  if (!nome) return null;
+  const approachRaw = text(data.approach);
+  const approach = (["tcc", "psicanalise", "humanista", "sistemica", "livre", "custom"].includes(approachRaw)
+    ? approachRaw
+    : "custom") as ClinicalNoteTemplate["approach"];
+  const sections = Array.isArray(data.sections)
+    ? data.sections.map(mapClinicalTemplateSection).filter((item): item is ClinicalTemplateSectionDef => Boolean(item))
+    : [];
+  const createdAt = text(data.createdAt);
+  return {
+    id,
+    nome,
+    approach,
+    sections,
+    createdAt,
+    updatedAt: text(data.updatedAt) || createdAt,
+  };
+}
+
+export async function listClinicalNoteTemplates() {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const snapshot = await getDocs(
+    query(collection(getFirebaseDb(), "clinicalNoteTemplates"), where("ownerUid", "==", uid))
+  );
+  return snapshot.docs
+    .map((item) => mapClinicalNoteTemplate(item.id, item.data()))
+    .filter((item): item is ClinicalNoteTemplate => Boolean(item))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export async function writeClinicalNoteTemplate(
+  input: { nome: string; approach: ClinicalNoteTemplate["approach"]; sections: ClinicalTemplateSectionDef[] },
+  id?: string
+) {
+  assertClinicWrite();
+  const now = new Date().toISOString();
+  const nome = input.nome.trim() || "Modelo de prontuário";
+  const sections = input.sections.filter((item) => item.key.trim() && item.label.trim());
+  if (!sections.length) throw new Error("Informe ao menos uma seção no modelo.");
+  const payload = {
+    nome,
+    approach: input.approach,
+    sections,
+    ownerUid: currentOwnerUid(),
+    updatedAt: now,
+  };
+  if (!id) {
+    const ref = await addDoc(collection(getFirebaseDb(), "clinicalNoteTemplates"), {
+      ...payload,
+      createdAt: now,
+    });
+    return ref.id;
+  }
+  await updateDoc(doc(getFirebaseDb(), "clinicalNoteTemplates", id), payload);
+  return id;
+}
+
+export async function removeClinicalNoteTemplate(id: string) {
+  assertClinicWrite();
+  await deleteDoc(doc(getFirebaseDb(), "clinicalNoteTemplates", id));
 }
 

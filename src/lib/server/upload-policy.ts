@@ -8,6 +8,7 @@ export type UploadKind =
   | "avatar"
   | "patient-photo"
   | "patient-contract"
+  | "patient-tcle"
   | "appointment-anamnese"
   | "appointment-atividade"
   | "payment-receipt"
@@ -21,6 +22,7 @@ export function parseUploadKind(value: string | null): UploadKind | null {
     "avatar",
     "patient-photo",
     "patient-contract",
+    "patient-tcle",
     "appointment-anamnese",
     "appointment-atividade",
     "payment-receipt",
@@ -51,6 +53,12 @@ export async function resolveUploadFolder(
       if (!patientId) return { error: "Paciente inválido.", status: 400 };
       if (!(await patientOwnedByUid(patientId, uid))) return { error: "Sem permissão para este paciente.", status: 403 };
       return { folder: `clinic/${uid}/patients/${patientId}/contracts` };
+    }
+    case "patient-tcle": {
+      const patientId = ids.patientId?.trim() || "";
+      if (!patientId) return { error: "Paciente inválido.", status: 400 };
+      if (!(await patientOwnedByUid(patientId, uid))) return { error: "Sem permissão para este paciente.", status: 403 };
+      return { folder: `clinic/${uid}/patients/${patientId}/tcle` };
     }
     case "appointment-anamnese":
     case "appointment-atividade": {

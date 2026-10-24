@@ -53,6 +53,14 @@ export interface FiscalReceiptRecord {
   valor: number;
 }
 
+export type TcleAcceptanceMethod = "papel" | "digital";
+
+export interface TcleAcceptance {
+  acceptedAt: string;
+  method: TcleAcceptanceMethod;
+  arquivo: ClinicAttachment | null;
+}
+
 export interface Patient {
   id: string;
   nome: string;
@@ -69,12 +77,19 @@ export interface Patient {
   foto: string;
   fotoAsset?: CloudinaryAsset | null;
   contratoAssinado: ClinicAttachment | null;
+  tcleAceite: TcleAcceptance | null;
   status: PatientStatus;
   createdAt: string;
 }
 
+export type ClinicalApproachId = "tcc" | "psicanalise" | "humanista" | "sistemica" | "livre" | "custom";
+
 export interface ClinicalRecord {
   mood: Mood | "";
+  approach: ClinicalApproachId | "";
+  templateId: string;
+  sections: Record<string, string>;
+  restrictedNote: string;
   clinicalEvolution: string;
   notes: string;
   aspectosCognitivos: string;
@@ -84,6 +99,25 @@ export interface ClinicalRecord {
   evolucaoSessao: string;
   anamneseArquivos: ClinicAttachment[];
   atividadesArquivos: ClinicAttachment[];
+}
+
+export interface ClinicalTemplateSectionDef {
+  key: string;
+  label: string;
+  /** Campo legado do prontuário preenchido por esta seção. */
+  mapTo?: keyof Omit<
+    ClinicalRecord,
+    "mood" | "approach" | "templateId" | "sections" | "restrictedNote" | "anamneseArquivos" | "atividadesArquivos"
+  >;
+}
+
+export interface ClinicalNoteTemplate {
+  id: string;
+  nome: string;
+  approach: ClinicalApproachId;
+  sections: ClinicalTemplateSectionDef[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CareLocation {
@@ -120,6 +154,7 @@ export interface Appointment {
   accessUids: string[];
   googleEventId: string | null;
   googleLocationEventId: string | null;
+  googleMeetLink: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -245,11 +280,22 @@ export interface PaymentNotification {
   createdAt: string;
 }
 
-export type PatientInput = Omit<Patient, "id" | "createdAt" | "contratoAssinado">;
+export type PatientInput = Omit<Patient, "id" | "createdAt" | "contratoAssinado" | "tcleAceite">;
 export type AppointmentInput = Omit<
   Appointment,
-  "id" | "createdAt" | "updatedAt" | "accessUids" | "creditoEmHaver" | "googleEventId" | "googleLocationEventId"
-> & { googleEventId?: string | null; googleLocationEventId?: string | null };
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "accessUids"
+  | "creditoEmHaver"
+  | "googleEventId"
+  | "googleLocationEventId"
+  | "googleMeetLink"
+> & {
+  googleEventId?: string | null;
+  googleLocationEventId?: string | null;
+  googleMeetLink?: string | null;
+};
 export type ExpenseInput = Omit<Expense, "id" | "createdAt" | "accessUids" | "ownerUid">;
 export type LocationInput = Pick<CareLocation, "nome" | "endereco" | "observacoes" | "memberIds" | "memberUids">;
 
@@ -307,6 +353,10 @@ export type PaymentInput = Omit<
 export function emptyClinical(): ClinicalRecord {
   return {
     mood: "",
+    approach: "",
+    templateId: "",
+    sections: {},
+    restrictedNote: "",
     clinicalEvolution: "",
     notes: "",
     aspectosCognitivos: "",

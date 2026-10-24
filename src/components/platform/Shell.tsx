@@ -14,6 +14,7 @@ import {
   HiOutlineX,
 } from "react-icons/hi";
 import BrandLogo from "@/components/BrandLogo";
+import MfaEncouragementBanner from "@/components/platform/MfaEncouragementBanner";
 import MobileHeader from "@/components/admin/mobile/MobileHeader";
 import { useAuth } from "@/lib/admin/auth-context";
 import { AdminPageMetaProvider, useAdminPageMeta } from "@/lib/admin/page-meta-context";
@@ -226,7 +227,10 @@ function PlatformShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
       <div className="pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-64">
-        <div className="mx-auto w-full min-w-0 max-w-[1100px] px-4 py-4 sm:px-5 md:py-8">{children}</div>
+        <div className="mx-auto w-full min-w-0 max-w-[1100px] px-4 py-4 sm:px-5 md:py-8">
+          <MfaEncouragementBanner />
+          {children}
+        </div>
       </div>
     </div>
   );

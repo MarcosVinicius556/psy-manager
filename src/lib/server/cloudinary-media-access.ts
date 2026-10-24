@@ -7,6 +7,7 @@ import {
 export type ParsedClinicAssetPath =
   | { kind: "clinic-owner"; ownerUid: string }
   | { kind: "patient-contract"; ownerUid: string; patientId: string }
+  | { kind: "patient-tcle"; ownerUid: string; patientId: string }
   | { kind: "appointment-clinical"; ownerUid: string; appointmentId: string }
   | { kind: "payment-receipt"; ownerUid: string; paymentId: string }
   | { kind: "unsupported" };
@@ -24,6 +25,9 @@ export function parseClinicAssetPath(publicId: string): ParsedClinicAssetPath {
     }
     if (segments.length >= 5 && segments[4] === "contracts") {
       return { kind: "patient-contract", ownerUid, patientId: segments[3] };
+    }
+    if (segments.length >= 5 && segments[4] === "tcle") {
+      return { kind: "patient-tcle", ownerUid, patientId: segments[3] };
     }
   }
   if (area === "appointments" && segments.length >= 5) {
@@ -50,6 +54,7 @@ export async function authorizeClinicMediaAccess(publicId: string, requesterUid:
     case "clinic-owner":
       return parsed.ownerUid === requesterUid;
     case "patient-contract":
+    case "patient-tcle":
       if (parsed.ownerUid !== requesterUid) return false;
       return patientOwnedByUid(parsed.patientId, requesterUid);
     case "appointment-clinical":

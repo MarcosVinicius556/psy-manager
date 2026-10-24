@@ -89,6 +89,7 @@ export default function PatientForm({
               id,
               createdAt: patient?.createdAt || new Date().toISOString(),
               contratoAssinado: patient?.contratoAssinado ?? null,
+              tcleAceite: patient?.tcleAceite ?? null,
             },
             template,
             me

@@ -529,6 +529,13 @@ service cloud.firestore {
       allow delete: if tenantDelete();
     }
 
+    match /clinicalNoteTemplates/{templateId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
     match /integrations/{uid} {
       allow read, write: if false;
     }
@@ -550,6 +557,31 @@ service cloud.firestore {
 
     match /apiPublicFeedbackRateLimits/{docId} {
       allow read, write: if false;
+    }
+
+    function activationEventNameAllowed(name) {
+      return name == "signup"
+        || name == "horarios_definidos"
+        || name == "primeiro_paciente"
+        || name == "primeira_sessao_concluida"
+        || name == "primeiro_pagamento"
+        || name == "ativo_7_dias";
+    }
+
+    match /activationEvents/{eventId} {
+      allow read: if isSuperAdmin();
+      allow create: if signedIn()
+        && request.resource.data.accountId == request.auth.uid
+        && activationEventNameAllowed(request.resource.data.event)
+        && request.resource.data.at is string
+        && eventId == request.resource.data.accountId + "_" + request.resource.data.event
+        && !exists(/databases/$(database)/documents/activationEvents/$(eventId));
+      allow update, delete: if false;
+    }
+
+    match /trialNoticeMarkers/{markerId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
     }
   }
 }

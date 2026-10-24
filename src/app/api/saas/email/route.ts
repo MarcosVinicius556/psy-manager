@@ -1,16 +1,8 @@
-import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
 import { requireAuthUser } from "@/lib/server/require-auth";
+import { operationalMailer, sendOperationalEmail } from "@/lib/server/operational-mail";
 
 export const runtime = "nodejs";
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&" + "amp;")
-    .replace(/</g, "&" + "lt;")
-    .replace(/>/g, "&" + "gt;")
-    .replace(/"/g, "&" + "quot;");
-}
 
 async function readRole(projectId: string, uid: string, idToken: string) {
   const response = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`, {
@@ -19,14 +11,6 @@ async function readRole(projectId: string, uid: string, idToken: string) {
   if (!response.ok) return "";
   const data = (await response.json()) as { fields?: { role?: { stringValue?: string } } };
   return data.fields?.role?.stringValue || "";
-}
-
-function mailer() {
-  if (!process.env.EMAIL_TO || !process.env.GMAIL_APP_PASSWORD) return null;
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: process.env.EMAIL_TO, pass: process.env.GMAIL_APP_PASSWORD },
-  });
 }
 
 export async function POST(request: Request) {
@@ -55,7 +39,7 @@ export async function POST(request: Request) {
       const role = await readRole(projectId, identity.uid, idToken);
       if (role !== "super_admin") return NextResponse.json({ delivered: false, reason: "sem_permissao" }, { status: 403 });
       const recipients = Array.isArray(body.recipients) ? body.recipients.slice(0, 20) : [];
-      const transport = mailer();
+      const transport = operationalMailer();
       const results = [];
       for (const recipient of recipients) {
         const to = typeof recipient.to === "string" ? recipient.to.trim().toLowerCase() : "";
@@ -73,7 +57,7 @@ export async function POST(request: Request) {
             to,
             subject,
             text,
-            html: `<p>${escapeHtml(text).replaceAll("\n", "<br>")}</p>`,
+            html: `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replaceAll("\n", "<br>")}</p>`,
           });
           results.push({ to, delivered: true, reason: "enviado" });
         } catch {
@@ -90,16 +74,8 @@ export async function POST(request: Request) {
     }
     const allowed = new Set(["boas_vindas", "trial_7", "trial_3", "trial_1", "trial_expirado"]);
     if (!body.kind || !allowed.has(body.kind)) return NextResponse.json({ delivered: false, reason: "tipo_nao_permitido" }, { status: 400 });
-    const transport = mailer();
-    if (!transport) return NextResponse.json({ delivered: false, reason: "provedor_nao_configurado" });
-    await transport.sendMail({
-      from: `"Psy Manager" <${process.env.EMAIL_TO}>`,
-      to,
-      subject,
-      text,
-      html: `<p>${escapeHtml(text).replaceAll("\n", "<br>")}</p>`,
-    });
-    return NextResponse.json({ delivered: true, reason: "enviado" });
+    const delivery = await sendOperationalEmail({ to, subject, text });
+    return NextResponse.json({ delivered: delivery.delivered, reason: delivery.reason });
   } catch (error) {
     console.error("Falha no envio operacional");
     return NextResponse.json({ delivered: false, reason: "falha_envio" }, { status: 500 });

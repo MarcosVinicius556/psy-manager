@@ -25,7 +25,24 @@ describe("mapeamento atendimento → evento Google", () => {
     );
     expect(body.summary).toBe("Atendimento");
     expect(body.description).toContain("online");
-    expect(body.start.dateTime).toBe("2026-10-24T09:00:00");
+    expect((body.start as { dateTime: string }).dateTime).toBe("2026-10-24T09:00:00");
     expect(body.status).toBe("confirmed");
+  });
+
+  it("inclui conferenceData para teleconsulta com Meet", () => {
+    const body = appointmentToGoogleEventBody(
+      {
+        date: "2026-10-24",
+        startTime: "09:00",
+        endTime: "10:00",
+        modality: "online",
+        status: "agendado",
+      },
+      "Atendimento",
+      "America/Sao_Paulo",
+      { withMeet: true, meetRequestId: "req-1" }
+    );
+    const conference = body.conferenceData as { createRequest?: { requestId?: string } };
+    expect(conference?.createRequest?.requestId).toBe("req-1");
   });
 });

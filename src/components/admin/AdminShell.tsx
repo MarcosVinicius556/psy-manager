@@ -88,6 +88,7 @@ const items: NavEntry[] = [
     icon: HiOutlineBriefcase,
     children: [
       { href: "/admin/operacional/contrato", label: "Modelo de contrato", icon: HiOutlineDocumentText },
+      { href: "/admin/operacional/prontuario", label: "Modelos de prontuário", icon: HiOutlineDocumentText },
       { href: "/admin/operacional/consentimento", label: "Termo de consentimento", icon: HiOutlineShieldCheck },
       { href: "/admin/operacional/relatorios", label: "Gerador de relatórios", icon: HiOutlineChartBar },
     ],
