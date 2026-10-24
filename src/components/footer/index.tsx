@@ -1,12 +1,13 @@
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
+import LegalFooterLinks from "@/components/legal/LegalFooterLinks";
 import { consultantWhatsAppUrl } from "@/lib/contact";
 
 export default function Footer() {
   return (
     <footer className="mt-auto bg-footer pt-12 pb-[max(2.5rem,env(safe-area-inset-bottom))] text-white/70 sm:pt-16">
       <div className="site-container">
-        <div className="grid gap-8 sm:grid-cols-3 sm:gap-10">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 sm:gap-10">
           <div>
             <BrandLogo variant="mark" height={44} />
             <p className="mt-4 mb-5 max-w-[320px] leading-relaxed">
@@ -36,12 +37,13 @@ export default function Footer() {
             <a href="/admin/login" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
               Entrar
             </a>
-            <a href="/termos" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
-              Termos de uso
-            </a>
-            <a href="/privacidade" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
-              Privacidade
-            </a>
+          </div>
+          <div>
+            <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Legal</h4>
+            <LegalFooterLinks
+              className="flex flex-col"
+              linkClassName="flex min-h-11 items-center text-left text-[0.95rem] transition-colors duration-200 hover:text-white"
+            />
           </div>
         </div>
         <div className="mt-10 border-t border-white/10 pt-5 text-center text-xs text-white/45">

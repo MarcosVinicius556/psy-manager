@@ -5,7 +5,25 @@
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { LEGAL_DOCUMENTS } from "../../src/lib/legal/config";
+import { hashLegalContent } from "../../src/lib/legal/hash";
 import { buildTrialAccount } from "../../src/lib/saas/model";
+
+async function seedLegalAcceptances(uid: string) {
+  const docs = ["termos", "privacidade", "dpa"] as const;
+  for (const document of docs) {
+    const meta = LEGAL_DOCUMENTS[document];
+    await db.collection("legalAcceptances").add({
+      uid,
+      document,
+      version: meta.version,
+      contentHash: hashLegalContent(meta.acceptanceSource),
+      acceptedAt: new Date().toISOString(),
+      ip: "127.0.0.1",
+      userAgent: "e2e-seed",
+    });
+  }
+}
 
 const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_PROJECT_ID || "demo-psy-manager";
 const DEMO_EMAIL = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
@@ -45,6 +63,7 @@ async function main() {
   });
 
   await db.doc(`users/${uid}`).set({ ...trial, role: "super_admin" }, { merge: true });
+  await seedLegalAcceptances(uid);
   await db.doc(`trialClaims/${DEMO_EMAIL}`).set({
     email: DEMO_EMAIL,
     uid,
@@ -240,6 +259,7 @@ async function main() {
     termsAcceptedAt: now,
   });
   await db.doc(`users/${platformUid}`).set({ ...platformAccount, role: "super_admin" }, { merge: true });
+  await seedLegalAcceptances(platformUid);
 
   await db.collection("members").doc(`member-${platformUid}`).set({
     uid: platformUid,

@@ -3,7 +3,17 @@ import fs from "node:fs";
 
 import { loginAsDemo } from "./helpers/login";
 
-const publicRoutes = ["/", "/admin/login", "/plataforma/login", "/termos", "/privacidade"] as const;
+const publicRoutes = [
+  "/",
+  "/admin/login",
+  "/plataforma/login",
+  "/termos",
+  "/privacidade",
+  "/cookies",
+  "/seguranca",
+  "/suboperadores",
+  "/dpa",
+] as const;
 
 const adminRoutes = [
   "/admin",

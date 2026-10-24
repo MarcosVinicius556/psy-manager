@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/admin/auth-context";
 import { ClinicProvider } from "@/lib/admin/clinic-context";
 import AdminShell from "@/components/admin/AdminShell";
 import { BlockedAccount } from "@/components/admin/AccountStatus";
+import LegalReacceptModal from "@/components/legal/LegalReacceptModal";
 import { SaasProvider, useSaas } from "@/lib/saas/context";
 
 export default function PanelLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
     <SaasProvider>
       <ClinicProvider>
         <AdminShell>
+          <LegalReacceptModal />
           <ClinicGate>{children}</ClinicGate>
         </AdminShell>
       </ClinicProvider>

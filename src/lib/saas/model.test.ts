@@ -42,6 +42,7 @@ describe("cadastro", () => {
       password: "senha-segura",
       confirm: "senha-segura",
       acceptTerms: true,
+      acceptDpa: true,
       honeypot: "",
     });
     expect(result.ok).toBe(true);
@@ -53,11 +54,12 @@ describe("cadastro", () => {
   });
 
   it("recusa senha curta, e-mail inválido, termos ausentes e campo de abuso", () => {
-    expect(validateSignup({ nome: "Ana", email: "ana@example.com", password: "curta", confirm: "curta", acceptTerms: true, honeypot: "" }).ok).toBe(false);
-    expect(validateSignup({ nome: "Ana Lima", email: "ana", password: "senha-segura", confirm: "senha-segura", acceptTerms: true, honeypot: "" }).ok).toBe(false);
-    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "outra-senha", acceptTerms: true, honeypot: "" }).ok).toBe(false);
-    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "senha-segura", acceptTerms: false, honeypot: "" }).ok).toBe(false);
-    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "senha-segura", acceptTerms: true, honeypot: "http://spam" }).ok).toBe(false);
+    expect(validateSignup({ nome: "Ana", email: "ana@example.com", password: "curta", confirm: "curta", acceptTerms: true, acceptDpa: true, honeypot: "" }).ok).toBe(false);
+    expect(validateSignup({ nome: "Ana Lima", email: "ana", password: "senha-segura", confirm: "senha-segura", acceptTerms: true, acceptDpa: true, honeypot: "" }).ok).toBe(false);
+    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "outra-senha", acceptTerms: true, acceptDpa: true, honeypot: "" }).ok).toBe(false);
+    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "senha-segura", acceptTerms: false, acceptDpa: true, honeypot: "" }).ok).toBe(false);
+    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "senha-segura", acceptTerms: true, acceptDpa: false, honeypot: "" }).ok).toBe(false);
+    expect(validateSignup({ nome: "Ana Lima", email: "ana@example.com", password: "senha-segura", confirm: "senha-segura", acceptTerms: true, acceptDpa: true, honeypot: "http://spam" }).ok).toBe(false);
   });
 });
 

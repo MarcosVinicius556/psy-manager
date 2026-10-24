@@ -9,6 +9,7 @@ import BrandLogo from "@/components/BrandLogo";
 import { useAuth } from "@/lib/admin/auth-context";
 import { consumeGoogleSignInRoute } from "@/lib/admin/google-auth-flow";
 import { registerError, registerWorkspace } from "@/lib/saas/account-store";
+import { signupAcceptanceDocuments, submitLegalAcceptances } from "@/lib/legal/client";
 import { validateSignup } from "@/lib/saas/model";
 
 const errors: Record<string, string> = {
@@ -51,6 +52,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptDpa, setAcceptDpa] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -77,13 +79,18 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
     setSubmitting(true);
     try {
       if (mode === "signup") {
-        const parsed = validateSignup({ nome, email, password, confirm, acceptTerms, honeypot });
+        const parsed = validateSignup({ nome, email, password, confirm, acceptTerms, acceptDpa, honeypot });
         if (!parsed.ok) {
           setMessage(parsed.message);
           setSubmitting(false);
           return;
         }
         const result = await registerWorkspace({ ...parsed.value, password });
+        try {
+          await submitLegalAcceptances(signupAcceptanceDocuments());
+        } catch (acceptError) {
+          console.error(acceptError);
+        }
         router.replace(result.eligible ? "/admin" : "/admin/assinatura");
         return;
       }
@@ -105,8 +112,8 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   }
 
   async function onGoogle() {
-    if (mode === "signup" && !acceptTerms) {
-      setMessage("Aceite os termos para criar a conta com o Google.");
+    if (mode === "signup" && (!acceptTerms || !acceptDpa)) {
+      setMessage("Aceite os termos, a política de privacidade e o DPA para criar a conta com o Google.");
       return;
     }
     setMessage("");
@@ -114,6 +121,13 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
     try {
       const result = await signInWithGoogle(remember);
       if (result.pendingRedirect) return;
+      if (mode === "signup") {
+        try {
+          await submitLegalAcceptances(signupAcceptanceDocuments());
+        } catch (acceptError) {
+          console.error(acceptError);
+        }
+      }
       router.replace(result.eligible ? "/admin" : "/admin/assinatura");
     } catch (error) {
       if (error instanceof FirebaseError && error.code === "auth/popup-closed-by-user") {
@@ -276,15 +290,25 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
                 </button>
               </div>
             ) : (
-              <label className="flex items-start gap-3 px-1 pt-1 text-base leading-relaxed text-muted">
-                <input type="checkbox" className="mt-1 size-5 accent-teal" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} required />
-                <span>
-                  Li e aceito os{" "}
-                  <Link href="/termos" className="font-semibold text-teal underline decoration-leaf underline-offset-2">termos de uso</Link>
-                  {" "}e a{" "}
-                  <Link href="/privacidade" className="font-semibold text-teal underline decoration-leaf underline-offset-2">política de privacidade</Link>.
-                </span>
-              </label>
+              <>
+                <label className="flex items-start gap-3 px-1 pt-1 text-base leading-relaxed text-muted" data-testid="signup-legal-terms">
+                  <input type="checkbox" className="mt-1 size-5 accent-teal" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} required />
+                  <span>
+                    Li e aceito os{" "}
+                    <Link href="/termos" className="font-semibold text-teal underline decoration-leaf underline-offset-2">termos de uso</Link>
+                    {" "}e a{" "}
+                    <Link href="/privacidade" className="font-semibold text-teal underline decoration-leaf underline-offset-2">política de privacidade</Link>.
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 px-1 text-base leading-relaxed text-muted" data-testid="signup-legal-dpa">
+                  <input type="checkbox" className="mt-1 size-5 accent-teal" checked={acceptDpa} onChange={(event) => setAcceptDpa(event.target.checked)} required />
+                  <span>
+                    Li e aceito o{" "}
+                    <Link href="/dpa" className="font-semibold text-teal underline decoration-leaf underline-offset-2">Acordo de Tratamento de Dados (DPA)</Link>
+                    {" "}como controlador(a) da clínica.
+                  </span>
+                </label>
+              </>
             )}
 
             <div className="absolute left-[-9999px] h-0 overflow-hidden" aria-hidden="true">
@@ -296,7 +320,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
 
             <button
               className="mt-1 h-12 w-full rounded-full bg-teal text-base font-semibold text-white transition hover:bg-teal-mid disabled:opacity-60"
-              disabled={submitting || !configured}
+              disabled={submitting || !configured || (mode === "signup" && (!acceptTerms || !acceptDpa))}
             >
               {submitting ? "Aguarde..." : mode === "login" ? "Entrar" : "Começar meus 30 dias"}
             </button>

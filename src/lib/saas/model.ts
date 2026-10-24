@@ -1,6 +1,8 @@
+import { TERMS_VERSION as LEGAL_TERMS_VERSION } from "../legal/config";
+
 export const TRIAL_DAYS = 30;
 export const MS_DAY = 24 * 60 * 60 * 1000;
-export const TERMS_VERSION = "2026-10-20";
+export const TERMS_VERSION = LEGAL_TERMS_VERSION;
 export const TRIAL_EXTEND_MAX_DAYS = 90;
 
 export const SUBSCRIPTION_STATUSES = [
@@ -312,6 +314,7 @@ export function validateSignup(input: {
   password: string;
   confirm: string;
   acceptTerms: boolean;
+  acceptDpa: boolean;
   honeypot: string;
 }) {
   const nome = input.nome.trim();
@@ -322,6 +325,7 @@ export function validateSignup(input: {
   if (input.password.length < 8) return { ok: false as const, message: "A senha precisa ter pelo menos 8 caracteres." };
   if (input.password !== input.confirm) return { ok: false as const, message: "A confirmação da senha não confere." };
   if (!input.acceptTerms) return { ok: false as const, message: "Para continuar, aceite os termos e confirme que leu a política de privacidade." };
+  if (!input.acceptDpa) return { ok: false as const, message: "Para continuar, aceite o Acordo de Tratamento de Dados (DPA)." };
   return { ok: true as const, value: { nome, email, role: "psicologo" as const } };
 }
 
