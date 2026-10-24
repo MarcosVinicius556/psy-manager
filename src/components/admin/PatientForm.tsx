@@ -28,6 +28,8 @@ export default function PatientForm({
   const [form, setForm] = useState<PatientInput>({
     nome: patient?.nome ?? "",
     cpf: maskCpf(patient?.cpf ?? ""),
+    cpfPagador: maskCpf(patient?.cpfPagador ?? ""),
+    cpfBeneficiario: maskCpf(patient?.cpfBeneficiario ?? ""),
     nascimento: patient?.nascimento ?? "",
     telefone: maskPhone(patient?.telefone ?? ""),
     email: patient?.email ?? "",
@@ -111,7 +113,7 @@ export default function PatientForm({
       <Field label="Nome">
         <input className={fieldClass} value={form.nome} onChange={(event) => set("nome", event.target.value)} required />
       </Field>
-      <Field label="CPF">
+      <Field label="CPF do paciente (beneficiário padrão)">
         <input
           className={fieldClass}
           inputMode="numeric"
@@ -120,6 +122,28 @@ export default function PatientForm({
           value={form.cpf}
           onChange={(event) => set("cpf", maskCpf(event.target.value))}
         />
+      </Field>
+      <Field label="CPF do pagador (opcional)">
+        <input
+          className={fieldClass}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Quem paga a sessão"
+          value={form.cpfPagador}
+          onChange={(event) => set("cpfPagador", maskCpf(event.target.value))}
+        />
+        <p className="mt-1 text-xs text-muted">Deixe vazio se o pagador é o próprio paciente.</p>
+      </Field>
+      <Field label="CPF do beneficiário do serviço (opcional)">
+        <input
+          className={fieldClass}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Quem recebe o atendimento"
+          value={form.cpfBeneficiario}
+          onChange={(event) => set("cpfBeneficiario", maskCpf(event.target.value))}
+        />
+        <p className="mt-1 text-xs text-muted">Use quando for diferente do CPF do paciente (ex.: menor de idade).</p>
       </Field>
       <Field label="Nascimento">
         <DateField value={form.nascimento} onChange={(nascimento) => set("nascimento", nascimento)} />

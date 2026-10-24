@@ -108,11 +108,27 @@ function mapClinical(value: unknown): ClinicalRecord {
   };
 }
 
+function mapFiscalReceipt(value: unknown): Payment["reciboFiscal"] {
+  const data = (value ?? {}) as Partial<Payment["reciboFiscal"]> & { arquivo?: unknown };
+  if (!data || typeof data !== "object" || !data.arquivo) return null;
+  const arquivo = mapAttachment(data.arquivo);
+  if (!arquivo?.url) return null;
+  return {
+    numero: Number(data.numero) || 0,
+    arquivo,
+    emitidoEm: text(data.emitidoEm),
+    dataPagamento: text(data.dataPagamento),
+    valor: Number(data.valor) || 0,
+  };
+}
+
 function mapPatient(id: string, data: DocumentData): Patient {
   return {
     id,
     nome: text(data.nome),
     cpf: text(data.cpf),
+    cpfPagador: text(data.cpfPagador),
+    cpfBeneficiario: text(data.cpfBeneficiario),
     nascimento: text(data.nascimento),
     telefone: text(data.telefone),
     email: text(data.email),
@@ -219,6 +235,7 @@ function mapPayment(id: string, data: DocumentData): Payment {
     historico: Array.isArray(data.historico)
       ? data.historico.map(mapPaymentEvent).filter((event): event is PaymentEvent => Boolean(event))
       : [],
+    reciboFiscal: mapFiscalReceipt(data.reciboFiscal),
     createdAt: text(data.createdAt),
   };
 }
@@ -437,6 +454,14 @@ function mapMember(id: string, data: DocumentData): ClinicMember {
     email: text(data.email),
     telefone: text(data.telefone),
     foto: text(data.foto),
+    cpf: text(data.cpf),
+    crpNumero: text(data.crpNumero),
+    crpRegiao: text(data.crpRegiao),
+    enderecoLogradouro: text(data.enderecoLogradouro),
+    enderecoCidade: text(data.enderecoCidade),
+    enderecoUf: text(data.enderecoUf),
+    enderecoCep: text(data.enderecoCep),
+    reciboSequencia: Number(data.reciboSequencia) || 0,
     valorBase: Number(data.valorBase) || 0,
     valorSocial: Number(data.valorSocial) || 0,
     workHours: Array.isArray(data.workHours)
@@ -540,6 +565,14 @@ export async function createMember(input: MemberInput) {
     uid: null,
     telefone: "",
     foto: "",
+    cpf: "",
+    crpNumero: "",
+    crpRegiao: "",
+    enderecoLogradouro: "",
+    enderecoCidade: "",
+    enderecoUf: "",
+    enderecoCep: "",
+    reciboSequencia: 0,
     valorBase: 0,
     valorSocial: 0,
     workHours: [],
@@ -694,6 +727,7 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
     historico: [launchEvent(input, createdAt)],
     status: input.status ?? "agendado",
     paidAt: null,
+    reciboFiscal: null,
     ownerUid: currentOwnerUid(),
     createdAt,
   };
