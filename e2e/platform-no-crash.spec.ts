@@ -91,10 +91,18 @@ test.describe("platform routes — no client exceptions", () => {
 
     test("menu Plataforma from admin", async ({ page }) => {
       const errors = attachPageErrorCollector(page);
-      await page.goto("/admin", { waitUntil: "load" });
+      await page.goto("/admin/login");
+      await page.getByPlaceholder("Seu e-mail").fill(platformEmail);
+      await page.getByPlaceholder("Sua senha").fill(platformPassword);
+      await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
+      await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("login"), { timeout: 60_000 });
+      await expect(page.getByText("Não foi possível confirmar a situação da conta.")).toHaveCount(0, { timeout: 60_000 });
       const openMenu = page.getByRole("button", { name: "Abrir menu" });
-      if (await openMenu.isVisible()) await openMenu.click();
-      await page.getByRole("link", { name: "Plataforma", exact: true }).click();
+      await expect(openMenu).toBeVisible();
+      await openMenu.click();
+      const drawer = page.locator("#admin-mobile-nav");
+      await expect(drawer).toBeVisible();
+      await drawer.getByRole("link", { name: "Plataforma" }).click();
       await page.waitForURL("**/plataforma**", { timeout: 60_000 });
       await page.waitForTimeout(800);
       expect(errors, errors.join("\n")).toEqual([]);

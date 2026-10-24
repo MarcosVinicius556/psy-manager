@@ -207,6 +207,28 @@ async function main() {
   });
   await db.doc(`users/${platformUid}`).set({ ...platformAccount, role: "super_admin" }, { merge: true });
 
+  await db.collection("members").doc(`member-${platformUid}`).set({
+    uid: platformUid,
+    ownerUid: platformUid,
+    email: PLATFORM_EMAIL,
+    nome: "Proprietário Plataforma",
+    telefone: "",
+    foto: "",
+    valorBase: 0,
+    valorSocial: 0,
+    workHours: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, startTime: "09:00", endTime: "18:00" })),
+    ativo: true,
+    createdAt: now,
+  });
+
+  await db.doc(`directory/${PLATFORM_EMAIL}`).set({
+    uid: platformUid,
+    email: PLATFORM_EMAIL,
+    nome: "Proprietário Plataforma",
+    foto: "",
+    ownerUid: platformUid,
+  });
+
   console.log(
     JSON.stringify(
       {
