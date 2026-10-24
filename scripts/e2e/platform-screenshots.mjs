@@ -9,9 +9,11 @@ const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
 const platformEmail = process.env.E2E_PLATFORM_EMAIL || "platform@psy.test";
 const platformPassword = process.env.E2E_PLATFORM_PASSWORD || "Platform123456!";
 const outDir = "/opt/cursor/artifacts/screenshots";
+const viewport = { width: 412, height: 915 };
 
 async function login(page, email, password) {
-  await page.goto(`${baseURL}/admin/login`);
+  await page.goto(`${baseURL}/admin/login`, { waitUntil: "domcontentloaded" });
+  await page.getByPlaceholder("Seu e-mail").waitFor({ state: "visible", timeout: 60_000 });
   await page.getByPlaceholder("Seu e-mail").fill(email);
   await page.getByPlaceholder("Sua senha").fill(password);
   await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
@@ -28,15 +30,20 @@ async function shot(page, name, route) {
 async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 412, height: 915 } });
 
-  await login(page, platformEmail, platformPassword);
-  await shot(page, "plataforma-home-412", "/plataforma");
-  await shot(page, "plataforma-contas-412", "/plataforma/contas");
+  const platformContext = await browser.newContext({ viewport });
+  const platformPage = await platformContext.newPage();
+  await login(platformPage, platformEmail, platformPassword);
+  await shot(platformPage, "plataforma-home-412", "/plataforma");
+  await shot(platformPage, "plataforma-contas-412", "/plataforma/contas");
+  await platformContext.close();
 
-  await login(page, demoEmail, demoPassword);
-  await shot(page, "admin-pacientes-412", "/admin/pacientes");
-  await shot(page, "admin-financeiro-412", "/admin/financeiro");
+  const adminContext = await browser.newContext({ viewport });
+  const adminPage = await adminContext.newPage();
+  await login(adminPage, demoEmail, demoPassword);
+  await shot(adminPage, "admin-pacientes-412", "/admin/pacientes");
+  await shot(adminPage, "admin-financeiro-412", "/admin/financeiro");
+  await adminContext.close();
 
   await browser.close();
   console.log(JSON.stringify({ ok: true, outDir }, null, 2));
