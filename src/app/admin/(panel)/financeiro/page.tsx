@@ -131,35 +131,18 @@ function FinanceContent() {
           footnote="Em haver com vencimento antes de hoje."
         />
       </div>
-      <div className="admin-mobile-only mb-4">
+      <div className="mb-4">
         <SegmentedControl
           ariaLabel="Visão do financeiro"
+          layout="equal"
           value={view}
           onChange={setView}
           options={[
             { value: "lancamentos", label: "Lançamentos" },
             { value: "emdia", label: "Em dia" },
-            { value: "aberto", label: "Não pagaram" },
+            { value: "aberto", label: "Pendentes" },
           ]}
         />
-      </div>
-      <div className="admin-desktop-only mb-4 flex flex-wrap gap-2">
-        {(
-          [
-            ["lancamentos", "Lançamentos"],
-            ["emdia", "Pacientes em dia"],
-            ["aberto", "Não pagaram"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setView(value)}
-            className={view === value ? "btn-chip-active" : "btn-chip"}
-          >
-            {label}
-          </button>
-        ))}
       </div>
 
       {view === "lancamentos" && (

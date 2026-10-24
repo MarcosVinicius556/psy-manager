@@ -79,6 +79,16 @@ test.describe("mobile UX screenshots (after)", () => {
       await page.screenshot({ path: path.join(dir, "admin-dashboard-debtors.png"), fullPage: false });
     });
 
+    test("auth mobile duplicate primary actions", async ({ page }, testInfo) => {
+      if (testInfo.project.name !== "mobile-412") return;
+      await page.goto("/admin/pacientes", { waitUntil: "networkidle" });
+      const novoButtons = page.getByRole("button", { name: "Novo paciente" });
+      await expect(novoButtons).toHaveCount(1);
+      await page.goto("/admin/financeiro", { waitUntil: "networkidle" });
+      const lancButtons = page.getByRole("button", { name: "Novo lançamento" });
+      await expect(lancButtons).toHaveCount(1);
+    });
+
     test("auth paciente detalhe + axe financeiro", async ({ page }, testInfo) => {
       await page.goto("/admin/pacientes/pat-ana");
       await page.waitForURL("**/admin/pacientes/pat-ana**");

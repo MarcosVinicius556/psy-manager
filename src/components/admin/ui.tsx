@@ -25,7 +25,7 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
           {subtitle ? <p className="text-sm leading-relaxed text-muted">{subtitle}</p> : null}
         </div>
         {action ? (
-          <div className="admin-desktop-only flex w-full flex-col gap-2 md:w-auto md:flex-row md:flex-wrap [&>*]:w-full md:[&>*]:w-auto">
+          <div className="admin-desktop-only admin-desktop-flex w-full flex-col gap-2 md:w-auto md:flex-row md:flex-wrap [&>*]:w-full md:[&>*]:w-auto">
             {action}
           </div>
         ) : null}
