@@ -7,6 +7,7 @@ import { FirebaseError } from "firebase/app";
 import { HiOutlineEnvelope, HiOutlineEye, HiOutlineEyeSlash, HiOutlineUser } from "react-icons/hi2";
 import BrandLogo from "@/components/BrandLogo";
 import { useAuth } from "@/lib/admin/auth-context";
+import { consumeGoogleSignInRoute } from "@/lib/admin/google-auth-flow";
 import { registerError, registerWorkspace } from "@/lib/saas/account-store";
 import { validateSignup } from "@/lib/saas/model";
 
@@ -18,7 +19,7 @@ const errors: Record<string, string> = {
   "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente de novo.",
   "auth/network-request-failed": "Falha de conexão. Tente de novo.",
   "auth/popup-closed-by-user": "A janela do Google foi fechada antes de concluir.",
-  "auth/popup-blocked": "O navegador bloqueou a janela do Google. Permita pop-ups e tente de novo.",
+  "auth/popup-blocked": "Redirecionando para o login com o Google…",
   "auth/account-exists-with-different-credential": "Este e-mail já entra com senha. Use e-mail e senha, ou recupere o acesso.",
   "auth/unauthorized-domain": "Este endereço ainda não está autorizado para o login com Google.",
   "auth/operation-not-allowed": "O login com Google ainda não está ativado neste projeto.",
@@ -41,7 +42,7 @@ function GoogleMark() {
 }
 
 export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
-  const { signIn, signInWithGoogle, sendPasswordReset, user, loading, configured } = useAuth();
+  const { signIn, signInWithGoogle, sendPasswordReset, user, loading, googleAuthBusy, configured } = useAuth();
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -56,8 +57,14 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   const mismatch = mode === "signup" && confirm.length > 0 && password !== confirm;
 
   useEffect(() => {
-    if (!loading && user) router.replace("/admin");
-  }, [loading, router, user]);
+    if (loading || !user || submitting || googleAuthBusy) return;
+    const googleRoute = consumeGoogleSignInRoute();
+    if (googleRoute) {
+      router.replace(googleRoute);
+      return;
+    }
+    router.replace("/admin");
+  }, [googleAuthBusy, loading, router, submitting, user]);
 
   function switchMode(next: "login" | "signup") {
     setMessage("");
@@ -105,8 +112,9 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
     setMessage("");
     setSubmitting(true);
     try {
-      await signInWithGoogle(remember);
-      router.replace("/admin");
+      const result = await signInWithGoogle(remember);
+      if (result.pendingRedirect) return;
+      router.replace(result.eligible ? "/admin" : "/admin/assinatura");
     } catch (error) {
       if (error instanceof FirebaseError && error.code === "auth/popup-closed-by-user") {
         setSubmitting(false);
