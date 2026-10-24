@@ -305,23 +305,23 @@ export default function SettingsPage() {
 
       {hoursOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
+          <div className="sheet-host fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
             <div
-              className="flex max-h-[min(92vh,900px)] w-full max-w-5xl flex-col rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.18)]"
+              className="sheet-panel flex max-h-[min(92vh,900px)] w-full max-w-5xl flex-col rounded-md bg-white p-4 shadow-[0_18px_50px_rgba(61,82,64,0.18)] sm:p-6"
               role="dialog"
               aria-modal="true"
               aria-labelledby="work-hours-title"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 id="work-hours-title" className="font-serif text-3xl text-teal">
+                  <h2 id="work-hours-title" className="font-serif text-[clamp(1.5rem,5vw,1.875rem)] leading-tight text-teal">
                     Horários de atendimento
                   </h2>
                   <p className="mt-2 text-sm text-muted">
                     Clique em um horário para habilitar ou desabilitar. A agenda só oferece os horários marcados.
                   </p>
                 </div>
-                <button type="button" className="btn-text" onClick={() => setHoursOpen(false)} disabled={savingHours}>
+                <button type="button" className="btn-text shrink-0" onClick={() => setHoursOpen(false)} disabled={savingHours}>
                   Fechar
                 </button>
               </div>
@@ -359,7 +359,7 @@ export default function SettingsPage() {
                                   aria-pressed={on}
                                   aria-label={`${day.label} ${time}`}
                                   onClick={() => toggleSlot(key)}
-                                  className={`h-8 w-full rounded-md border transition-colors duration-300 ${
+                                  className={`h-11 w-full rounded-md border transition-colors duration-300 sm:h-8 ${
                                     on
                                       ? "border-teal bg-teal hover:bg-transparent"
                                       : "border-[#d7e0d8] bg-white hover:border-teal hover:bg-sky-soft"
@@ -396,10 +396,10 @@ export default function SettingsPage() {
 
       {confirmOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
-            <div className="w-full max-w-md rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.18)]" role="dialog" aria-modal="true">
+          <div className="sheet-host fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
+            <div className="sheet-panel w-full max-w-md rounded-md bg-white p-5 shadow-[0_18px_50px_rgba(61,82,64,0.18)] sm:p-6" role="dialog" aria-modal="true">
               <p className="text-sm font-semibold uppercase tracking-wide text-[#a01f1f]">Senha</p>
-              <h2 className="mt-2 font-serif text-3xl text-teal">Tem certeza?</h2>
+              <h2 className="mt-2 font-serif text-[clamp(1.5rem,5vw,1.875rem)] leading-tight text-teal">Tem certeza?</h2>
               <p className="mt-3 leading-relaxed text-muted">
                 A senha atual deixa de valer assim que a nova for salva. Deseja continuar com a alteração?
               </p>

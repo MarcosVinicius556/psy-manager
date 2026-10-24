@@ -38,11 +38,15 @@
 @layer base {
   html {
     @apply scroll-smooth;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   body {
     font-family: var(--font-inter), Inter, sans-serif;
     @apply bg-paper text-ink antialiased min-h-screen flex flex-col;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   h1,
@@ -97,10 +101,6 @@
 }
 
 @layer components {
-  .container {
-    @apply w-[min(90%,1200px)] mx-auto;
-  }
-
   .btn-primary,
   .btn-text,
   .btn-chip,
@@ -259,7 +259,7 @@
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
-  padding: clamp(132px, 16vh, 180px) 0 0;
+  padding: clamp(6.75rem, 14vh, 11.25rem) 0 0;
   background: #0c1a1e;
 }
 
@@ -285,9 +285,15 @@
 .landing-card {
   border-radius: var(--landing-radius);
   background: #fff;
-  padding: 1.75rem;
+  padding: 1.25rem;
   box-shadow: 0 16px 40px rgba(61, 82, 64, 0.08);
   transition: transform 250ms ease, box-shadow 250ms ease;
+}
+
+@media (min-width: 640px) {
+  .landing-card {
+    padding: 1.75rem;
+  }
 }
 
 .landing-card:hover {
@@ -399,4 +405,115 @@ header.landing:not(.header-on-media) .btn-text:hover:not(:disabled) {
   padding: 2px 8px;
   font-size: 10px;
   font-weight: 600;
+}
+
+/* Wins over Tailwind's built-in container, which is full-bleed until the first breakpoint. */
+.site-container {
+  width: 100%;
+  max-width: 77.5rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 64rem) {
+  .site-container {
+    padding-inline: 2rem;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.data-table {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  background:
+    linear-gradient(to right, #fff 30%, rgba(255, 255, 255, 0)) left center / 24px 100% no-repeat local,
+    linear-gradient(to left, #fff 30%, rgba(255, 255, 255, 0)) right center / 24px 100% no-repeat local,
+    linear-gradient(to left, rgba(36, 48, 40, 0.14), rgba(36, 48, 40, 0)) right center / 12px 100% no-repeat scroll;
+}
+
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .sheet-host {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .sheet-panel {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    overflow: auto;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    padding-left: max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
+  }
+
+  .landing-hero .btn-primary,
+  .landing-hero .btn-text,
+  .landing-card .btn-primary,
+  .landing-card .btn-text,
+  #site-menu .btn-primary {
+    width: 100%;
+  }
+
+  body:has(input:focus, textarea:focus, select:focus) .admin-tabbar {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .landing-card:hover {
+    transform: none;
+    box-shadow: 0 16px 40px rgba(61, 82, 64, 0.08);
+  }
+}
+
+@media (pointer: coarse) {
+  .btn-chip,
+  .btn-chip-active,
+  .btn-text,
+  .btn-row,
+  .btn-primary,
+  .btn-danger {
+    min-height: 2.75rem;
+  }
+}
+
+.landing details > summary {
+  min-height: 2.75rem;
+  padding-block: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .landing-card:hover {
+    transform: none;
+  }
 }

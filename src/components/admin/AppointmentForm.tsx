@@ -1013,7 +1013,7 @@ export default function AppointmentForm({
             </label>
           </div>
         )}
-        <button className="btn-primary" type="submit" disabled={saving || Boolean(offer) || (warnPending && !cientePendentes)}>
+        <button className="btn-primary w-full sm:w-auto" type="submit" disabled={saving || Boolean(offer) || (warnPending && !cientePendentes)}>
           {saving
             ? "Salvando..."
             : suggestionConfirmed
@@ -1027,10 +1027,10 @@ export default function AppointmentForm({
       </form>
       {offer &&
         createPortal(
-          <div className="fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
-            <div className="w-full max-w-md rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.18)]" role="dialog" aria-modal="true">
+          <div className="sheet-host fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
+            <div className="sheet-panel w-full max-w-md overflow-y-auto rounded-md bg-white p-5 shadow-[0_18px_50px_rgba(61,82,64,0.18)] sm:p-6" role="dialog" aria-modal="true">
               <p className="text-sm font-semibold uppercase tracking-wide text-accent">Financeiro</p>
-              <h2 className="mt-2 font-serif text-3xl text-teal">Lançar em haver?</h2>
+              <h2 className="mt-2 font-serif text-[clamp(1.5rem,5vw,1.875rem)] leading-tight text-teal">Lançar em haver?</h2>
               <p className="mt-3 leading-relaxed text-muted">
                 {selectedPackage
                   ? "O atendimento foi salvo. O pacote entra no financeiro como um único pagamento, no valor total."

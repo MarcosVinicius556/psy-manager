@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.08)] ${className}`}>
+    <section className={`rounded-md bg-white p-4 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-6 ${className}`}>
       {children}
     </section>
   );
@@ -10,18 +10,18 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 
 export function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-[clamp(1.8rem,3vw,2.4rem)] font-medium text-teal">{title}</h1>
-        {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
+    <div className="mb-6 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+      <div className="min-w-0">
+        <h1 className="text-[clamp(1.7rem,1.2rem+2vw,2.4rem)] font-medium leading-tight text-teal">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">{subtitle}</p>}
       </div>
-      {action}
+      {action ? <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap [&>*]:w-full sm:[&>*]:w-auto">{action}</div> : null}
     </div>
   );
 }
 
 export const fieldClass =
-  "w-full rounded-md border border-[#e2e8ea] bg-white px-4 py-3 font-sans text-sm text-ink outline-none transition-colors focus:border-teal";
+  "w-full min-h-12 rounded-md border border-[#e2e8ea] bg-white px-4 py-3 font-sans text-base text-ink outline-none transition-colors focus:border-teal";
 
 export function Field({
   label,
@@ -54,7 +54,7 @@ export function Pill({ children, tone = "sage" }: { children: ReactNode; tone?: 
 
 export function DataTable({ children, minWidth = 720 }: { children: ReactNode; minWidth?: number }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="data-table -mx-1 max-w-full">
       <table className="w-full border-collapse text-left text-sm" style={{ minWidth }}>
         {children}
       </table>

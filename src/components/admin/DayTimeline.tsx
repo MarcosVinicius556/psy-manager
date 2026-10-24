@@ -88,13 +88,13 @@ export default function DayTimeline({
         const onlineOnly = !professionalBusy && locationBusy && Boolean(onPickOnline) && isBookableStart(date, slot, now);
 
         return (
-          <div key={slot} className="grid grid-cols-[64px_1fr] gap-3 border-b border-[#e7eee8] py-1.5">
-            <span className="pt-2 text-sm font-medium text-muted">{slot}</span>
+          <div key={slot} className="grid grid-cols-[3.5rem_1fr] gap-2 border-b border-[#e7eee8] py-1.5 sm:grid-cols-[4rem_1fr] sm:gap-3">
+            <span className="pt-3 text-sm font-medium text-muted">{slot}</span>
             {covering.length === 0 ? (
               <button
                 type="button"
                 onClick={() => onPick(slot)}
-                className="rounded-md px-3 py-2 text-left text-sm text-muted hover:bg-sky-soft"
+                className="min-h-11 rounded-md px-3 py-2.5 text-left text-base text-muted hover:bg-sky-soft sm:text-sm"
               >
                 Livre — agendar
               </button>
@@ -107,7 +107,7 @@ export default function DayTimeline({
                     <Link
                       key={item.id}
                       href={`/admin/atendimentos/${item.id}`}
-                      className="rounded-md bg-sky-soft px-3 py-2 text-sm"
+                      className="block min-h-11 rounded-md bg-sky-soft px-3 py-2.5 text-sm"
                     >
                       <strong>
                         {item.startTime}–{item.endTime}
@@ -129,7 +129,7 @@ export default function DayTimeline({
                   <button
                     type="button"
                     onClick={() => onPickOnline?.(slot)}
-                    className="rounded-md px-3 py-2 text-left text-sm text-teal hover:bg-sky-soft"
+                    className="min-h-11 rounded-md px-3 py-2.5 text-left text-sm text-teal hover:bg-sky-soft"
                   >
                     Disponível para online
                   </button>

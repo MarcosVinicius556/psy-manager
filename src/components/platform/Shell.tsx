@@ -55,13 +55,29 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
           </button>
         </div>
       </aside>
-      <div className="sticky top-0 z-20 flex gap-2 overflow-auto bg-footer px-3 py-3 text-sm text-white md:hidden">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} className="shrink-0 rounded-md bg-white/10 px-3 py-2">{link.label}</Link>
-        ))}
-      </div>
-      <div className="md:pl-64">
-        <div className="mx-auto w-[min(94%,1100px)] py-8">{children}</div>
+      <header className="sticky top-0 z-30 bg-footer text-white md:hidden" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="flex h-14 items-center px-4">
+          <Link href="/plataforma" aria-label="Psy Manager" className="rounded-md bg-white px-2 py-1">
+            <BrandLogo variant="lockup" height={32} className="max-w-[52vw]" />
+          </Link>
+        </div>
+      </header>
+      <nav className="admin-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-footer md:hidden" aria-label="Plataforma" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="grid grid-cols-5">
+          {links.map((link) => {
+            const Icon = link.icon;
+            const current = link.href === "/plataforma" ? pathname === link.href : pathname.startsWith(link.href);
+            return (
+              <Link key={link.href} href={link.href} className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[0.62rem] font-medium leading-tight ${current ? "text-leaf" : "text-white/80"}`}>
+                <Icon size={20} />
+                <span className="max-w-full">{link.label === "Notificações" ? "Avisos" : link.label === "Indicadores" ? "Painel" : link.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+      <div className="pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-64">
+        <div className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-5 md:py-8">{children}</div>
       </div>
     </div>
   );
