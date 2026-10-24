@@ -1,5 +1,9 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import HeroCardFan from "@/components/landing/sections/HeroCardFan";
+
+const HeroCardFan = dynamic(() => import("@/components/landing/sections/HeroCardFan"), {
+  loading: () => <div className="mx-auto h-[min(58vw,300px)] w-full max-w-[min(94vw,520px)] sm:h-[340px] sm:max-w-[560px]" aria-hidden />,
+});
 
 export default function HeroSection() {
   return (

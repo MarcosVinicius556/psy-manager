@@ -5,11 +5,13 @@ export default function LandingScreenshot({
   shot,
   className = "",
   priority,
+  loading,
   sizes = "(max-width: 768px) 100vw, 720px",
 }: {
   shot: LandingShot;
   className?: string;
   priority?: boolean;
+  loading?: "lazy" | "eager";
   sizes?: string;
 }) {
   return (
@@ -23,6 +25,7 @@ export default function LandingScreenshot({
         className={`block h-auto w-full bg-paper ${className}`}
         sizes={sizes}
         priority={priority}
+        loading={loading}
       />
     </picture>
   );

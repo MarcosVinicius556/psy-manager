@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import Image from "next/image";
 import { useRef } from "react";
+import LandingScreenshot from "@/components/landing/ui/LandingScreenshot";
 import FloatingPill from "@/components/landing/ui/FloatingPill";
 import { heroFloatingTags } from "@/components/landing/landing-content";
 import { heroFanShots } from "@/lib/landing/screenshots";
@@ -54,14 +54,12 @@ export default function HeroCardFan() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ ...springNav, delay: 0.1 + i * 0.05 }}
             >
-              <Image
-                src={shot.src}
-                alt={shot.alt}
-                width={shot.width}
-                height={shot.height}
-                className="h-full w-full object-cover object-top"
-                sizes="(max-width: 640px) 50vw, 280px"
+              <LandingScreenshot
+                shot={shot}
+                className="h-full object-cover object-top"
+                sizes="(max-width: 640px) 45vw, 280px"
                 priority={i === heroFanShots.length - 1}
+                loading={i === heroFanShots.length - 1 ? undefined : "lazy"}
               />
             </motion.div>
           ))}
