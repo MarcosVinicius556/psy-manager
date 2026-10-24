@@ -3,7 +3,7 @@ import HeroCardFan from "@/components/landing/sections/HeroCardFan";
 
 export default function HeroSection() {
   return (
-    <section id="inicio" className="landing-hero-scroll relative bg-landing-cream pb-10 pt-[clamp(4.75rem,10vh,6.25rem)] sm:pb-12">
+    <section id="inicio" className="landing-hero-scroll relative overflow-x-hidden bg-landing-cream pb-10 pt-[clamp(4.75rem,10vh,6.25rem)] sm:pb-12">
       <div className="site-container relative z-10 flex w-full flex-col items-center text-center">
         <h1 className="landing-display max-w-[15ch] text-[clamp(2.2rem,1.15rem+4.6vw,4.5rem)] leading-[1.02] tracking-[-0.04em] text-ink">
           O consultório organizado em um só lugar.

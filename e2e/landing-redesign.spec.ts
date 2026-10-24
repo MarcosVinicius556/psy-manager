@@ -31,7 +31,7 @@ test.describe("landing conversion sections", () => {
     });
 
     await page.locator("#funcionalidades").scrollIntoViewIfNeeded();
-    await expect(page.getByRole("heading", { name: /produto real/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Veja o painel/i })).toBeVisible();
     await page.screenshot({
       path: path.join(artifactRoot, `${prefix}-funcionalidades.png`),
       fullPage: false,

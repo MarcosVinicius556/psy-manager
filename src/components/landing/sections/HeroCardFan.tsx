@@ -10,8 +10,8 @@ import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 import { springNav } from "@/lib/motion/presets";
 
 const baseRotates = [-5.5, -2, 2, 5.5];
-const baseSpreads = [-64, -22, 22, 64];
-const scrollSpreads = [-108, -36, 36, 108];
+const baseSpreads = [-48, -16, 16, 48];
+const scrollSpreads = [-80, -26, 26, 80];
 
 export default function HeroCardFan() {
   const sectionRef = useRef<HTMLDivElement>(null);
