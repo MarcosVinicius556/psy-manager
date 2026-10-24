@@ -14,8 +14,10 @@ feature/* ou fix/*  →  PR  →  develop  →  PR  →  master
 | --- | --- | --- |
 | `master` | Produção | Deploy de Production, com a Production Branch do projeto em `master` |
 | `develop` | Teste / staging | Deploy de Preview |
-| Pull request | Preview do PR | Deploy de Preview |
-| Outro push (sem PR) | — | O build é cancelado pelo `ignoreCommand` em `vercel.json` |
+| `feature/**`, `fix/**`, `hotfix/**` | Preview | Deploy de Preview. O pull request usa esse mesmo deploy |
+| Qualquer outra | — | Nenhum deployment |
+
+`git.deploymentEnabled` decide pelo nome da branch. Um preview de pull request é o deploy da branch de origem, então `feature/**`, `fix/**` e `hotfix/**` precisam continuar ligados. Desligar essas branches também desligaria o preview do PR. O push na branch de trabalho já gera o preview, mesmo antes de o PR ser aberto.
 
 Hotfix urgente sai de `master` como `hotfix/*`, entra em `master` por PR e depois volta para `develop`. O passo a passo, os nomes de branch e os commits estão em [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 

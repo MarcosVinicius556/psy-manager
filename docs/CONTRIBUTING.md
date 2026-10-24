@@ -42,7 +42,7 @@ Exemplo: `fix: impede o segredo do Cloudinary de ir para o navegador`.
 ## Pull request
 
 1. Abra o PR com o template do repositório.
-2. O CI precisa passar. Os checks se chamam `CI / verify` e `CI / master-pr-source`.
+2. O CI precisa passar. No workflow `CI`, os checks se chamam `verify` e `master-pr-source`.
 3. Para `develop`, a origem é `feature/*` ou `fix/*`.
 4. Para `master`, a origem só pode ser `develop` ou `hotfix/*`. O job `master-pr-source` recusa o resto. Esse job passa sem fazer nada quando a base não é `master`, para poder ser obrigatório também em `develop`.
 
@@ -50,7 +50,7 @@ Exemplo: `fix: impede o segredo do Cloudinary de ir para o navegador`.
 
 1. Confira se `develop` está verde no CI e no preview da Vercel.
 2. Abra um PR de `develop` para `master`. Não use squash se quiser que o histórico das duas branches continue fácil de comparar; merge commit deixa o próximo release mais simples.
-3. Espere `CI / verify` e `CI / master-pr-source`.
+3. Espere os checks `verify` e `master-pr-source` do workflow `CI`.
 4. Faça o merge. A Vercel publica a Production a partir de `master`.
 5. `develop` continua sendo a branch de integração. O próximo `feature/*` sai dela, não de `master`.
 
