@@ -78,9 +78,9 @@ test.describe("mobile UX screenshots (after)", () => {
       await page.goto("/admin/agenda", { waitUntil: "domcontentloaded" });
       await expect(page.locator(".admin-tabbar")).toBeVisible();
       await page.screenshot({ path: path.join(dir, "admin-agenda-tab-active.png"), fullPage: false });
-      await page.getByRole("link", { name: "Pacientes", exact: true }).click();
-      await page.waitForURL("**/admin/pacientes**");
-      await page.waitForTimeout(450);
+      await page.goto("/admin/pacientes", { waitUntil: "domcontentloaded" });
+      await expect(page.locator('.admin-tabbar a[aria-current="page"]')).toContainText("Pacientes");
+      await page.waitForTimeout(500);
       await page.screenshot({ path: path.join(dir, "admin-nav-pill-slide.png"), fullPage: false });
     });
 
