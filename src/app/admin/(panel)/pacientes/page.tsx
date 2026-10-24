@@ -5,7 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Drawer from "@/components/admin/Drawer";
 import PatientForm from "@/components/admin/PatientForm";
-import { Card, DataTable, Empty, PageTitle, Pill, Td, Th, fieldClass } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
+import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
+import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { labelPatientStatus } from "@/lib/admin/format";
 import { maskPhone } from "@/lib/masks";
@@ -52,7 +55,7 @@ function PatientsContent() {
     replaceQuery({ novo: null, edit: null });
   }
 
-  if (loading) return <p className="text-muted">Carregando pacientes...</p>;
+  if (loading) return <ListSkeleton rows={6} />;
 
   return (
     <div>
@@ -65,7 +68,9 @@ function PatientsContent() {
           </button>
         }
       />
-      <div className="mb-4 flex flex-wrap gap-2">
+      <FloatingActionButton label="Novo paciente" onClick={() => replaceQuery({ novo: "1", edit: null })} />
+      <div className="sticky top-14 z-10 -mx-4 mb-4 space-y-3 bg-paper/95 px-4 py-3 backdrop-blur-md md:static md:mx-0 md:bg-transparent md:p-0">
+      <div className="flex flex-wrap gap-2">
         {(
           [
             ["todos", "Todos"],
@@ -83,18 +88,33 @@ function PatientsContent() {
           </button>
         ))}
       </div>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar por nome, telefone ou e-mail"
+          className={fieldClass}
+          type="search"
+          inputMode="search"
+          autoComplete="off"
+        />
+      </div>
       <Card>
-        <div className="mb-4">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nome, telefone ou e-mail"
-            className={fieldClass}
-          />
-        </div>
         {filtered.length === 0 ? (
           <Empty>Nenhum paciente encontrado.</Empty>
         ) : (
+          <>
+          <div className="grid gap-3 md:hidden">
+            {filtered.map((patient) => (
+              <ListCard
+                key={patient.id}
+                href={`/admin/pacientes/${patient.id}`}
+                title={patient.nome}
+                subtitle={[maskPhone(patient.telefone), patient.email].filter(Boolean).join(" · ") || "Sem contato"}
+                meta={<Pill tone={patient.status === "ativo" ? "sage" : "muted"}>{labelPatientStatus(patient.status)}</Pill>}
+              />
+            ))}
+          </div>
+          <ResponsiveTableWrap>
           <DataTable>
             <thead>
               <tr>
@@ -132,6 +152,8 @@ function PatientsContent() {
               ))}
             </tbody>
           </DataTable>
+          </ResponsiveTableWrap>
+          </>
         )}
       </Card>
       <Drawer open={drawerOpen} title={editing ? "Editar paciente" : "Novo paciente"} onClose={closeDrawer}>

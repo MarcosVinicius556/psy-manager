@@ -9,6 +9,9 @@ import Drawer from "@/components/admin/Drawer";
 import FileAttachments, { ReceiptLinks } from "@/components/admin/FileAttachments";
 import PatientForm from "@/components/admin/PatientForm";
 import ReceivePayment from "@/components/admin/ReceivePayment";
+import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
+import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
+import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import { Card, DataTable, Empty, PageTitle, Pill, Td, Th } from "@/components/admin/ui";
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -127,7 +130,7 @@ export default function PatientDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-muted">Carregando ficha...</p>;
+  if (loading) return <ListSkeleton rows={4} />;
   if (!patient) return <Empty>Paciente não encontrado.</Empty>;
 
   return (
@@ -146,23 +149,23 @@ export default function PatientDetailPage() {
           </div>
         }
       />
+      <FloatingActionButton label="Agendar" onClick={() => setScheduling(true)} />
       <div className="mb-4">
         <Pill tone={patient.status === "ativo" ? "sage" : "muted"}>{labelPatientStatus(patient.status)}</Pill>
       </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(
-          [
-            ["dados", "Dados"],
-            ["finalizados", "Atendimentos finalizados"],
-            ["futuros", "Atendimentos futuros"],
-            ["pagamentos", "Pagamentos"],
-            ["feedbacks", "Feedbacks"],
-          ] as const
-        ).map(([value, label]) => (
-          <button key={value} type="button" onClick={() => setTab(value)} className={tab === value ? "btn-chip-active" : "btn-chip"}>
-            {label}
-          </button>
-        ))}
+      <div className="mb-4">
+        <SegmentedControl
+          ariaLabel="Seções da ficha"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "dados", label: "Dados" },
+            { value: "finalizados", label: "Finalizados" },
+            { value: "futuros", label: "Futuros" },
+            { value: "pagamentos", label: "Pagamentos" },
+            { value: "feedbacks", label: "Feedbacks" },
+          ]}
+        />
       </div>
 
       {tab === "dados" && <Card className="mb-6">

@@ -50,6 +50,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 | `npm test` | `vitest run` |
 | `npm run build` | Build de produção |
 | `npm start` | Sobe o build |
+| `npm run e2e:mobile` | Emuladores Firebase + seed + screenshots Playwright (ver [docs/e2e-mobile.md](docs/e2e-mobile.md)) |
 
 ## Variáveis de ambiente
 

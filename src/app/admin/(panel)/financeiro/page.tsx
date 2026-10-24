@@ -11,7 +11,11 @@ import PaymentForm from "@/components/admin/PaymentForm";
 import ReceivePayment from "@/components/admin/ReceivePayment";
 import { ReceiptLinks } from "@/components/admin/FileAttachments";
 import SetupNeeded from "@/components/admin/SetupNeeded";
-import { Card, DataTable, Empty, PageTitle, Pill, Td, Th } from "@/components/admin/ui";
+import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
+import ListCard from "@/components/admin/mobile/ListCard";
+import StackedRow from "@/components/admin/mobile/StackedRow";
+import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
+import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
@@ -72,7 +76,7 @@ function FinanceContent() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  if (loading) return <p className="text-muted">Carregando contas a receber...</p>;
+  if (loading) return <ListSkeleton rows={4} />;
 
   const missingPatient = patients.length === 0;
   const missingLocation = memberWorkplaces(locations, currentMember, user?.uid).length === 0;
@@ -95,7 +99,8 @@ function FinanceContent() {
           </button>
         }
       />
-      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+      <FloatingActionButton label="Novo lançamento" onClick={() => router.replace(`${pathname}?novo=1`, { scroll: false })} />
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MonthTotalCard
           title="Total recebido"
           month={month}
@@ -140,7 +145,7 @@ function FinanceContent() {
 
       {view === "lancamentos" && (
         <Card>
-          <div className="mb-4 grid gap-3 md:grid-cols-4">
+          <div className="sticky top-14 z-10 -mx-4 mb-4 grid gap-3 bg-white px-4 py-3 md:static md:mx-0 md:grid-cols-4 md:bg-transparent md:p-0">
             <Select
               value={status}
               onChange={(next) => setStatus(next as typeof status)}
@@ -159,6 +164,51 @@ function FinanceContent() {
           {filtered.length === 0 ? (
             <Empty>Nenhum lançamento neste filtro.</Empty>
           ) : (
+            <>
+            <div className="md:hidden">
+              {filtered.map((payment) => {
+                const remaining = remainingAmount(payment);
+                const received = receivedAmount(payment);
+                const canReceive = remaining > 0 && payment.status !== "nao_pago";
+                return (
+                  <StackedRow
+                    key={payment.id}
+                    primary={
+                      payment.origem === "externo" ? (
+                        payment.descricao
+                      ) : (
+                        <Link href={`/admin/pacientes/${payment.patientId}`} className="text-teal">
+                          {patientName(payment.patientId)}
+                        </Link>
+                      )
+                    }
+                    secondary={`Vence ${formatDate(payment.dueDate)} · ${payment.descricao}`}
+                    meta={
+                      <div>
+                        <p className="font-num font-semibold text-ink">{formatMoney(agreedAmount(payment))}</p>
+                        <Pill tone={payment.status === "pago" ? "teal" : isUnpaid(payment) ? "accent" : "sage"}>
+                          {labelPaymentStatus(payment.status)}
+                        </Pill>
+                      </div>
+                    }
+                    actions={
+                      <>
+                        {remaining > 0 ? (
+                          <span className="text-xs text-muted">
+                            Faltam {formatMoney(remaining)}
+                            {received > 0 ? ` · recebido ${formatMoney(received)}` : ""}
+                          </span>
+                        ) : null}
+                        <button type="button" className={canReceive ? "btn-row" : "btn-text"} onClick={() => setReceiving(payment)}>
+                          {canReceive ? "Receber" : "Histórico"}
+                        </button>
+                      </>
+                    }
+                  />
+                );
+              })}
+            </div>
+            <ResponsiveTableWrap>
             <DataTable minWidth={920}>
               <thead>
                 <tr>
@@ -221,6 +271,8 @@ function FinanceContent() {
                 })}
               </tbody>
             </DataTable>
+            </ResponsiveTableWrap>
+            </>
           )}
         </Card>
       )}
@@ -228,6 +280,18 @@ function FinanceContent() {
       {view === "emdia" && (
         <Card>
           {good.length === 0 ? <Empty>Nenhum paciente com pagamentos em dia.</Empty> : (
+            <>
+            <div className="grid gap-3 md:hidden">
+              {good.map((patient) => (
+                <ListCard
+                  key={patient.id}
+                  href={`/admin/pacientes/${patient.id}`}
+                  title={patient.nome}
+                  subtitle={maskPhone(patient.telefone) || "—"}
+                />
+              ))}
+            </div>
+            <ResponsiveTableWrap>
             <DataTable>
               <thead>
                 <tr>
@@ -246,6 +310,8 @@ function FinanceContent() {
                 ))}
               </tbody>
             </DataTable>
+            </ResponsiveTableWrap>
+            </>
           )}
         </Card>
       )}
@@ -253,6 +319,18 @@ function FinanceContent() {
       {view === "aberto" && (
         <Card>
           {debtors.length === 0 ? <Empty>Nenhum paciente com pagamento em aberto.</Empty> : (
+            <>
+            <div className="grid gap-3 md:hidden">
+              {debtors.map((patient) => (
+                <ListCard
+                  key={patient.id}
+                  href={`/admin/pacientes/${patient.id}`}
+                  title={patient.nome}
+                  subtitle={maskPhone(patient.telefone) || "—"}
+                />
+              ))}
+            </div>
+            <ResponsiveTableWrap>
             <DataTable>
               <thead>
                 <tr>
@@ -271,6 +349,8 @@ function FinanceContent() {
                 ))}
               </tbody>
             </DataTable>
+            </ResponsiveTableWrap>
+            </>
           )}
         </Card>
       )}

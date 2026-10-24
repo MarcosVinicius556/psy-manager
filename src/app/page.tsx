@@ -203,9 +203,9 @@ export default function Home() {
           <p className="mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
             Não é uma lista de promessas. São os módulos que o consultório usa hoje: do primeiro cadastro ao PDF do relatório.
           </p>
-          <ul className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <ul className="landing-feature-scroll mt-8 flex gap-4 overflow-x-auto pb-2 sm:mt-12 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="landing-card">
+              <li key={title} className="landing-card min-w-[min(88vw,20rem)] shrink-0 snap-center sm:min-w-0">
                 <span className="landing-icon">
                   <Icon size={20} />
                 </span>
@@ -295,6 +295,16 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <div
+        className="landing-sticky-cta fixed inset-x-0 bottom-0 z-40 border-t border-[#d7e0d8] bg-paper/95 p-3 backdrop-blur-md sm:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        <Link href="/cadastro" className="btn-primary w-full">
+          Começar gratuitamente
+        </Link>
+      </div>
+      <div className="h-20 sm:hidden" aria-hidden="true" />
 
       <Footer />
     </div>
