@@ -33,7 +33,17 @@ export function getFirebaseAdminApp() {
     return app;
   }
   const serviceAccount = parseServiceAccount();
-  if (!serviceAccount?.client_email || !serviceAccount.private_key) return null;
+  if (!serviceAccount?.client_email || !serviceAccount.private_key) {
+    if (process.env.FIRESTORE_EMULATOR_HOST) {
+      const projectId =
+        process.env.FIREBASE_PROJECT_ID?.trim() ||
+        process.env.NEXT_PUBLIC_PROJECT_ID?.trim() ||
+        "demo-psy-manager";
+      app = initializeApp({ projectId });
+      return app;
+    }
+    return null;
+  }
   app = initializeApp({
     credential: cert({
       projectId: serviceAccount.project_id || process.env.NEXT_PUBLIC_PROJECT_ID,

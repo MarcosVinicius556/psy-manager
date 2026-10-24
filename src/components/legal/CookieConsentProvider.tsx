@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import CookieBanner from "@/components/legal/CookieBanner";
 import CookiePreferencesSheet from "@/components/legal/CookiePreferencesSheet";
@@ -23,6 +24,10 @@ type CookieConsentContextValue = {
 
 const CookieConsentContext = createContext<CookieConsentContextValue | undefined>(undefined);
 
+function isPatientFeedbackPath(pathname: string) {
+  return pathname === "/feedback" || pathname.startsWith("/feedback/");
+}
+
 export function useCookieConsent() {
   const ctx = useContext(CookieConsentContext);
   if (!ctx) {
@@ -32,10 +37,12 @@ export function useCookieConsent() {
 }
 
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [consent, setConsent] = useState<CookieConsentChoice | null>(null);
   const [ready, setReady] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const onFeedbackPage = isPatientFeedbackPath(pathname);
 
   useEffect(() => {
     const stored = readCookieConsent();
@@ -78,7 +85,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     <CookieConsentContext.Provider value={value}>
       {children}
       <OptionalAnalytics />
-      {ready && bannerOpen ? (
+      {ready && bannerOpen && !onFeedbackPage ? (
         <CookieBanner
           onAcceptAll={value.acceptAll}
           onReject={value.rejectNonEssential}

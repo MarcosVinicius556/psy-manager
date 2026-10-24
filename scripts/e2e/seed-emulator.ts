@@ -7,6 +7,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { LEGAL_DOCUMENTS } from "../../src/lib/legal/config";
 import { hashLegalContent } from "../../src/lib/legal/hash";
+import { e2eFeedbackDocId } from "../../e2e/helpers/feedback-tokens";
 import { buildTrialAccount } from "../../src/lib/saas/model";
 
 async function seedLegalAcceptances(uid: string) {
@@ -282,6 +283,46 @@ async function main() {
     foto: "",
     ownerUid: platformUid,
   });
+
+  const feedbackExpires = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const feedbackCommon = {
+    appointmentId: "appt-1",
+    patientId: "pat-ana",
+    professionalNome: "Dra. Helena Alves",
+    patientNome: "Ana Souza",
+    sessionDate: isoDate(0),
+    startTime: "10:00",
+    ownerUid: uid,
+    createdAt: now,
+    expiresAt: feedbackExpires.toISOString(),
+    expiresAtMillis: feedbackExpires.getTime(),
+  };
+
+  await db.collection("sessionFeedbacks").doc(e2eFeedbackDocId(1)).set({
+    ...feedbackCommon,
+    stars: null,
+    comment: "",
+    answeredAt: null,
+    answeredAtMillis: null,
+  });
+
+  await db.collection("sessionFeedbacks").doc(e2eFeedbackDocId(2)).set({
+    ...feedbackCommon,
+    stars: 5,
+    comment: "Já respondido no seed.",
+    answeredAt: now,
+    answeredAtMillis: Date.now(),
+  });
+
+  for (const sequence of [3, 4]) {
+    await db.collection("sessionFeedbacks").doc(e2eFeedbackDocId(sequence)).set({
+      ...feedbackCommon,
+      stars: null,
+      comment: "",
+      answeredAt: null,
+      answeredAtMillis: null,
+    });
+  }
 
   console.log(
     JSON.stringify(

@@ -80,6 +80,7 @@ async function main() {
     "e2e/no-horizontal-scroll.spec.ts",
     "e2e/interactive-buttons.spec.ts",
     "e2e/agenda-calendar.spec.ts",
+    "e2e/public-feedback.spec.ts",
   ]);
   shutdown();
 }

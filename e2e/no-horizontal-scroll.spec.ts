@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs";
 
 import { loginAsDemo } from "./helpers/login";
+import { e2eFeedbackDocId } from "./helpers/feedback-tokens";
 
 const publicRoutes = [
   "/",
@@ -13,6 +14,7 @@ const publicRoutes = [
   "/seguranca",
   "/suboperadores",
   "/dpa",
+  `/feedback/${e2eFeedbackDocId(1)}`,
 ] as const;
 
 const adminRoutes = [

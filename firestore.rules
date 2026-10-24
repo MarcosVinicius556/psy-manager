@@ -380,16 +380,10 @@ service cloud.firestore {
     }
 
     match /sessionFeedbacks/{token} {
-      allow get: if true;
-      allow update: if resource.data.answeredAtMillis == null
-        && resource.data.expiresAtMillis > request.time.toMillis()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stars", "comment", "answeredAt", "answeredAtMillis"])
-        && request.resource.data.stars is int
-        && request.resource.data.stars >= 1
-        && request.resource.data.stars <= 5
-        && request.resource.data.comment is string
-        && request.resource.data.comment.size() <= 2000
-        && request.resource.data.answeredAtMillis is int;
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn() && ownsNew() && clinicWritesOpen();
+      allow update: if signedIn() && ownsExisting() && clinicWritesOpen();
+      allow delete: if false;
     }
 
     match /{collection}/{document} {
