@@ -10,6 +10,7 @@ export default function Drawer({
   children,
   footer,
   size = "default",
+  elevation = "default",
 }: {
   open: boolean;
   title: string;
@@ -17,6 +18,8 @@ export default function Drawer({
   children: ReactNode;
   footer?: ReactNode;
   size?: "default" | "wide";
+  /** Above landing header (z 1000) and cookie banner (z 1100). */
+  elevation?: "default" | "legal";
 }) {
   const [mounted, setMounted] = useState(open);
   const [shown, setShown] = useState(false);
@@ -53,8 +56,10 @@ export default function Drawer({
 
   if (!mounted) return null;
 
+  const stackClass = elevation === "legal" ? "z-[1150]" : "z-50";
+
   return (
-    <div className={`fixed inset-0 z-50 ${shown ? "" : "pointer-events-none"}`} aria-hidden={!shown}>
+    <div className={`fixed inset-0 ${stackClass} ${shown ? "" : "pointer-events-none"}`} aria-hidden={!shown}>
       <button
         type="button"
         aria-label="Fechar painel"
@@ -66,25 +71,28 @@ export default function Drawer({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`absolute inset-0 flex h-full w-full flex-col bg-white shadow-[0_18px_50px_rgba(61,82,64,0.18)] transition-transform duration-300 ease-out sm:inset-y-0 sm:right-0 sm:left-auto ${
+        className={`absolute inset-0 flex h-full w-full max-w-full flex-col overflow-x-hidden bg-white transition-transform duration-300 ease-out max-sm:shadow-none sm:inset-y-0 sm:right-0 sm:left-auto sm:shadow-[0_18px_50px_rgba(61,82,64,0.18)] ${
           size === "wide" ? "sm:max-w-[44rem]" : "sm:max-w-[560px]"
         } ${shown ? "translate-x-0" : "translate-x-full"}`}
       >
         <header
-          className="flex items-center justify-between gap-3 border-b border-[#e7eee8] px-4 py-3 sm:px-6 sm:py-5"
+          className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e7eee8] px-4 py-3 sm:px-6 sm:py-5"
           style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         >
-          <h2 className="font-serif text-[clamp(1.4rem,5vw,1.75rem)] font-medium leading-tight text-teal">{title}</h2>
+          <h2 className="min-w-0 flex-1 font-serif text-[clamp(1.25rem,4.5vw,1.75rem)] font-medium leading-tight text-teal">
+            {title}
+          </h2>
           <button
             type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-transparent text-teal transition-colors duration-300 hover:border-teal hover:bg-transparent"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-[#d7e0d8] bg-white text-teal transition-colors duration-300 hover:border-teal hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal"
             onClick={onClose}
             aria-label="Fechar"
+            data-testid="drawer-close"
           >
-            <HiOutlineX size={22} />
+            <HiOutlineX size={22} aria-hidden />
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{held}</div>
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{held}</div>
         {footer ? (
           <div
             className="border-t border-[#e7eee8] px-4 py-3 sm:px-6 sm:py-4"
