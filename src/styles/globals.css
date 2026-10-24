@@ -131,9 +131,11 @@
     color: #fff;
   }
 
-  .btn-primary:hover:not(:disabled) {
-    background: transparent;
-    color: var(--color-accent);
+  @media (hover: hover) {
+    .btn-primary:hover:not(:disabled) {
+      background: transparent;
+      color: var(--color-accent);
+    }
   }
 
   .btn-text {
@@ -142,9 +144,11 @@
     color: var(--color-teal);
   }
 
-  .btn-text:hover:not(:disabled) {
-    background: transparent;
-    color: var(--color-teal);
+  @media (hover: hover) {
+    .btn-text:hover:not(:disabled) {
+      background: transparent;
+      color: var(--color-teal);
+    }
   }
 
   .btn-chip {
@@ -342,29 +346,84 @@ header.landing .btn-primary,
   height: 2.75rem;
   padding: 0 1.35rem;
   font-size: 0.86rem;
-  transition: none;
 }
 
 .header-on-media .btn-text,
-.header-on-media .btn-text:hover:not(:disabled),
-.landing-hero .btn-text,
-.landing-hero .btn-text:hover:not(:disabled) {
+.landing-hero .btn-text {
   border-color: rgba(255, 255, 255, 0.88);
   background: transparent;
   color: #fff;
 }
 
-header.landing .btn-primary:hover:not(:disabled),
-.landing-hero .btn-primary:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
+@media (hover: hover) {
+  .header-on-media .btn-text:hover:not(:disabled),
+  .landing-hero .btn-text:hover:not(:disabled) {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  header.landing .btn-primary:hover:not(:disabled),
+  .landing-hero .btn-primary:hover:not(:disabled) {
+    border-color: var(--landing-cta-hover);
+    background: var(--landing-cta-hover);
+    color: #fff;
+  }
+
+  header.landing:not(.header-on-media) .btn-text:hover:not(:disabled) {
+    border-color: var(--color-teal);
+    background: #fff;
+    color: var(--color-teal);
+  }
+}
+
+.header-on-media .btn-text:active:not(:disabled),
+.landing-hero .btn-text:active:not(:disabled) {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
 
-header.landing:not(.header-on-media) .btn-text:hover:not(:disabled) {
+header.landing .btn-primary:active:not(:disabled),
+.landing-hero .btn-primary:active:not(:disabled) {
+  border-color: var(--landing-cta-hover);
+  background: var(--landing-cta-hover);
+  color: #fff;
+}
+
+.landing-hero .btn-text:focus-visible,
+.header-on-media .btn-text:focus-visible {
+  outline-color: #fff;
+}
+
+#site-menu .site-menu-link {
+  color: var(--landing-ink);
+}
+
+#site-menu .site-menu-cta.btn-text {
   border-color: var(--color-teal);
   background: #fff;
   color: var(--color-teal);
+}
+
+@media (hover: hover) {
+  #site-menu .site-menu-cta.btn-text:hover:not(:disabled) {
+    border-color: var(--color-teal);
+    background: transparent;
+    color: var(--color-teal);
+  }
+}
+
+#site-menu .site-menu-cta.btn-text:active:not(:disabled) {
+  border-color: var(--color-teal);
+  background: var(--landing-soft);
+  color: var(--color-teal);
+}
+
+#site-menu .site-menu-cta.btn-primary:active:not(:disabled) {
+  border-color: var(--landing-cta-hover);
+  background: var(--landing-cta-hover);
+  color: #fff;
 }
 
 .landing-device {
