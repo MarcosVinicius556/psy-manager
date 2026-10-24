@@ -38,6 +38,7 @@ import {
   updateExpense,
   updateLocation,
   publishDirectory,
+  saveMemberPrivateProfile,
   setLocationInviteStatus,
   updateMember,
   updateNotification,
@@ -1065,10 +1066,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         const cpf = assertValidCpfOptional(input.cpf, "CPF");
         if (input.cpf.trim() && !isValidCpf(input.cpf)) throw new Error("CPF inválido.");
-        await updateMember(mine.id, {
-          nome,
-          telefone: input.telefone.trim(),
-          foto,
+        await saveMemberPrivateProfile(uid, {
           cpf,
           crpNumero: input.crpNumero.replace(/\D/g, "").trim(),
           crpRegiao: input.crpRegiao.replace(/\D/g, "").padStart(2, "0").slice(0, 2),
@@ -1076,6 +1074,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           enderecoCidade: input.enderecoCidade.trim(),
           enderecoUf: input.enderecoUf.trim().toUpperCase().slice(0, 2),
           enderecoCep: input.enderecoCep.replace(/\D/g, "").slice(0, 8),
+        });
+        await updateMember(mine.id, {
+          nome,
+          telefone: input.telefone.trim(),
+          foto,
           valorBase: input.valorBase,
           valorSocial: input.valorSocial,
           workHours: input.workHours,

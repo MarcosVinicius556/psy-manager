@@ -15,6 +15,13 @@ import {
 } from "firebase/firestore";
 import { isPaymentMethod } from "./format";
 import { sessionStartMillis } from "./schedule";
+import {
+  emptyMemberPrivateFields,
+  mapMemberPrivateData,
+  MEMBER_PRIVATE_FIELD_KEYS,
+  pickMemberPrivateFields,
+  stripMemberPrivateFields,
+} from "./member-private";
 import { buildLegacyAccount, buildReplayDeniedAccount, buildTrialAccount, expirePatch } from "../saas/model";
 import { reserveTrial } from "../saas/account-store";
 import { assertClinicWrite } from "../saas/guard";
@@ -446,7 +453,9 @@ function mapWorkShift(value: unknown): WorkShift | null {
   return { weekday, startTime, endTime };
 }
 
-function mapMember(id: string, data: DocumentData): ClinicMember {
+function mapMember(id: string, data: DocumentData, privateFields = emptyMemberPrivateFields()): ClinicMember {
+  const legacyPrivate = mapMemberPrivateData(data as Record<string, unknown>);
+  const priv = MEMBER_PRIVATE_FIELD_KEYS.some((key) => legacyPrivate[key]) ? legacyPrivate : privateFields;
   return {
     id,
     uid: data.uid ? text(data.uid) : null,
@@ -454,13 +463,7 @@ function mapMember(id: string, data: DocumentData): ClinicMember {
     email: text(data.email),
     telefone: text(data.telefone),
     foto: text(data.foto),
-    cpf: text(data.cpf),
-    crpNumero: text(data.crpNumero),
-    crpRegiao: text(data.crpRegiao),
-    enderecoLogradouro: text(data.enderecoLogradouro),
-    enderecoCidade: text(data.enderecoCidade),
-    enderecoUf: text(data.enderecoUf),
-    enderecoCep: text(data.enderecoCep),
+    ...priv,
     reciboSequencia: Number(data.reciboSequencia) || 0,
     valorBase: Number(data.valorBase) || 0,
     valorSocial: Number(data.valorSocial) || 0,
@@ -502,8 +505,36 @@ function mapExpense(id: string, data: DocumentData): Expense {
   };
 }
 
-export function listMembers() {
-  return listCollection("members", mapMember);
+async function loadMemberPrivateForUid(uid: string) {
+  const snapshot = await getDoc(doc(getFirebaseDb(), "memberPrivate", uid));
+  if (!snapshot.exists()) return emptyMemberPrivateFields();
+  return mapMemberPrivateData(snapshot.data() as Record<string, unknown>);
+}
+
+export async function listMembers(): Promise<ClinicMember[]> {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const privateForSelf = await loadMemberPrivateForUid(uid);
+  const snapshot = await getDocs(query(collection(getFirebaseDb(), "members"), where("ownerUid", "==", uid)));
+  return snapshot.docs.map((item) => {
+    const memberUid = text(item.data().uid);
+    const priv = memberUid === uid ? privateForSelf : emptyMemberPrivateFields();
+    return mapMember(item.id, item.data(), priv);
+  });
+}
+
+export async function saveMemberPrivateProfile(uid: string, fields: ReturnType<typeof pickMemberPrivateFields>) {
+  assertClinicWrite();
+  if (uid !== currentOwnerUid()) throw new Error("Sem permissão para alterar estes dados.");
+  await setDoc(
+    doc(getFirebaseDb(), "memberPrivate", uid),
+    {
+      ownerUid: uid,
+      ...fields,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }
 
 export function listExpenses() {
@@ -565,13 +596,6 @@ export async function createMember(input: MemberInput) {
     uid: null,
     telefone: "",
     foto: "",
-    cpf: "",
-    crpNumero: "",
-    crpRegiao: "",
-    enderecoLogradouro: "",
-    enderecoCidade: "",
-    enderecoUf: "",
-    enderecoCep: "",
     reciboSequencia: 0,
     valorBase: 0,
     valorSocial: 0,
@@ -585,7 +609,7 @@ export async function createMember(input: MemberInput) {
 export async function updateMember(id: string, patch: Partial<ClinicMember>) {
   assertClinicWrite();
   const { id: _id, ...rest } = patch;
-  const data = { ...rest } as Record<string, unknown>;
+  const data = stripMemberPrivateFields({ ...rest } as Record<string, unknown>);
   delete data.ownerUid;
   await updateDoc(doc(getFirebaseDb(), "members", id), data);
 }

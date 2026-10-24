@@ -219,6 +219,64 @@ describe("sessionFeedbacks", () => {
   });
 });
 
+describe("memberPrivate and patients", () => {
+  it("professional reads own private profile", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "memberPrivate", ownerUid), {
+        ownerUid,
+        cpf: "39053344705",
+        crpNumero: "12345",
+        crpRegiao: "06",
+        enderecoLogradouro: "Rua Teste",
+      });
+    });
+    const db = env.authenticatedContext(ownerUid).firestore();
+    const snap = await assertSucceeds(getDoc(doc(db, "memberPrivate", ownerUid)));
+    expect(snap.data()?.cpf).toBe("39053344705");
+  });
+
+  it("co-member cannot read another professional private profile", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "memberPrivate", ownerUid), {
+        ownerUid,
+        cpf: "39053344705",
+        enderecoLogradouro: "Rua Teste",
+      });
+    });
+    const db = env.authenticatedContext(memberUid).firestore();
+    await assertFails(getDoc(doc(db, "memberPrivate", ownerUid)));
+  });
+
+  it("cannot store CPF on members document", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      setDoc(doc(db, "members", "member-roster-1"), {
+        ownerUid,
+        uid: ownerUid,
+        nome: "Pro",
+        email: "pro@example.com",
+        cpf: "39053344705",
+      })
+    );
+  });
+
+  it("patient CPF is owner-only", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "patients", "patient-1"), {
+        ownerUid,
+        nome: "Paciente",
+        cpf: "39053344705",
+        cpfPagador: "52998224725",
+        cpfBeneficiario: "39053344705",
+      });
+    });
+    const ownerDb = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(getDoc(doc(ownerDb, "patients", "patient-1")));
+    const memberDb = env.authenticatedContext(memberUid).firestore();
+    await assertFails(getDoc(doc(memberDb, "patients", "patient-1")));
+  });
+});
+
 describe("platform and rate limits", () => {
   it("super_admin reads platform audit", async () => {
     await env.withSecurityRulesDisabled(async (context) => {

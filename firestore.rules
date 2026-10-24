@@ -248,6 +248,26 @@ service cloud.firestore {
         && request.resource.data.answeredAtMillis == null;
     }
 
+    function memberPrivateFieldKeys() {
+      return [
+        "cpf",
+        "crpNumero",
+        "crpRegiao",
+        "enderecoLogradouro",
+        "enderecoCidade",
+        "enderecoUf",
+        "enderecoCep",
+      ];
+    }
+
+    function noMemberPrivateOnMember() {
+      return !request.resource.data.keys().hasAny(memberPrivateFieldKeys());
+    }
+
+    function patientOwnerRead() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
       allow create: if signedIn()
@@ -337,20 +357,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /memberPrivate/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
+    }
+
     match /members/{memberId} {
       allow read: if signedIn() && (
         resource.data.ownerUid == request.auth.uid
         || resource.data.uid == request.auth.uid
         || !resource.data.keys().hasAny(["ownerUid"])
       );
-      allow create: if tenantCreate()
+      allow create: if noMemberPrivateOnMember() && (
+        tenantCreate()
         || (
           isSuperAdmin()
           && request.resource.data.uid is string
           && request.resource.data.ownerUid == request.resource.data.uid
           && request.resource.data.email is string
-        );
-      allow update: if tenantUpdate();
+        )
+      );
+      allow update: if tenantUpdate() && noMemberPrivateOnMember();
       allow delete: if tenantDelete();
     }
 
@@ -447,7 +481,7 @@ service cloud.firestore {
     }
 
     match /patients/{patientId} {
-      allow read: if tenantRead();
+      allow read: if patientOwnerRead();
       allow create: if tenantCreate();
       allow update: if tenantUpdate();
       allow delete: if tenantDelete();
