@@ -64,7 +64,7 @@ Comunicado de produto respeita `productEmail`. Aviso operacional da conta contin
 
 1. Crie o usuário no Firebase Authentication.
 2. No Firestore, grave `users/{uid}` com `role: super_admin` antes do primeiro acesso à plataforma.
-3. Publique as regras: `firebase deploy --only firestore:rules`, com a CLI apontando para este projeto. O arquivo é `firestore.rules`.
+3. Publique as regras: `firebase deploy --only firestore:rules,storage`, com a CLI apontando para este projeto. O Firestore usa `firestore.rules` e o Storage usa `storage.rules` (os dois estão no `firebase.json`).
 4. Preencha `.env.local` a partir de `.env.example`.
 5. Entre em `/plataforma/login`.
 

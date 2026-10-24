@@ -527,7 +527,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           recurring: Boolean(input.recurring),
           seriesId: input.seriesId || null,
         };
-        async function usePackageCredits(count: number) {
+        async function consumePackageCredits(count: number) {
           if (!packageId || count < 1) return;
           const credits = appointments
             .filter((item) => item.patientId === input.patientId && item.packageId === packageId && item.creditoEmHaver)
@@ -589,7 +589,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
             viewersFor(locationId)
           );
           toast.success(`${booked.length} sessões recorrentes agendadas.`);
-          await usePackageCredits(booked.length);
+          await consumePackageCredits(booked.length);
           await refresh();
           return { id: ids[0] || "", sessions: booked.map((date, index) => ({ id: ids[index], date })) };
         }
@@ -614,7 +614,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           if (companions.length) {
             const created = await createAppointmentSeries(companions, viewersFor(locationId));
             toast.success("Atendimento atualizado, com as outras sessões do pacote.");
-            await usePackageCredits(companions.length);
+            await consumePackageCredits(companions.length);
             await refresh();
             return { id, sessions: [{ id, date: payload.date }, ...companions.map((item, index) => ({ id: created[index], date: item.date }))] };
           }
@@ -637,7 +637,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
             viewersFor(locationId)
           );
           toast.success(`${ids.length} sessões do pacote agendadas.`);
-          await usePackageCredits(ids.length);
+          await consumePackageCredits(ids.length);
           await refresh();
           return {
             id: ids[0] || "",
@@ -646,7 +646,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         const created = await createAppointment(payload, viewersFor(locationId));
         toast.success("Atendimento agendado.");
-        await usePackageCredits(1);
+        await consumePackageCredits(1);
         await refresh();
         return { id: created, sessions: [{ id: created, date: payload.date }] };
       },

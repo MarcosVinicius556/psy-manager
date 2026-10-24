@@ -8,7 +8,8 @@ export function consultantWhatsAppUrl(message = CONSULTANT_MESSAGE) {
 }
 
 export function consultantEmail() {
-  return (process.env.NEXT_PUBLIC_CONTACT_EMAIL || process.env.EMAIL_TO || "").trim();
+  // Só o e-mail público. EMAIL_TO é a conta SMTP e não pode aparecer no HTML.
+  return (process.env.NEXT_PUBLIC_CONTACT_EMAIL || "").trim();
 }
 
 export function consultantMailto(
