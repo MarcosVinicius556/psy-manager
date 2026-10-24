@@ -1,27 +1,36 @@
 import { getAdminDb } from "@/lib/firebase-admin";
 import { decryptSecret, encryptSecret } from "./encryption";
 import type { GoogleCalendarEventTitleMode, GoogleCalendarIntegrationSettings, GoogleCalendarPrivateRecord } from "./types";
+import { locationIntegrationKey, userIntegrationKey } from "./integration-keys";
 
 const COLLECTION = "integrations";
 
-function docRef(uid: string) {
+function docRef(key: string) {
   const db = getAdminDb();
   if (!db) return null;
-  return db.collection(COLLECTION).doc(uid);
+  return db.collection(COLLECTION).doc(key);
 }
 
-export function toPublicSettings(record: GoogleCalendarPrivateRecord | null): GoogleCalendarIntegrationSettings {
+function emptySettings(kind: "user" | "location" = "user", locationId: string | null = null): GoogleCalendarIntegrationSettings {
+  return {
+    enabled: false,
+    googleEmail: null,
+    calendarId: null,
+    calendarSummary: null,
+    syncToGoogle: false,
+    syncFromGoogle: false,
+    blockGoogleBusy: false,
+    showGoogleEventTitles: false,
+    eventTitleMode: "generic",
+    connectedAt: null,
+    kind,
+    locationId,
+  };
+}
+
+export function toPublicSettings(record: GoogleCalendarPrivateRecord | null, kind: "user" | "location" = "user", locationId: string | null = null): GoogleCalendarIntegrationSettings {
   if (!record?.refreshTokenEncrypted) {
-    return {
-      enabled: false,
-      googleEmail: null,
-      calendarId: null,
-      calendarSummary: null,
-      syncToGoogle: false,
-      syncFromGoogle: false,
-      eventTitleMode: "generic",
-      connectedAt: null,
-    };
+    return emptySettings(kind, locationId);
   }
   return {
     enabled: true,
@@ -30,27 +39,39 @@ export function toPublicSettings(record: GoogleCalendarPrivateRecord | null): Go
     calendarSummary: record.calendarSummary,
     syncToGoogle: record.syncToGoogle,
     syncFromGoogle: record.syncFromGoogle,
+    blockGoogleBusy: Boolean(record.blockGoogleBusy),
+    showGoogleEventTitles: Boolean(record.showGoogleEventTitles),
     eventTitleMode: record.eventTitleMode,
     connectedAt: record.connectedAt,
+    kind: record.kind || kind,
+    locationId: record.locationId ?? locationId,
   };
 }
 
-export async function readIntegration(uid: string) {
-  const ref = docRef(uid);
+export async function readIntegration(key: string) {
+  const ref = docRef(key);
   if (!ref) return null;
   const snap = await ref.get();
   if (!snap.exists) return null;
   return snap.data() as GoogleCalendarPrivateRecord;
 }
 
-export async function writeIntegration(uid: string, data: Partial<GoogleCalendarPrivateRecord>) {
-  const ref = docRef(uid);
+export async function readUserIntegration(uid: string) {
+  return readIntegration(userIntegrationKey(uid));
+}
+
+export async function readLocationIntegration(locationId: string) {
+  return readIntegration(locationIntegrationKey(locationId));
+}
+
+export async function writeIntegration(key: string, data: Partial<GoogleCalendarPrivateRecord>) {
+  const ref = docRef(key);
   if (!ref) throw new Error("firebase_admin_indisponivel");
   await ref.set(data, { merge: true });
 }
 
-export async function deleteIntegration(uid: string) {
-  const ref = docRef(uid);
+export async function deleteIntegration(key: string) {
+  const ref = docRef(key);
   if (!ref) throw new Error("firebase_admin_indisponivel");
   await ref.delete();
 }
@@ -71,26 +92,28 @@ export function decryptAccessToken(encrypted: string) {
   return decryptSecret(encrypted);
 }
 
-export async function saveOAuthPendingNonce(uid: string, nonce: string) {
-  await writeIntegration(uid, { oauthStateNonce: nonce });
+export async function saveOAuthPendingNonce(key: string, nonce: string) {
+  await writeIntegration(key, { oauthStateNonce: nonce });
 }
 
-export async function consumeOAuthNonce(uid: string, nonce: string) {
-  const record = await readIntegration(uid);
+export async function consumeOAuthNonce(key: string, nonce: string) {
+  const record = await readIntegration(key);
   if (!record?.oauthStateNonce || record.oauthStateNonce !== nonce) return false;
-  await writeIntegration(uid, { oauthStateNonce: "" });
+  await writeIntegration(key, { oauthStateNonce: "" });
   return true;
 }
 
 export async function updateSettings(
-  uid: string,
+  key: string,
   patch: {
     calendarId?: string | null;
     calendarSummary?: string | null;
     syncToGoogle?: boolean;
     syncFromGoogle?: boolean;
+    blockGoogleBusy?: boolean;
+    showGoogleEventTitles?: boolean;
     eventTitleMode?: GoogleCalendarEventTitleMode;
   }
 ) {
-  await writeIntegration(uid, patch);
+  await writeIntegration(key, patch);
 }

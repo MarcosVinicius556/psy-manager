@@ -1,7 +1,9 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
+import { locationOwnedByUid } from "@/lib/google-calendar/access";
 import { requireGoogleUser } from "@/lib/google-calendar/api-auth";
 import { GOOGLE_CALENDAR_SCOPES, googleOAuthRedirectUri } from "@/lib/google-calendar/config";
+import { locationIntegrationKey, userIntegrationKey } from "@/lib/google-calendar/integration-keys";
 import { createOAuthState } from "@/lib/google-calendar/oauth-state";
 import { saveOAuthPendingNonce } from "@/lib/google-calendar/store";
 
@@ -11,7 +13,15 @@ export async function GET(request: Request) {
   const auth = await requireGoogleUser(request);
   if ("error" in auth) return auth.error;
 
-  const origin = new URL(request.url).origin;
+  const url = new URL(request.url);
+  const locationId = url.searchParams.get("locationId")?.trim() || "";
+  if (locationId) {
+    const owner = await locationOwnedByUid(locationId, auth.uid);
+    if (!owner) return NextResponse.json({ reason: "sem_permissao" }, { status: 403 });
+  }
+
+  const integrationKey = locationId ? locationIntegrationKey(locationId) : userIntegrationKey(auth.uid);
+  const origin = url.origin;
   const redirectUri = googleOAuthRedirectUri(origin);
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   if (!clientId || !redirectUri) {
@@ -19,8 +29,11 @@ export async function GET(request: Request) {
   }
 
   const nonce = randomBytes(16).toString("hex");
-  await saveOAuthPendingNonce(auth.uid, nonce);
-  const state = createOAuthState(auth.uid, nonce);
+  await saveOAuthPendingNonce(integrationKey, nonce);
+  const state = createOAuthState(auth.uid, nonce, Date.now(), {
+    integrationKey,
+    locationId: locationId || undefined,
+  });
 
   const params = new URLSearchParams({
     client_id: clientId,

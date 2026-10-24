@@ -6,8 +6,9 @@ import { consumeOAuthNonce, encryptRefreshToken, readIntegration, writeIntegrati
 
 export const runtime = "nodejs";
 
-function settingsRedirect(origin: string, query: Record<string, string>) {
-  const url = new URL("/admin/configuracoes", origin);
+function redirectAfterOAuth(origin: string, locationId: string | null, query: Record<string, string>) {
+  const path = locationId ? `/admin/locais/${locationId}` : "/admin/configuracoes";
+  const url = new URL(path, origin);
   for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
   return NextResponse.redirect(url);
 }
@@ -19,50 +20,63 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state") || "";
   const oauthError = url.searchParams.get("error");
 
-  if (oauthError) return settingsRedirect(origin, { google: "erro", motivo: oauthError });
-  if (!code || !state) return settingsRedirect(origin, { google: "erro", motivo: "parametros" });
-
   const [body] = state.split(".");
   let uid = "";
-  let nonce = "";
+  let integrationKey = "";
+  let locationId: string | null = null;
   try {
-    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as { uid?: string; nonce?: string };
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as {
+      uid?: string;
+      integrationKey?: string;
+      locationId?: string;
+    };
     uid = payload.uid || "";
-    nonce = payload.nonce || "";
+    integrationKey = payload.integrationKey || payload.uid || "";
+    locationId = payload.locationId || null;
   } catch {
-    return settingsRedirect(origin, { google: "erro", motivo: "state" });
+    return redirectAfterOAuth(origin, null, { google: "erro", motivo: "state" });
   }
-  if (!uid || !nonce) return settingsRedirect(origin, { google: "erro", motivo: "state" });
 
-  const record = await readIntegration(uid);
-  if (!record?.oauthStateNonce) return settingsRedirect(origin, { google: "erro", motivo: "nonce" });
+  if (oauthError) return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: oauthError });
+  if (!code || !state || !uid || !integrationKey) {
+    return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: "parametros" });
+  }
+
+  const record = await readIntegration(integrationKey);
+  if (!record?.oauthStateNonce) return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: "nonce" });
   const verified = verifyOAuthState(state, uid, record.oauthStateNonce);
-  if (!verified.ok) return settingsRedirect(origin, { google: "erro", motivo: verified.reason });
+  if (!verified.ok) return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: verified.reason });
 
-  const nonceOk = await consumeOAuthNonce(uid, record.oauthStateNonce);
-  if (!nonceOk) return settingsRedirect(origin, { google: "erro", motivo: "nonce" });
+  const nonceOk = await consumeOAuthNonce(integrationKey, record.oauthStateNonce);
+  if (!nonceOk) return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: "nonce" });
 
   const redirectUri = googleOAuthRedirectUri(origin);
-  if (!redirectUri) return settingsRedirect(origin, { google: "erro", motivo: "redirect" });
+  if (!redirectUri) return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: "redirect" });
 
   try {
     const tokens = await exchangeCodeForTokens(code, redirectUri);
-    if (!tokens.refresh_token) return settingsRedirect(origin, { google: "erro", motivo: "refresh" });
-    const accessToken = tokens.access_token || await refreshAccessToken(uid, tokens.refresh_token);
+    if (!tokens.refresh_token) return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: "refresh" });
+    const accessToken = tokens.access_token || (await refreshAccessToken(integrationKey, tokens.refresh_token));
     const googleEmail = await fetchGoogleEmail(accessToken);
-    await writeIntegration(uid, {
+    const isLocation = Boolean(locationId);
+    await writeIntegration(integrationKey, {
+      kind: isLocation ? "location" : "user",
+      locationId: isLocation ? locationId : null,
+      ownerUid: uid,
       refreshTokenEncrypted: encryptRefreshToken(tokens.refresh_token),
       googleEmail,
       calendarId: null,
       calendarSummary: null,
       syncToGoogle: false,
       syncFromGoogle: false,
+      blockGoogleBusy: false,
+      showGoogleEventTitles: false,
       eventTitleMode: "generic",
       connectedAt: new Date().toISOString(),
       oauthStateNonce: "",
     });
-    return settingsRedirect(origin, { google: "conectado" });
+    return redirectAfterOAuth(origin, locationId, { google: "conectado" });
   } catch {
-    return settingsRedirect(origin, { google: "erro", motivo: "troca" });
+    return redirectAfterOAuth(origin, locationId, { google: "erro", motivo: "troca" });
   }
 }

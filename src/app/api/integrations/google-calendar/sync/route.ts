@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { appointmentVisibleToUid } from "@/lib/google-calendar/access";
 import { requireGoogleUser } from "@/lib/google-calendar/api-auth";
-import { syncAppointmentForUser } from "@/lib/google-calendar/sync-service";
+import { syncAppointmentTargets } from "@/lib/google-calendar/sync-service";
 
 export const runtime = "nodejs";
 
@@ -13,8 +14,12 @@ export async function POST(request: Request) {
   if (!appointmentId) {
     return NextResponse.json({ ok: false, reason: "atendimento_invalido" }, { status: 400 });
   }
+  const allowed = await appointmentVisibleToUid(appointmentId, auth.uid);
+  if (!allowed) {
+    return NextResponse.json({ ok: false, reason: "sem_permissao" }, { status: 403 });
+  }
   try {
-    const result = await syncAppointmentForUser(auth.uid, appointmentId, action);
+    const result = await syncAppointmentTargets(appointmentId, action);
     return NextResponse.json(result);
   } catch (error) {
     console.error(error);

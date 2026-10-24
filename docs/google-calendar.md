@@ -40,12 +40,18 @@ openssl rand -base64 32
 
 Tokens e configuração sensível ficam em `integrations/{uid}`, com regras que negam leitura/escrita pelo cliente. Apenas o Admin SDK no servidor acessa essa coleção.
 
+## Profissional vs consultório compartilhado
+
+- **Por profissional** (`integrations/{uid}`): cada login conecta a própria conta Google. A sincronização usa sempre o **profissional responsável** do atendimento (`professionalId`), não quem criou o registro. Colegas em um local compartilhado veem apenas **Ocupado** na agenda do sistema.
+- **Por consultório** (`integrations/loc_{locationId}`): opcional, configurado pelo criador do local em **Locais → [consultório]**. Replica agendamentos da sala para um calendário Google da sala (títulos genéricos, sem dados clínicos).
+
 ## Fluxo do usuário
 
 1. Em **Configurações → Integrações → Google Agenda**, toque em **Conectar Google Agenda**.
 2. Após o consentimento OAuth (`access_type=offline`, `prompt=consent`), escolha o calendário de destino.
-3. Ative **Enviar atendimentos** e/ou **Mostrar eventos ocupados**.
-4. Para desconectar, use **Desconectar** (revoga o token no Google e apaga credenciais no Firestore).
+3. Ative **Enviar atendimentos**, **Mostrar eventos do Google**, **Bloquear horários ocupados** e, se quiser, **Mostrar títulos** (só para você).
+4. Em um **local compartilhado**, o criador pode vincular o calendário da sala na página do consultório.
+5. Para desconectar, use **Desconectar** (revoga o token no Google e apaga credenciais no Firestore).
 
 Se as variáveis de servidor não estiverem configuradas, o card mostra **Integração indisponível** e o restante do sistema continua funcionando.
 

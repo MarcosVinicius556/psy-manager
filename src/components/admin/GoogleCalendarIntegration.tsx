@@ -94,6 +94,8 @@ export default function GoogleCalendarIntegration() {
           calendarSummary: patch.calendarSummary,
           syncToGoogle: patch.syncToGoogle,
           syncFromGoogle: patch.syncFromGoogle,
+          blockGoogleBusy: patch.blockGoogleBusy,
+          showGoogleEventTitles: patch.showGoogleEventTitles,
           eventTitleMode: patch.eventTitleMode,
         }),
       });
@@ -120,6 +122,8 @@ export default function GoogleCalendarIntegration() {
         calendarSummary: null,
         syncToGoogle: false,
         syncFromGoogle: false,
+        blockGoogleBusy: false,
+        showGoogleEventTitles: false,
         eventTitleMode: "generic",
         connectedAt: null,
       });
@@ -149,7 +153,9 @@ export default function GoogleCalendarIntegration() {
       ) : (
         <>
           <p className="mt-2 text-sm text-muted">
-            Opcional: envie atendimentos para o Google e/ou veja compromissos do Google como horários ocupados na agenda do sistema.
+            Opcional e individual: só a sua conta Google. Atendimentos em que você é o profissional responsável são sincronizados
+            mesmo se outra pessoa agendar no sistema. Em locais compartilhados, colegas veem apenas &quot;Ocupado&quot; — nunca o
+            conteúdo do seu Google.
           </p>
           {settings?.enabled ? (
             <div className="mt-5 grid gap-4">
@@ -196,7 +202,27 @@ export default function GoogleCalendarIntegration() {
                   disabled={saving || !settings.calendarId}
                   onChange={(event) => void saveSettings({ syncFromGoogle: event.target.checked })}
                 />
-                <span>Mostrar eventos do Google como horários ocupados na agenda</span>
+                <span>Mostrar meus eventos do Google na agenda do sistema</span>
+              </label>
+              <label className="flex items-start gap-3 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={settings.blockGoogleBusy}
+                  disabled={saving || !settings.calendarId}
+                  onChange={(event) => void saveSettings({ blockGoogleBusy: event.target.checked })}
+                />
+                <span>Bloquear agendamentos quando eu estiver ocupado no Google (em qualquer local)</span>
+              </label>
+              <label className="flex items-start gap-3 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={settings.showGoogleEventTitles}
+                  disabled={saving || !settings.calendarId || !settings.syncFromGoogle}
+                  onChange={(event) => void saveSettings({ showGoogleEventTitles: event.target.checked })}
+                />
+                <span>Mostrar títulos dos meus eventos do Google só para mim (outros veem &quot;Ocupado&quot;)</span>
               </label>
               <Field label="Título dos eventos no Google (privacidade)">
                 <select
