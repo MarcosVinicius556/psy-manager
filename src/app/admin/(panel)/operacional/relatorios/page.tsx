@@ -5,7 +5,8 @@ import { toast } from "react-toastify";
 import { HiOutlineTrash, HiStar } from "react-icons/hi";
 import Drawer from "@/components/admin/Drawer";
 import ReportBuilder from "@/components/admin/ReportBuilder";
-import { Card, DataTable, Empty, PageTitle, Td, Th } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { uploadClinicFile } from "@/lib/admin/attachments";
 import { useClinic } from "@/lib/admin/clinic-context";
 import {
@@ -275,6 +276,18 @@ export default function ReportsPage() {
           ) : runs.length === 0 ? (
             <Empty>Nenhum relatório gerado ainda. Crie um novo e clique em Gerar relatório.</Empty>
           ) : (
+            <>
+            <MobileListGrid>
+              {runs.map((run) => (
+                <ListCard
+                  key={run.id}
+                  onClick={() => openRun(run)}
+                  title={run.nome}
+                  subtitle={`${entityLabel(run.definition.entity)} · ${formatWhen(run.createdAt)} · ${run.rowCount} registros`}
+                />
+              ))}
+            </MobileListGrid>
+            <ResponsiveTableWrap>
             <DataTable minWidth={760}>
               <thead>
                 <tr>
@@ -320,6 +333,8 @@ export default function ReportsPage() {
                 ))}
               </tbody>
             </DataTable>
+            </ResponsiveTableWrap>
+            </>
           )}
         </div>
       </Card>

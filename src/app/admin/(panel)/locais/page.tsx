@@ -7,7 +7,8 @@ import { toast } from "react-toastify";
 import Drawer from "@/components/admin/Drawer";
 import LocationForm from "@/components/admin/LocationForm";
 import LocationMenu from "@/components/admin/LocationMenu";
-import { Card, DataTable, Empty, PageTitle, Td, Th, fieldClass } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { locationPeople } from "@/lib/admin/workplaces";
@@ -66,6 +67,21 @@ export default function LocationsPage() {
               : "Nenhum local neste filtro."}
           </Empty>
         ) : (
+          <>
+          <MobileListGrid>
+            {filtered.map((location) => {
+              const people = locationPeople(location, members, locationInvites).join(", ");
+              return (
+                <ListCard
+                  key={location.id}
+                  href={`/admin/locais/${location.id}`}
+                  title={location.nome}
+                  subtitle={[location.endereco || "Sem endereço", people || "Sem profissionais"].filter(Boolean).join(" · ")}
+                />
+              );
+            })}
+          </MobileListGrid>
+          <ResponsiveTableWrap>
           <DataTable>
             <thead>
               <tr>
@@ -140,6 +156,8 @@ export default function LocationsPage() {
               })}
             </tbody>
           </DataTable>
+          </ResponsiveTableWrap>
+          </>
         )}
       </Card>
       <Drawer

@@ -32,13 +32,26 @@ export default function FinanceFilterSheet({
   const summary = [monthLabel(month), statusLabel, from || to ? "Período personalizado" : null].filter(Boolean).join(" · ");
 
   return (
-    <div className="md:hidden">
+    <div className="admin-mobile-only mb-4">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-chip min-h-11" onClick={() => setOpen(true)} aria-expanded={open}>
+        <button type="button" className="btn-chip min-h-11 shrink-0" onClick={() => setOpen(true)} aria-expanded={open}>
           Filtros
         </button>
-        <span className="min-w-0 flex-1 truncate text-xs text-muted">{summary}</span>
+        <span className="inline-flex max-w-full min-w-0 truncate rounded-full border border-[#d7e0d8] bg-paper px-3 py-1.5 text-xs text-muted">
+          {monthLabel(month)}
+        </span>
+        {status !== "todos" ? (
+          <span className="inline-flex shrink-0 rounded-full border border-teal/30 bg-sky-soft px-3 py-1.5 text-xs font-medium text-teal">
+            {statusLabel}
+          </span>
+        ) : null}
+        {(from || to) && (
+          <span className="inline-flex shrink-0 rounded-full border border-[#d7e0d8] bg-white px-3 py-1.5 text-xs text-muted">
+            Período
+          </span>
+        )}
       </div>
+      <p className="mt-2 line-clamp-2 text-xs text-muted">{summary}</p>
       {open && (
         <>
           <button type="button" className="fixed inset-0 z-40 bg-ink/35" aria-label="Fechar filtros" onClick={() => setOpen(false)} />

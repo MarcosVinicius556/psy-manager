@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { HiOutlineX } from "react-icons/hi";
 import { toast } from "react-toastify";
 import { Field, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -30,7 +31,9 @@ export function TrialBanner() {
   }
   if (account.subscriptionStatus !== "trial_ativo") return null;
   const days = daysRemaining(account.trialEndsAtMillis, Date.now());
-  const end = account.trialEndsAt ? new Date(account.trialEndsAt).toLocaleString("pt-BR") : "";
+  const end = account.trialEndsAt
+    ? new Date(account.trialEndsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+    : "";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${days <= 7 ? "border-[#e8cfc4] bg-[#f6e6df]" : "border-leaf bg-sky-soft"}`}>
       Avaliação gratuita até {end}. {days === 1 ? "Resta 1 dia." : `Restam ${days} dias.`}{" "}
@@ -69,14 +72,19 @@ export function EmailBanner() {
   return (
     <div
       role="status"
-      className="flex items-start gap-3 rounded-md border border-leaf bg-sky-soft px-4 py-3 text-sm text-ink"
+      className="flex items-start gap-2 rounded-md border border-leaf bg-sky-soft px-3 py-3 text-sm text-ink sm:gap-3 sm:px-4"
     >
       <p className="min-w-0 flex-1 leading-relaxed">
         <span className="font-medium text-teal">Confirme o e-mail</span>{" "}
-        <span className="break-all">{account.email}</span> pelo link enviado no cadastro. O acesso de avaliação já está aberto; a confirmação ajuda a recuperar a senha.
+        <span className="break-all [overflow-wrap:anywhere]">{account.email}</span> pelo link enviado no cadastro. O acesso de avaliação já está aberto; a confirmação ajuda a recuperar a senha.
       </p>
-      <button type="button" className="btn-text shrink-0 min-h-11 px-3 py-2 text-xs" onClick={dismiss} aria-label="Dispensar aviso de e-mail">
-        Dispensar
+      <button
+        type="button"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-[#d7e0d8] bg-white text-teal"
+        onClick={dismiss}
+        aria-label="Fechar aviso de e-mail"
+      >
+        <HiOutlineX size={20} aria-hidden />
       </button>
     </div>
   );

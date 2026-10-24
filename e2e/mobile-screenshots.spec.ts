@@ -3,8 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import fs from "node:fs";
 import path from "node:path";
 
-const demoEmail = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
-const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
+import { loginAsDemo } from "./helpers/login";
 
 const publicScreens = [
   { name: "landing", path: "/" },
@@ -20,8 +19,10 @@ const authScreens = [
   { name: "admin-configuracoes", path: "/admin/configuracoes" },
 ] as const;
 
+const artifactRoot = "/opt/cursor/artifacts/screenshots";
+
 function shotDir(projectName: string, phase: "after") {
-  return path.join("artifacts", "screenshots", phase, projectName);
+  return path.join(artifactRoot, phase, projectName);
 }
 
 async function assertNoHorizontalScroll(page: import("@playwright/test").Page) {
@@ -33,8 +34,9 @@ async function assertNoHorizontalScroll(page: import("@playwright/test").Page) {
 }
 
 test.describe("mobile UX screenshots (after)", () => {
+  test.setTimeout(120_000);
   test.beforeAll(() => {
-    fs.mkdirSync(path.join("artifacts", "screenshots", "after"), { recursive: true });
+    fs.mkdirSync(path.join(artifactRoot, "after"), { recursive: true });
   });
 
   for (const screen of publicScreens) {
@@ -54,11 +56,7 @@ test.describe("mobile UX screenshots (after)", () => {
 
   test.describe("authenticated panel", () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto("/admin/login");
-      await page.getByPlaceholder("Seu e-mail").fill(demoEmail);
-      await page.getByPlaceholder("Sua senha").fill(demoPassword);
-      await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
-      await page.waitForURL("**/admin**", { timeout: 60_000 });
+      await loginAsDemo(page);
     });
 
     for (const screen of authScreens) {
@@ -70,6 +68,26 @@ test.describe("mobile UX screenshots (after)", () => {
         await page.screenshot({ path: path.join(dir, `${screen.name}.png`), fullPage: true });
       });
     }
+
+    test("auth dashboard widgets scroll", async ({ page }, testInfo) => {
+      if (testInfo.project.name !== "mobile-412") return;
+      await page.goto("/admin", { waitUntil: "networkidle" });
+      await page.getByText("Lançamentos futuros").scrollIntoViewIfNeeded();
+      const dir = shotDir(testInfo.project.name, "after");
+      await page.screenshot({ path: path.join(dir, "admin-dashboard-widgets.png"), fullPage: false });
+      await page.getByText("Não pagaram").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(dir, "admin-dashboard-debtors.png"), fullPage: false });
+    });
+
+    test("auth mobile duplicate primary actions", async ({ page }, testInfo) => {
+      if (testInfo.project.name !== "mobile-412") return;
+      await page.goto("/admin/pacientes", { waitUntil: "networkidle" });
+      await expect(page.locator(".admin-desktop-only .btn-primary")).toBeHidden();
+      await expect(page.getByRole("button", { name: "Novo paciente", exact: true })).toHaveCount(1);
+      await page.goto("/admin/financeiro", { waitUntil: "networkidle" });
+      await expect(page.locator(".admin-desktop-only .btn-primary")).toBeHidden();
+      await expect(page.getByRole("button", { name: "Novo lançamento", exact: true })).toHaveCount(1);
+    });
 
     test("auth paciente detalhe + axe financeiro", async ({ page }, testInfo) => {
       await page.goto("/admin/pacientes/pat-ana");

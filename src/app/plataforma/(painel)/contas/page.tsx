@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ListCard from "@/components/admin/mobile/ListCard";
-import { DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
+import { DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { ACCOUNT_LABEL, matchesAccountFilter, STATUS_LABEL, type AccountRecord } from "@/lib/saas/model";
 import { listManagedAccounts } from "@/lib/saas/platform-store";
 
@@ -72,13 +72,13 @@ export default function AccountsPage() {
       {!loading && visible.length === 0 && <Empty>Nenhuma conta neste filtro.</Empty>}
       {visible.length > 0 && (
         <>
-          <div className="grid min-w-0 gap-3 md:hidden">
+          <MobileListGrid>
             {visible.map((account) => (
               <ListCard
                 key={account.uid}
                 href={`/plataforma/contas/${account.uid}`}
                 title={account.nome || "Sem nome"}
-                subtitle={[account.email, account.clinicName].filter(Boolean).join(" · ") || "Sem consultório"}
+                subtitleLines={[account.email, account.clinicName || "Sem consultório"].filter(Boolean)}
                 meta={
                   <Pill tone={account.subscriptionStatus === "ativa" ? "teal" : account.subscriptionStatus === "trial_ativo" ? "sage" : "muted"}>
                     {account.subscriptionStatus ? STATUS_LABEL[account.subscriptionStatus] : "—"}
@@ -91,7 +91,7 @@ export default function AccountsPage() {
                 }
               />
             ))}
-          </div>
+          </MobileListGrid>
           <ResponsiveTableWrap>
             <DataTable minWidth={980}>
               <thead>

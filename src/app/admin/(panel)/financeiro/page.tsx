@@ -14,9 +14,10 @@ import SetupNeeded from "@/components/admin/SetupNeeded";
 import FinanceFilterSheet from "@/components/admin/mobile/FinanceFilterSheet";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import ListCard from "@/components/admin/mobile/ListCard";
+import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
-import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
@@ -130,23 +131,18 @@ function FinanceContent() {
           footnote="Em haver com vencimento antes de hoje."
         />
       </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(
-          [
-            ["lancamentos", "Lançamentos"],
-            ["emdia", "Pacientes em dia"],
-            ["aberto", "Não pagaram"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setView(value)}
-            className={view === value ? "btn-chip-active" : "btn-chip"}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="mb-4">
+        <SegmentedControl
+          ariaLabel="Visão do financeiro"
+          layout="equal"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "lancamentos", label: "Lançamentos" },
+            { value: "emdia", label: "Em dia" },
+            { value: "aberto", label: "Pendentes" },
+          ]}
+        />
       </div>
 
       {view === "lancamentos" && (
@@ -161,7 +157,7 @@ function FinanceContent() {
             onFrom={setFrom}
             onTo={setTo}
           />
-          <div className="mb-4 hidden gap-3 md:grid md:grid-cols-4">
+          <div className="admin-desktop-only admin-desktop-grid mb-4 grid-cols-4 gap-3">
             <Select
               value={status}
               onChange={(next) => setStatus(next as typeof status)}
@@ -181,7 +177,7 @@ function FinanceContent() {
             <Empty>Nenhum lançamento neste filtro.</Empty>
           ) : (
             <>
-            <div className="md:hidden">
+            <div className="admin-mobile-only min-w-0" data-mobile-list>
               {filtered.map((payment) => {
                 const remaining = remainingAmount(payment);
                 const received = receivedAmount(payment);
@@ -198,14 +194,12 @@ function FinanceContent() {
                         </Link>
                       )
                     }
+                    amount={formatMoney(agreedAmount(payment))}
                     secondary={`Vence ${formatDate(payment.dueDate)} · ${payment.descricao}`}
-                    meta={
-                      <div className="flex flex-col items-end gap-1">
-                        <p className="font-num font-semibold text-ink">{formatMoney(agreedAmount(payment))}</p>
-                        <Pill tone={payment.status === "pago" ? "teal" : isUnpaid(payment) ? "accent" : "sage"}>
-                          {labelPaymentStatus(payment.status)}
-                        </Pill>
-                      </div>
+                    status={
+                      <Pill tone={payment.status === "pago" ? "teal" : isUnpaid(payment) ? "accent" : "sage"}>
+                        {labelPaymentStatus(payment.status)}
+                      </Pill>
                     }
                     hint={
                       remaining > 0 ? (
@@ -215,8 +209,12 @@ function FinanceContent() {
                         </>
                       ) : null
                     }
-                    action={
-                      <button type="button" className={`min-h-11 min-w-[6.5rem] ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => setReceiving(payment)}>
+                    actions={
+                      <button
+                        type="button"
+                        className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`}
+                        onClick={() => setReceiving(payment)}
+                      >
                         {canReceive ? "Receber" : "Histórico"}
                       </button>
                     }
@@ -297,7 +295,7 @@ function FinanceContent() {
         <Card>
           {good.length === 0 ? <Empty>Nenhum paciente com pagamentos em dia.</Empty> : (
             <>
-            <div className="grid gap-3 md:hidden">
+            <MobileListGrid>
               {good.map((patient) => (
                 <ListCard
                   key={patient.id}
@@ -306,7 +304,7 @@ function FinanceContent() {
                   subtitle={maskPhone(patient.telefone) || "—"}
                 />
               ))}
-            </div>
+            </MobileListGrid>
             <ResponsiveTableWrap>
             <DataTable>
               <thead>
@@ -336,7 +334,7 @@ function FinanceContent() {
         <Card>
           {debtors.length === 0 ? <Empty>Nenhum paciente com pagamento em aberto.</Empty> : (
             <>
-            <div className="grid gap-3 md:hidden">
+            <MobileListGrid>
               {debtors.map((patient) => (
                 <ListCard
                   key={patient.id}
@@ -345,7 +343,7 @@ function FinanceContent() {
                   subtitle={maskPhone(patient.telefone) || "—"}
                 />
               ))}
-            </div>
+            </MobileListGrid>
             <ResponsiveTableWrap>
             <DataTable>
               <thead>

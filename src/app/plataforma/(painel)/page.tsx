@@ -48,7 +48,7 @@ export default function PlatformHomePage() {
       {error && <p className="text-accent">{error}</p>}
       {!loading && !error && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Metric label="Contas" value={String(metrics.total)} />
             <Metric label="Novas no período" value={String(metrics.novosNoPeriodo)} />
             <Metric label="Trials ativos" value={String(metrics.trialsAtivos)} />

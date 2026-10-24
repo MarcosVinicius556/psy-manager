@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { demoEmail, demoPassword, loginAsDemo } from "./helpers/login";
 
-const demoEmail = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
-const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
 const platformEmail = process.env.E2E_PLATFORM_EMAIL || "platform@psy.test";
 const platformPassword = process.env.E2E_PLATFORM_PASSWORD || "Platform123456!";
 
@@ -37,14 +36,6 @@ async function assertNoHorizontalScroll(page: import("@playwright/test").Page) {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-async function loginDemo(page: import("@playwright/test").Page) {
-  await page.goto("/admin/login");
-  await page.getByPlaceholder("Seu e-mail").fill(demoEmail);
-  await page.getByPlaceholder("Sua senha").fill(demoPassword);
-  await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
-  await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("login"), { timeout: 60_000 });
-}
-
 async function loginPlatformOwner(page: import("@playwright/test").Page) {
   await page.goto("/admin/login");
   await page.getByPlaceholder("Seu e-mail").fill(platformEmail);
@@ -69,7 +60,7 @@ test.describe("platform routes — no client exceptions", () => {
 
   test.describe("logged in clinic", () => {
     test.beforeEach(async ({ page }) => {
-      await loginDemo(page);
+      await loginAsDemo(page);
     });
 
     for (const route of loggedInRoutes) {
@@ -118,21 +109,21 @@ test.describe("platform routes — no client exceptions", () => {
         await loginPlatformOwner(page);
       });
 
-    for (const route of platformRoutes) {
-      test(`route ${route} no pageerror`, async ({ page }) => {
-        const errors = attachPageErrorCollector(page);
-        await page.goto(route, { waitUntil: "load" });
-        await page.waitForTimeout(800);
-        expect(errors, errors.join("\n")).toEqual([]);
-        await expect(page).not.toHaveURL(/login/);
-      });
+      for (const route of platformRoutes) {
+        test(`route ${route} no pageerror`, async ({ page }) => {
+          const errors = attachPageErrorCollector(page);
+          await page.goto(route, { waitUntil: "load" });
+          await page.waitForTimeout(800);
+          expect(errors, errors.join("\n")).toEqual([]);
+          await expect(page).not.toHaveURL(/login/);
+        });
 
-      test(`route ${route} no horizontal overflow`, async ({ page }) => {
-        await page.goto(route, { waitUntil: "load" });
-        await page.waitForTimeout(500);
-        await assertNoHorizontalScroll(page);
-      });
-    }
+        test(`route ${route} no horizontal overflow`, async ({ page }) => {
+          await page.goto(route, { waitUntil: "load" });
+          await page.waitForTimeout(500);
+          await assertNoHorizontalScroll(page);
+        });
+      }
     });
   });
 });

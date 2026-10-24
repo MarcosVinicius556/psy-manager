@@ -33,6 +33,7 @@ async function main() {
   }
 
   const uid = user.uid;
+  await auth.updateUser(uid, { emailVerified: true, displayName: "Dra. Helena Alves" });
   const now = new Date().toISOString();
   const trial = buildTrialAccount({
     uid,
@@ -44,9 +45,14 @@ async function main() {
   });
 
   await db.doc(`users/${uid}`).set({ ...trial, role: "super_admin" }, { merge: true });
+  await db.doc(`trialClaims/${DEMO_EMAIL}`).set({
+    email: DEMO_EMAIL,
+    uid,
+    ownerUid: uid,
+    createdAt: now,
+  });
 
-  const memberRef = db.collection("members").doc("member-demo");
-  await memberRef.set({
+  const memberPayload = {
     uid,
     ownerUid: uid,
     email: DEMO_EMAIL,
@@ -58,7 +64,10 @@ async function main() {
     workHours: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, startTime: "09:00", endTime: "18:00" })),
     ativo: true,
     createdAt: now,
-  });
+  };
+
+  await db.collection("members").doc(uid).set(memberPayload);
+  await db.collection("members").doc("member-demo").set(memberPayload);
 
   const locationRef = db.collection("locations").doc("loc-demo");
   await locationRef.set({
@@ -75,6 +84,12 @@ async function main() {
   const patients = [
     { id: "pat-ana", nome: "Ana Souza", telefone: "49999112233", email: "ana@example.test" },
     { id: "pat-bruno", nome: "Bruno Lima", telefone: "49999223344", email: "bruno@example.test" },
+    {
+      id: "pat-teste",
+      nome: "Paciente Para Teste",
+      telefone: "49999826688",
+      email: "marcosvinicios4132@gmail.com",
+    },
   ];
 
   for (const patient of patients) {
@@ -154,6 +169,25 @@ async function main() {
     valor: 200,
     valorAcordado: 200,
     dueDate: isoDate(5),
+    status: "agendado",
+    paidAt: null,
+    formaPagamento: "pix",
+    historico: [],
+    ownerUid: uid,
+    createdAt: now,
+  });
+
+  await db.collection("payments").doc("pay-future").set({
+    patientId: "pat-teste",
+    appointmentId: null,
+    packageId: null,
+    origem: "paciente",
+    recorrente: false,
+    seriesId: null,
+    descricao: "Pacote 2 Sessoes · 2 sessões",
+    valor: 260,
+    valorAcordado: 260,
+    dueDate: isoDate(12),
     status: "agendado",
     paidAt: null,
     formaPagamento: "pix",

@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-toastify";
-import { Card, DataTable, Empty, PageTitle, Td, Th, fieldClass } from "@/components/admin/ui";
+import StackedRow from "@/components/admin/mobile/StackedRow";
+import { Card, DataTable, Empty, PageTitle, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { canSettleExpense, dueLabel, isDueSoon, isExpenseOverdue, isSharedExpense, paidShareCount } from "@/lib/admin/expenses";
@@ -146,6 +147,21 @@ export default function NotificationsPage() {
         {ordered.length === 0 ? (
           <Empty>{notifications.length === 0 ? "Nenhum pagamento aguardando confirmação." : "Nenhuma notificação neste filtro."}</Empty>
         ) : (
+          <>
+          <div className="admin-mobile-only min-w-0" data-mobile-list>
+            {ordered.map((notification) => {
+              const payment = payments.find((item) => item.id === notification.paymentId);
+              return (
+                <StackedRow
+                  key={notification.id}
+                  primary={patientName(notification.patientId)}
+                  secondary={payment ? `${payment.descricao} · vence ${formatDate(payment.dueDate)}` : "Lançamento não encontrado"}
+                  status={<span className="text-xs text-muted">{formatDate(notification.date)}</span>}
+                />
+              );
+            })}
+          </div>
+          <ResponsiveTableWrap>
           <DataTable>
             <thead>
               <tr>
@@ -189,6 +205,8 @@ export default function NotificationsPage() {
               })}
             </tbody>
           </DataTable>
+          </ResponsiveTableWrap>
+          </>
         )}
       </Card>
     </div>

@@ -5,8 +5,7 @@ import { Card } from "@/components/admin/ui";
 import { addMonths, formatMoney, monthLabel } from "@/lib/admin/format";
 
 export function titledMonth(isoMonth: string) {
-  const label = monthLabel(isoMonth);
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  return monthLabel(isoMonth);
 }
 
 export function monthChange(current: number, previous: number) {

@@ -65,10 +65,11 @@ export function addMonths(isoMonth: string, delta: number) {
 
 export function monthLabel(isoMonth: string) {
   const [year, month] = isoMonth.split("-").map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString("pt-BR", {
+  const label = new Date(year, month - 1, 1).toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
   });
+  return label.toLocaleLowerCase("pt-BR");
 }
 
 export function buildMonthCells(isoMonth: string) {

@@ -10,10 +10,11 @@ import Drawer from "@/components/admin/Drawer";
 import MonthCalendar from "@/components/admin/MonthCalendar";
 import SetupNeeded from "@/components/admin/SetupNeeded";
 import DayStrip from "@/components/admin/mobile/DayStrip";
+import DesktopOnly from "@/components/admin/mobile/DesktopOnly";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
-import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import {
@@ -208,7 +209,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   );
 
   return (
-    <div className="relative">
+    <div className="relative admin-fab-pad">
       <FloatingActionButton label="Novo atendimento" onClick={() => openNew()} />
       {locationId ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -218,7 +219,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
               Horários livres de {professionalName}. Atendimentos de outros profissionais neste local aparecem ocupados, inclusive sessão online feita no consultório.
             </p>
           </div>
-          {newButton}
+          <DesktopOnly>{newButton}</DesktopOnly>
         </div>
       ) : (
         <PageTitle
@@ -338,7 +339,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
             <Empty>Nenhum atendimento neste período.</Empty>
           ) : (
             <>
-            <div className="grid gap-3 md:hidden">
+            <MobileListGrid>
               {visible.map((item) => (
                 <ListCard
                   key={item.id}
@@ -352,7 +353,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
                   }
                 />
               ))}
-            </div>
+            </MobileListGrid>
             <ResponsiveTableWrap>
             <DataTable>
               <thead>
