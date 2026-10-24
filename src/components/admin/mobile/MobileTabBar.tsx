@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { LayoutGroup, motion } from "motion/react";
 import { HiOutlineCalendar, HiOutlineCash, HiOutlineHome, HiOutlinePlus, HiOutlineUsers } from "react-icons/hi";

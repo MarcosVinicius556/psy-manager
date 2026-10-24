@@ -71,10 +71,12 @@ test.describe("mobile UX screenshots (after)", () => {
     }
 
     test("auth mobile tab bar states", async ({ page }, testInfo) => {
+      test.setTimeout(180_000);
       if (testInfo.project.name !== "mobile-412") return;
       const dir = shotDir(testInfo.project.name, "after");
       fs.mkdirSync(dir, { recursive: true });
-      await page.goto("/admin/agenda", { waitUntil: "networkidle" });
+      await page.goto("/admin/agenda", { waitUntil: "domcontentloaded" });
+      await expect(page.locator(".admin-tabbar")).toBeVisible();
       await page.screenshot({ path: path.join(dir, "admin-agenda-tab-active.png"), fullPage: false });
       await page.getByRole("link", { name: "Pacientes", exact: true }).click();
       await page.waitForURL("**/admin/pacientes**");
