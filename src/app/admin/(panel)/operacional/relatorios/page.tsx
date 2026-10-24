@@ -19,9 +19,10 @@ import {
   saveReportTemplate,
 } from "@/lib/admin/collections";
 import { formatDate, todayISO } from "@/lib/admin/format";
+import { attachmentHasMedia } from "@/lib/cloudinary/asset";
+import { openClinicPdfFromAttachment } from "@/lib/cloudinary/client-media";
 import {
   cloneDefinition,
-  openClinicPdf,
   createReportPdf,
   defaultDefinition,
   describeReport,
@@ -311,12 +312,12 @@ export default function ReportsPage() {
                     <Td>{formatWhen(run.createdAt)}</Td>
                     <Td>{run.rowCount}</Td>
                     <Td>
-                      {run.pdf?.url ? (
+                      {run.pdf && attachmentHasMedia(run.pdf) ? (
                         <button
                           type="button"
                           className="font-medium text-teal"
                           onClick={() => {
-                            openClinicPdf(run.pdf!.url, run.pdf!.nome || run.nome).catch(() =>
+                            openClinicPdfFromAttachment(run.pdf!, run.pdf!.nome || run.nome).catch(() =>
                               toast.error("Não foi possível abrir o PDF.")
                             );
                           }}

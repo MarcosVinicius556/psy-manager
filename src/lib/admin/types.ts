@@ -19,11 +19,18 @@ export type PaymentOrigin = "paciente" | "externo";
 export type PaymentMethod = "pix" | "dinheiro" | "cartao" | "transferencia" | "outro";
 export type PaymentEventType = "lancamento" | "pagamento" | "situacao";
 
+import type { CloudinaryAsset } from "@/lib/cloudinary/asset";
+
+export type { CloudinaryAsset, CloudinaryResourceType } from "@/lib/cloudinary/asset";
+
 export interface ClinicAttachment {
   id: string;
   nome: string;
-  url: string;
   mime: string;
+  /** URL pública legada (avatar ou anexos antes da migração). */
+  url?: string;
+  /** Referência Cloudinary com entrega `authenticated`. */
+  asset?: CloudinaryAsset;
 }
 
 export interface PaymentEvent {
@@ -48,7 +55,9 @@ export interface Patient {
   endereco: string;
   contatoEmergencia: string;
   observacoes: string;
+  /** URL pública legada; preferir `fotoAsset` para fotos novas. */
   foto: string;
+  fotoAsset?: CloudinaryAsset | null;
   contratoAssinado: ClinicAttachment | null;
   status: PatientStatus;
   createdAt: string;
@@ -299,6 +308,7 @@ export function emptyPatient(): PatientInput {
     contatoEmergencia: "",
     observacoes: "",
     foto: "",
+    fotoAsset: null,
     status: "ativo",
   };
 }

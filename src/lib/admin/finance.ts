@@ -1,3 +1,4 @@
+import { attachmentHasMedia } from "@/lib/cloudinary/asset";
 import type { ClinicAttachment, Patient, Payment, PaymentEvent, PaymentMethod, PaymentStatus } from "./types";
 import { todayISO } from "./format";
 
@@ -68,7 +69,7 @@ export function paymentHistory(payment: Payment): PaymentEvent[] {
 }
 
 export function paymentReceipts(payment: Payment): ClinicAttachment[] {
-  return payment.historico.flatMap((event) => (event.comprovante?.url ? [event.comprovante] : []));
+  return payment.historico.flatMap((event) => (event.comprovante && attachmentHasMedia(event.comprovante) ? [event.comprovante] : []));
 }
 
 export function receiptPatch(
@@ -92,7 +93,7 @@ export function receiptPatch(
     formaPagamento: input.formaPagamento,
     parcial: !settled,
     observacao: input.observacao.trim(),
-    comprovante: input.comprovante?.url ? input.comprovante : null,
+    comprovante: input.comprovante && attachmentHasMedia(input.comprovante) ? input.comprovante : null,
     createdAt: now,
   };
   const previous = payment.historico.length > 0 ? payment.historico : paymentHistory(payment).filter((item) => item.tipo === "lancamento");

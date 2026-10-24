@@ -3,13 +3,10 @@ import { NextResponse } from "next/server";
 import streamifier from "streamifier";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireAuthUser } from "@/lib/server/require-auth";
+import type { CloudinaryResourceType } from "@/lib/cloudinary/asset";
+import { cloudinaryConfigured, configureCloudinary } from "@/lib/server/cloudinary-sign";
+import { isPrivateUploadKind } from "@/lib/server/cloudinary-delivery";
 import { parseUploadAccept, parseUploadKind, resolveUploadFolder } from "@/lib/server/upload-policy";
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 export async function POST(req: Request) {
   try {
@@ -19,19 +16,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Serviço indisponível." }, { status: 503 });
     }
 
-    if (
-      !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET
-    ) {
+    if (!cloudinaryConfigured()) {
       return NextResponse.json({ error: "Cloudinary não está configurado." }, { status: 500 });
     }
+    configureCloudinary();
 
     const { searchParams } = new URL(req.url);
     const kind = parseUploadKind(searchParams.get("kind"));
     if (!kind) {
       return NextResponse.json({ error: "Tipo de envio inválido." }, { status: 400 });
     }
+    const privateDelivery = isPrivateUploadKind(kind);
 
     const folderResult = await resolveUploadFolder(kind, auth.uid, {
       patientId: searchParams.get("patientId") || undefined,
@@ -79,19 +74,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "O arquivo gerado não é um PDF válido." }, { status: 400 });
     }
     const pdfName = file.name.replace(/\.pdf$/i, "").replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/^-|-$/g, "") || "documento";
-    const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+    const deliveryType = privateDelivery ? "authenticated" : "upload";
+    const result = await new Promise<{
+      secure_url: string;
+      public_id: string;
+      resource_type: string;
+      format?: string;
+    }>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         isPdf
           ? {
               folder,
               resource_type: "raw",
-              type: "upload",
+              type: deliveryType,
               public_id: `${pdfName}-${Date.now()}.pdf`,
               overwrite: false,
             }
           : {
               folder,
               resource_type: "image",
+              type: deliveryType,
               transformation: [
                 {
                   quality: "auto:good",
@@ -103,12 +105,36 @@ export async function POST(req: Request) {
             },
         (error, uploaded) => {
           if (error || !uploaded) return reject(error ?? new Error("Não foi possível enviar o arquivo."));
-          resolve({ secure_url: (uploaded as { secure_url?: string }).secure_url || "" });
+          const row = uploaded as {
+            secure_url?: string;
+            public_id?: string;
+            resource_type?: string;
+            format?: string;
+          };
+          resolve({
+            secure_url: row.secure_url || "",
+            public_id: row.public_id || "",
+            resource_type: row.resource_type || (isPdf ? "raw" : "image"),
+            format: row.format,
+          });
         }
       );
       streamifier.createReadStream(buffer).pipe(uploadStream);
     });
 
+    if (privateDelivery) {
+      const resourceType = result.resource_type as CloudinaryResourceType;
+      return NextResponse.json(
+        {
+          asset: {
+            publicId: result.public_id,
+            resourceType,
+            format: result.format,
+          },
+        },
+        { status: 200 }
+      );
+    }
     return NextResponse.json({ url: result.secure_url }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Não foi possível enviar o arquivo.";

@@ -28,6 +28,8 @@ import {
 } from "@/lib/admin/format";
 import { maskCpf, maskPhone } from "@/lib/masks";
 import { feedbackAvailability } from "@/components/admin/FeedbackShare";
+import SecureMediaImage from "@/components/admin/SecureMediaImage";
+import { fetchSignedMediaUrl, patientPhotoAsset } from "@/lib/cloudinary/client-media";
 import type { Appointment, ClinicAttachment, Payment } from "@/lib/admin/types";
 
 function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payment: Payment) => void }) {
@@ -214,7 +216,26 @@ export default function PatientDetailPage() {
             <div className="md:col-span-2">
               <dt className="text-muted">Foto</dt>
               <dd className="mt-2">
-                {patient.foto ? (
+                {patientPhotoAsset(patient) ? (
+                  <button
+                    type="button"
+                    className="btn-text p-0"
+                    onClick={() => {
+                      const asset = patientPhotoAsset(patient);
+                      if (asset) {
+                        fetchSignedMediaUrl(asset)
+                          .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
+                          .catch(() => toast.error("Não foi possível abrir a foto."));
+                      }
+                    }}
+                  >
+                    <SecureMediaImage
+                      asset={patientPhotoAsset(patient)!}
+                      alt={`Foto de ${patient.nome}`}
+                      className="h-24 w-24 rounded-md object-cover"
+                    />
+                  </button>
+                ) : patient.foto ? (
                   <a href={patient.foto} target="_blank" rel="noreferrer">
                     <img src={patient.foto} alt={`Foto de ${patient.nome}`} className="h-24 w-24 rounded-md object-cover" />
                   </a>
