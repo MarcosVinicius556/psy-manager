@@ -11,7 +11,7 @@ export default function Footer() {
           <div>
             <BrandLogo variant="mark" height={44} />
             <p className="mt-4 mb-5 max-w-[320px] leading-relaxed">
-              Agenda, pacientes, financeiro e documentos do consultório em um só painel — separado da página da clínica.
+              Agenda, pacientes, financeiro e documentos do consultório em um painel feito para a prática clínica.
             </p>
           </div>
           <div>
