@@ -81,6 +81,7 @@ import {
 } from "./schedule";
 import { assertGoogleScheduleFree } from "@/lib/google-calendar/check-conflict-client";
 import { syncAppointmentWithGoogle } from "@/lib/google-calendar/sync-client";
+import { recordActivationEvent } from "@/lib/saas/activation-events";
 import {
   emptyClinical,
   type Appointment,
@@ -413,6 +414,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     [locations]
   );
 
+  function trackActivation(event: Parameters<typeof recordActivationEvent>[1]) {
+    const uid = getFirebaseAuth().currentUser?.uid;
+    if (uid) void recordActivationEvent(uid, event);
+  }
+
   function currentUid() {
     const uid = getFirebaseAuth().currentUser?.uid;
     if (!uid) throw new Error("Entre novamente para continuar.");
@@ -502,6 +508,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           return id;
         }
         const created = await createPatient(payload);
+        trackActivation("primeiro_paciente");
         toast.success("Paciente cadastrado.");
         await refresh();
         return created;
@@ -789,6 +796,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           ...(status === "faltou" ? { faltaJustificativa: (faltaJustificativa || "").trim() } : {}),
         });
         if (status === "concluido") {
+          trackActivation("primeira_sessao_concluida");
           try {
             const appointment = appointments.find((item) => item.id === id);
             const existing = sessionFeedbacks.find((item) => item.appointmentId === id);
@@ -1004,6 +1012,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           paidAt: patch.paidAt,
           formaPagamento: patch.formaPagamento,
         });
+        if (patch.status === "pago" && payment.status !== "pago") trackActivation("primeiro_pagamento");
         if (!patch.parcial && !payment.packageId) await promoteNextSessionPayment(payment.patientId, payment.id);
         toast.success(
           patch.parcial ? `Pagamento parcial registrado. Falta ${patch.faltante.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` : "Pagamento confirmado."
@@ -1030,6 +1039,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
               formaPagamento: patch.formaPagamento,
             });
             if (!patch.parcial && !payment.packageId) await promoteNextSessionPayment(payment.patientId, payment.id);
+            trackActivation("primeiro_pagamento");
           }
         } else if (payment) {
           const patch = unpaidPatch(payment);
@@ -1083,6 +1093,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           valorSocial: input.valorSocial,
           workHours: input.workHours,
         });
+        if (input.workHours.length > 0) trackActivation("horarios_definidos");
         await updateAuthProfile({ displayName: nome, ...(foto ? { photoURL: foto } : {}) });
         if (mine.email) await publishDirectory({ uid, email: mine.email, nome, foto });
         toast.success("Cadastro atualizado.");

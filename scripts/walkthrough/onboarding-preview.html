@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Onboarding preview</title>
+    <style>
+      body { margin: 0; font-family: Georgia, serif; background: #f4f7f4; color: #2d3f33; }
+      .wrap { padding: 16px; max-width: 960px; margin: 0 auto; }
+      .card { background: #fff; border-radius: 6px; padding: 24px; box-shadow: 0 18px 50px rgba(61, 82, 64, 0.08); }
+      .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(45, 111, 99, 0.7); font-weight: 600; }
+      h1 { margin: 8px 0; font-size: 28px; color: #2d6f63; font-weight: 400; }
+      .muted { color: #6b7c70; font-size: 14px; }
+      .bar { margin-top: 12px; height: 8px; background: #f4f7f4; border-radius: 999px; overflow: hidden; }
+      .bar > div { height: 100%; width: 50%; background: #2d6f63; }
+      ol { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 8px; }
+      li { display: flex; justify-content: space-between; gap: 8px; background: #f4f7f4; padding: 10px 12px; border-radius: 6px; font-size: 14px; }
+      a { color: #2d6f63; font-weight: 600; text-decoration: none; white-space: nowrap; }
+      .done { color: #6b7c70; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="card">
+        <p class="eyebrow">Primeiros passos</p>
+        <h1>Configure o consultório</h1>
+        <p class="muted">3 de 6 etapas obrigatórias. Você pode usar a agenda a qualquer momento.</p>
+        <div class="bar" aria-hidden><div></div></div>
+        <p class="muted" style="font-size:12px;margin-top:4px">50% do essencial</p>
+        <ol>
+          <li><span>✓ Nome e nome do consultório</span><span class="done">Feito</span></li>
+          <li><span>Horários de atendimento</span><a href="#">Abrir</a></li>
+          <li><span>Primeiro paciente</span><a href="#">Abrir</a></li>
+          <li><span>Primeira sessão agendada</span><a href="#">Abrir</a></li>
+          <li><span>Primeira sessão concluída</span><a href="#">Abrir</a></li>
+          <li><span>Primeiro pagamento registrado</span><a href="#">Abrir</a></li>
+          <li><span>Conectar Google Agenda <span class="muted">(opcional)</span></span><a href="#">Abrir</a></li>
+        </ol>
+      </section>
+    </div>
+  </body>
+</html>

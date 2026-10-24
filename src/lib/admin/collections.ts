@@ -22,6 +22,7 @@ import {
   pickMemberPrivateFields,
   stripMemberPrivateFields,
 } from "./member-private";
+import { recordActivationEvent } from "../saas/activation-events";
 import { buildLegacyAccount, buildReplayDeniedAccount, buildTrialAccount, expirePatch } from "../saas/model";
 import { reserveTrial } from "../saas/account-store";
 import { assertClinicWrite } from "../saas/guard";
@@ -835,6 +836,7 @@ async function upsertPsychologistOnce(uid: string, email: string, extras?: { nom
       ? buildTrialAccount({ uid, email: normalized, nome: extras?.nome?.trim() || normalized.split("@")[0], clinicName: "", now: Date.now(), termsAcceptedAt: stamp })
       : buildReplayDeniedAccount({ uid, email: normalized, nome: extras?.nome?.trim() || normalized.split("@")[0], clinicName: "", now: Date.now(), termsAcceptedAt: stamp });
     await setDoc(userRef, account);
+    await recordActivationEvent(uid, "signup", stamp);
   } else {
     await setDoc(userRef, { uid, email: normalized, role }, { merge: true });
     const data = profile.data() ?? {};

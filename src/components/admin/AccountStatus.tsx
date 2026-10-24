@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { HiOutlineX } from "react-icons/hi";
-import { toast } from "react-toastify";
-import { Field, fieldClass } from "@/components/admin/ui";
+import { HiOutlineCheck, HiOutlineX } from "react-icons/hi";
+import { getFirebaseAuth } from "@/lib/admin/firebase";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { saveProfile } from "@/lib/saas/account-store";
 import { useSaas } from "@/lib/saas/context";
+import { buildOnboardingSteps } from "@/lib/saas/onboarding";
 import { ACCOUNT_LABEL, daysRemaining, STATUS_LABEL, type AccountRecord } from "@/lib/saas/model";
 
 export function TrialBanner() {
@@ -101,64 +101,104 @@ export function AdminAccountNotices() {
 
 export function OnboardingCard() {
   const { account, access, refresh } = useSaas();
-  const { patients } = useClinic();
-  const [clinicName, setClinicName] = useState(account?.clinicName || "");
-  const [saving, setSaving] = useState(false);
+  const { patients, appointments, payments, members } = useClinic();
+  const [googleConnected, setGoogleConnected] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const user = getFirebaseAuth().currentUser;
+        const token = user ? await user.getIdToken() : "";
+        if (!token) return;
+        const response = await fetch("/api/integrations/google-calendar", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const data = (await response.json()) as { settings?: { enabled?: boolean } };
+        if (active) setGoogleConnected(Boolean(data.settings?.enabled));
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [account?.uid]);
+
+  const member = useMemo(
+    () => members.find((item) => item.uid === account?.uid) ?? null,
+    [members, account?.uid]
+  );
+
   if (!account || account.onboardingDismissed || access.mode === "blocked") return null;
-  const steps = [
-    { id: "perfil", label: "Confira seu nome em Configurações", done: account.nome.trim().length > 2, href: "/admin/configuracoes" },
-    { id: "clinica", label: "Dê um nome ao consultório, se quiser", done: account.clinicName.trim().length > 1, href: "" },
-    { id: "paciente", label: "Cadastre o primeiro paciente quando for a hora", done: patients.length > 0, href: "/admin/pacientes/novo" },
-  ];
-  const done = steps.filter((step) => step.done).length;
-  if (done === steps.length) return null;
+
+  const snapshot = buildOnboardingSteps({
+    account,
+    patients,
+    appointments,
+    payments,
+    member,
+    googleCalendarConnected: googleConnected,
+  });
+
+  const progress = snapshot.requiredTotal === 0 ? 0 : Math.round((snapshot.requiredDone / snapshot.requiredTotal) * 100);
 
   async function dismiss() {
-    if (!account) return;
+    if (!account || !snapshot.complete) return;
     await saveProfile(account.uid, { onboardingDismissed: true });
     await refresh();
-  }
-
-  async function saveClinic(event: React.FormEvent) {
-    event.preventDefault();
-    if (!account) return;
-    setSaving(true);
-    try {
-      await saveProfile(account.uid, { clinicName: clinicName.trim() });
-      await refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o consultório.");
-    } finally {
-      setSaving(false);
-    }
   }
 
   return (
     <section className="mb-6 rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.08)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal/70">Primeiros passos</p>
-          <h2 className="mt-1 text-2xl text-teal">Sua conta já está pronta</h2>
-          <p className="mt-1 text-sm text-muted">{done} de {steps.length}. Nada disso impede você de usar a agenda.</p>
+          <h2 className="mt-1 text-2xl text-teal">{snapshot.complete ? "Tudo pronto por aqui" : "Configure o consultório"}</h2>
+          <p className="mt-1 text-sm text-muted">
+            {snapshot.complete
+              ? "Você concluiu as etapas essenciais. Pode dispensar este cartão quando quiser."
+              : `${snapshot.requiredDone} de ${snapshot.requiredTotal} etapas obrigatórias. Você pode usar a agenda a qualquer momento.`}
+          </p>
+          {!snapshot.complete ? (
+            <>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper" aria-hidden>
+                <div className="h-full rounded-full bg-teal transition-[width]" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="mt-1 text-xs text-muted">{progress}% do essencial</p>
+            </>
+          ) : null}
         </div>
-        <button type="button" className="btn-text" onClick={() => void dismiss()}>Dispensar</button>
+        {snapshot.complete ? (
+          <button type="button" className="btn-text shrink-0" onClick={() => void dismiss()}>Dispensar</button>
+        ) : null}
       </div>
       <ol className="mt-4 grid gap-2">
-        {steps.map((step) => (
-          <li key={step.id} className="flex items-center justify-between gap-3 rounded-md bg-paper px-3 py-2 text-sm">
-            <span>{step.done ? "Feito" : "Pendente"} — {step.label}</span>
-            {!step.done && step.href ? <Link href={step.href} className="font-semibold text-teal">Abrir</Link> : null}
+        {snapshot.steps.map((step) => (
+          <li
+            key={step.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-paper px-3 py-2 text-sm sm:flex-nowrap"
+          >
+            <span className="flex min-w-0 items-start gap-2">
+              <span className="mt-0.5 text-teal" aria-hidden>
+                {step.done ? <HiOutlineCheck size={18} /> : <span className="inline-block h-[18px] w-[18px] rounded-full border border-[#d7e0d8] bg-white" />}
+              </span>
+              <span>
+                {step.label}
+                {step.optional ? <span className="text-muted"> (opcional)</span> : null}
+              </span>
+            </span>
+            {!step.done ? (
+              <Link href={step.href} className="shrink-0 font-semibold text-teal">
+                Abrir
+              </Link>
+            ) : (
+              <span className="shrink-0 text-xs text-muted">Feito</span>
+            )}
           </li>
         ))}
       </ol>
-      {account.clinicName.trim().length < 2 && (
-        <form onSubmit={saveClinic} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-          <Field label="Nome do consultório">
-            <input id="clinic-name" className={fieldClass} value={clinicName} onChange={(event) => setClinicName(event.target.value)} placeholder="Pode ser o seu nome ou o da sala" minLength={2} />
-          </Field>
-          <button className="btn-primary" disabled={saving || clinicName.trim().length < 2}>{saving ? "Salvando..." : "Salvar"}</button>
-        </form>
-      )}
     </section>
   );
 }

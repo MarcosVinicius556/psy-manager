@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/admin/firebase";
+import type { ActivationEventName, ActivationEventRecord } from "./activation-events";
 import { mapAccount, mapInbox, mapPlan, type InboxItem } from "./account-store";
 import {
   applyAdminAction,
@@ -42,6 +43,23 @@ export type BillingEntry = {
 
 function text(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+export async function listActivationEvents() {
+  const snapshot = await getDocs(collection(getFirebaseDb(), "activationEvents"));
+  return snapshot.docs
+    .map((item) => {
+      const data = item.data();
+      const event = text(data.event) as ActivationEventName;
+      return {
+        id: item.id,
+        accountId: text(data.accountId),
+        event,
+        at: text(data.at),
+      } satisfies ActivationEventRecord;
+    })
+    .filter((item) => item.accountId && item.at && item.event)
+    .sort((a, b) => b.at.localeCompare(a.at));
 }
 
 export async function listManagedAccounts() {
