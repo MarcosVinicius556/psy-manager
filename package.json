@@ -18,6 +18,7 @@
     "e2e:seed": "tsx scripts/e2e/seed-emulator.ts",
     "landing:seed": "tsx scripts/landing/seed-landing-demo.ts",
     "landing:screenshots": "node scripts/landing/run-screenshots.mjs",
+    "landing:evidence": "node scripts/landing/capture-pr-evidence.mjs",
     "migrate:cloudinary-auth": "tsx scripts/migrate-cloudinary-to-authenticated.ts",
     "backup:export": "tsx scripts/backup/export-firestore.ts",
     "backup:run": "tsx scripts/backup/run-backup.ts",
