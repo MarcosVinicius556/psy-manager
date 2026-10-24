@@ -4,18 +4,21 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import {
   browserLocalPersistence,
   browserSessionPersistence,
+  getMultiFactorResolver,
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
   setPersistence,
-  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  type MultiFactorError,
   type User,
 } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
+import { signInWithEmailAndPasswordFlow } from "@/lib/auth/email-sign-in";
+import { MfaSignInRequired } from "@/lib/auth/mfa-sign-in";
 import { getFirebaseAuth, isFirebaseConfigured } from "./firebase";
 import { getUserRole, upsertPsychologist } from "./collections";
 import { googleProfileFromUser, prefersGoogleRedirect, rememberGoogleSignInRoute } from "./google-auth-flow";
@@ -110,15 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [configured]);
 
   async function signIn(email: string, password: string, remember = true) {
-    const auth = getFirebaseAuth();
-    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-    try {
-      const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
-      await upsertPsychologist(credential.user.uid, credential.user.email || email.trim());
-    } catch (error) {
-      if (error instanceof FirebaseError) throw error;
-      throw error;
-    }
+    await signInWithEmailAndPasswordFlow(email, password, remember);
   }
 
   async function signInWithGoogle(remember = true) {
@@ -138,6 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       rememberGoogleSignInRoute(result.eligible);
       return result;
     } catch (error) {
+      if (error instanceof FirebaseError && error.code === "auth/multi-factor-auth-required") {
+        throw new MfaSignInRequired(getMultiFactorResolver(auth, error as MultiFactorError));
+      }
       if (error instanceof FirebaseError && error.code === "auth/popup-blocked") {
         await signInWithRedirect(auth, provider);
         return { eligible: true, pendingRedirect: true };
