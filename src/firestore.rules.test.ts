@@ -91,6 +91,38 @@ beforeEach(async () => {
   await seedBase();
 });
 
+describe("clinicalNoteTemplates", () => {
+  it("owner manages own clinical note templates", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "clinicalNoteTemplates", "tpl-1"), {
+        ownerUid,
+        nome: "Meu modelo",
+        approach: "custom",
+        sections: [{ key: "evolucao", label: "Evolução" }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    await assertSucceeds(getDoc(doc(db, "clinicalNoteTemplates", "tpl-1")));
+  });
+
+  it("stranger cannot read clinical note templates", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "clinicalNoteTemplates", "tpl-2"), {
+        ownerUid,
+        nome: "Privado",
+        approach: "custom",
+        sections: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    });
+    const db = env.authenticatedContext(strangerUid).firestore();
+    await assertFails(getDoc(doc(db, "clinicalNoteTemplates", "tpl-2")));
+  });
+});
+
 describe("clinicalRecords", () => {
   it("owner reads own clinical record", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();

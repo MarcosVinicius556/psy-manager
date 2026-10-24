@@ -19,7 +19,8 @@ export function appointmentEventTitle(
 export function appointmentToGoogleEventBody(
   appointment: Pick<Appointment, "date" | "startTime" | "endTime" | "modality" | "status">,
   title: string,
-  timeZone = "America/Sao_Paulo"
+  timeZone = "America/Sao_Paulo",
+  options?: { withMeet?: boolean; meetRequestId?: string }
 ) {
   const start = `${appointment.date}T${appointment.startTime}:00`;
   const end = `${appointment.date}T${appointment.endTime}:00`;
@@ -28,7 +29,7 @@ export function appointmentToGoogleEventBody(
       ? "Sessão online (Psy Manager)"
       : "Sessão presencial (Psy Manager)";
   const cancelled = appointment.status === "cancelado";
-  return {
+  const body: Record<string, unknown> = {
     summary: title,
     description,
     start: { dateTime: start, timeZone },
@@ -36,6 +37,24 @@ export function appointmentToGoogleEventBody(
     status: cancelled ? "cancelled" : "confirmed",
     transparency: "opaque" as const,
   };
+  if (options?.withMeet && appointment.modality === "online" && !cancelled) {
+    body.conferenceData = {
+      createRequest: {
+        requestId: options.meetRequestId || `psy-${appointment.date}-${appointment.startTime}`.replace(/[^a-zA-Z0-9-]/g, ""),
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    };
+  }
+  return body;
+}
+
+export function extractGoogleMeetLink(event: {
+  hangoutLink?: string;
+  conferenceData?: { entryPoints?: { entryPointType?: string; uri?: string }[] };
+}) {
+  if (event.hangoutLink) return event.hangoutLink;
+  const video = event.conferenceData?.entryPoints?.find((item) => item.entryPointType === "video");
+  return video?.uri || null;
 }
 
 export function googleBusyToBlocks(

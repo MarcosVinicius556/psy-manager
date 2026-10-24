@@ -29,6 +29,7 @@ import {
 } from "@/lib/admin/format";
 import { fromMinutes, rangesOverlap, SLOT_STEP, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
+import CompleteSessionFlow from "@/components/admin/CompleteSessionFlow";
 import type { Appointment } from "@/lib/admin/types";
 import { getFirebaseAuth } from "@/lib/admin/firebase";
 
@@ -47,6 +48,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   const [month, setMonth] = useState(initial.slice(0, 7));
   const [placeId, setPlaceId] = useState(locationId || "");
   const [googleBusy, setGoogleBusy] = useState<{ startTime: string; endTime: string; label?: string }[]>([]);
+  const [completing, setCompleting] = useState<Appointment | null>(null);
   const currentMember = members.find(
     (member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase()
   );
@@ -325,6 +327,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
             ranges={dayRanges}
             onPick={(time) => openNew(time)}
             onPickOnline={(time) => openNew(time, true)}
+            onCompleteSession={setCompleting}
             externalBusy={googleBusy}
           />
           {outsideGrid.length > 0 && (
@@ -358,19 +361,42 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           ) : (
             <>
             <MobileListGrid>
-              {visible.map((item) => (
-                <ListCard
-                  key={item.id}
-                  href={`/admin/atendimentos/${item.id}`}
-                  title={visiblePatient(item.patientId)}
-                  subtitle={`${formatDate(item.date)} · ${item.startTime}–${item.endTime}`}
-                  meta={
-                    <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
-                      {labelAppointmentStatus(item.status)}
-                    </Pill>
-                  }
-                />
-              ))}
+              {visible.map((item) => {
+                const isOwn = Boolean(currentMember && item.professionalId === currentMember.id);
+                const canComplete =
+                  isOwn && (item.status === "agendado" || item.status === "em_andamento");
+                return (
+                  <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 shadow-[0_8px_24px_rgba(61,82,64,0.06)]">
+                    <ListCard
+                      href={`/admin/atendimentos/${item.id}`}
+                      title={visiblePatient(item.patientId)}
+                      subtitle={`${formatDate(item.date)} · ${item.startTime}–${item.endTime}`}
+                      meta={
+                        <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
+                          {labelAppointmentStatus(item.status)}
+                        </Pill>
+                      }
+                    />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {item.modality === "online" && item.googleMeetLink ? (
+                        <a
+                          href={item.googleMeetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-row min-h-11"
+                        >
+                          Entrar na sessão
+                        </a>
+                      ) : null}
+                      {canComplete ? (
+                        <button type="button" className="btn-primary min-h-11" onClick={() => setCompleting(item)}>
+                          Concluir sessão
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
             </MobileListGrid>
             <ResponsiveTableWrap>
             <DataTable>
@@ -424,6 +450,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
         </Card>
         </div>
       )}
+      <CompleteSessionFlow appointment={completing} open={Boolean(completing)} onClose={() => setCompleting(null)} />
       <Drawer
         open={drawerOpen}
         title={editing ? "Alterar atendimento" : "Novo atendimento"}

@@ -43,6 +43,7 @@ import {
   updateMember,
   updateNotification,
   setPatientSignedContract,
+  setPatientTcleAcceptance,
   updatePatient,
   setPackageArchived,
   updatePackage,
@@ -69,6 +70,7 @@ import { roundMoney } from "./finance";
 import { SINGLE_SESSION_PACKAGE_MESSAGE, packageChangeSummary, packageIntervalDays, packageSnapshot } from "./packages";
 import { installmentDates, MAX_PAST_RECURRENCES, pendingRecurringCopies, recurringDatesBefore } from "./expenses";
 import { receiptPatch, remainingAmount, unpaidPatch } from "./finance";
+import { paymentForAppointment, type SessionClosePaymentInput } from "./session-close";
 import { locationSharePeople, memberWorkplaces, userBelongsToLocation } from "./workplaces";
 import {
   findLocationConflict,
@@ -103,6 +105,7 @@ import {
   type PaymentNotification,
   type SessionFeedback,
   type SessionPackage,
+  type TcleAcceptance,
 } from "./types";
 
 type ClinicContextValue = {
@@ -153,7 +156,16 @@ type ClinicContextValue = {
     id?: string
   ) => Promise<string>;
   archivePackage: (id: string, arquivado: boolean) => Promise<void>;
-  saveClinical: (id: string, clinical: ClinicalRecord) => Promise<void>;
+  saveClinical: (id: string, clinical: ClinicalRecord, options?: { silent?: boolean }) => Promise<void>;
+  completeSession: (
+    appointmentId: string,
+    input: {
+      markComplete: boolean;
+      clinical: ClinicalRecord | null;
+      payment: SessionClosePaymentInput | null;
+    }
+  ) => Promise<{ paymentId: string | null }>;
+  saveTcleAcceptance: (patientId: string, aceite: TcleAcceptance) => Promise<void>;
   savePayment: (input: PaymentInput, until?: string) => Promise<void>;
   receivePayment: (
     id: string,
@@ -945,12 +957,97 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         toast.success(arquivado ? "Pacote arquivado. Ele sai dos novos atendimentos e o histórico permanece." : "Pacote reativado.");
         await refresh();
       },
-      async saveClinical(id, clinical) {
+      async saveClinical(id, clinical, options) {
         const appointment = appointments.find((item) => item.id === id);
         if (!appointment) throw new Error("Atendimento não encontrado.");
         await saveClinicalRecord(id, appointment.patientId, clinical);
-        toast.success("Ficha salva.");
+        if (!options?.silent) toast.success("Ficha salva.");
         await refresh();
+      },
+      async saveTcleAcceptance(patientId, aceite) {
+        await setPatientTcleAcceptance(patientId, aceite);
+        toast.success("Aceite do TCLE registrado.");
+        await refresh();
+      },
+      async completeSession(appointmentId, input) {
+        const appointment = appointments.find((item) => item.id === appointmentId);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        if (input.clinical) {
+          await saveClinicalRecord(appointmentId, appointment.patientId, input.clinical);
+        }
+        if (input.markComplete && appointment.status !== "concluido") {
+          await updateAppointment(appointmentId, { status: "concluido" });
+          try {
+            const existing = sessionFeedbacks.find((item) => item.appointmentId === appointmentId);
+            if (!existing) {
+              const patient = patients.find((item) => item.id === appointment.patientId);
+              await createSessionFeedback({
+                appointmentId,
+                patientId: appointment.patientId,
+                professionalNome: memberName(appointment.professionalId),
+                patientNome: patient?.nome || patientName(appointment.patientId),
+                sessionDate: appointment.date,
+                startTime: appointment.startTime,
+              });
+            }
+          } catch (error) {
+            console.error(error);
+          }
+        }
+        let paymentId = paymentForAppointment(payments, appointmentId)?.id ?? null;
+        if (input.payment?.enabled && input.payment.valor > 0) {
+          const existing = paymentForAppointment(payments, appointmentId);
+          if (!existing) {
+            paymentId = await createPayment({
+              patientId: appointment.patientId,
+              appointmentId,
+              packageId: appointment.packageId,
+              descricao: appointment.valorSocial ? "Sessão · valor social" : "Sessão",
+              valor: input.payment.valor,
+              dueDate: appointment.date,
+              formaPagamento: input.payment.formaPagamento,
+              status: "agendado",
+            });
+            if (input.payment.markPaid && paymentId) {
+              const createdList = await listPayments();
+              const createdPayment = createdList.find((item) => item.id === paymentId);
+              if (createdPayment) {
+                const patch = receiptPatch(createdPayment, {
+                  valor: input.payment.valor,
+                  formaPagamento: input.payment.formaPagamento,
+                  data: appointment.date,
+                  observacao: "Registrado ao concluir sessão",
+                });
+                await updatePayment(paymentId, {
+                  historico: patch.historico,
+                  valorAcordado: patch.valorAcordado,
+                  status: patch.status,
+                  paidAt: patch.paidAt,
+                  formaPagamento: patch.formaPagamento,
+                });
+              }
+            }
+          } else {
+            paymentId = existing.id;
+            if (input.payment.markPaid && existing.status !== "pago") {
+              const patch = receiptPatch(existing, {
+                valor: remainingAmount(existing) || input.payment.valor,
+                formaPagamento: input.payment.formaPagamento,
+                data: appointment.date,
+                observacao: "Registrado ao concluir sessão",
+              });
+              await updatePayment(existing.id, {
+                historico: patch.historico,
+                valorAcordado: patch.valorAcordado,
+                status: patch.status,
+                paidAt: patch.paidAt,
+                formaPagamento: patch.formaPagamento,
+              });
+            }
+          }
+        }
+        await refresh();
+        return { paymentId };
       },
       async savePayment(input, until) {
         if (!input.dueDate) throw new Error("Informe a data do pagamento.");

@@ -88,16 +88,29 @@ export async function listCalendars(accessToken: string) {
     .map((item) => ({ id: item.id!, summary: item.summary!, primary: item.primary }));
 }
 
+export type GoogleCalendarEventPayload = {
+  id?: string;
+  hangoutLink?: string;
+  conferenceData?: { entryPoints?: { entryPointType?: string; uri?: string }[] };
+};
+
+function conferenceQuery(body: Record<string, unknown>) {
+  return body.conferenceData ? "?conferenceDataVersion=1" : "";
+}
+
 export async function createCalendarEvent(accessToken: string, calendarId: string, body: Record<string, unknown>) {
-  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events${conferenceQuery(body)}`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }
+  );
   if (!response.ok) throw new Error("criar_evento_falhou");
-  const data = (await response.json()) as { id?: string };
+  const data = (await response.json()) as GoogleCalendarEventPayload;
   if (!data.id) throw new Error("evento_sem_id");
-  return data.id;
+  return data;
 }
 
 export async function updateCalendarEvent(
@@ -107,7 +120,7 @@ export async function updateCalendarEvent(
   body: Record<string, unknown>
 ) {
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}${conferenceQuery(body)}`,
     {
       method: "PUT",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -115,6 +128,7 @@ export async function updateCalendarEvent(
     }
   );
   if (!response.ok) throw new Error("atualizar_evento_falhou");
+  return (await response.json()) as GoogleCalendarEventPayload;
 }
 
 export async function deleteCalendarEvent(accessToken: string, calendarId: string, eventId: string) {

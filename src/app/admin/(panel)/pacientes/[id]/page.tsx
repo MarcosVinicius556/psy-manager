@@ -17,6 +17,7 @@ import StackedRow from "@/components/admin/mobile/StackedRow";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
+import PatientTcleEmit from "@/components/admin/PatientTcleEmit";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, isUnpaid, paymentReceipts, remainingAmount } from "@/lib/admin/finance";
 import {
@@ -274,6 +275,16 @@ export default function PatientDetailPage() {
             multiple={false}
             disabled={savingContract}
           />
+        </Card>
+      )}
+
+      {tab === "prontuario" && (
+        <Card className="mb-6">
+          <h2 className="mb-2 text-2xl font-medium text-teal">TCLE</h2>
+          <p className="mb-4 text-sm leading-relaxed text-muted">
+            Gere o termo preenchido com os dados do paciente e do seu CRP (Configurações) e registre o aceite.
+          </p>
+          <PatientTcleEmit patient={patient} />
         </Card>
       )}
 
