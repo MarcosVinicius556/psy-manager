@@ -23,7 +23,8 @@ service cloud.firestore {
         && collection != "trialClaims"
         && collection != "plans"
         && collection != "platformAudit"
-        && collection != "platformMessages";
+        && collection != "platformMessages"
+        && collection != "legalAcceptances";
     }
 
     function accountData() {
@@ -371,6 +372,11 @@ service cloud.firestore {
 
     match /integrations/{uid} {
       allow read, write: if false;
+    }
+
+    match /legalAcceptances/{acceptanceId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
     match /sessionFeedbacks/{token} {

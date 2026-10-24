@@ -27,6 +27,11 @@ export function getFirebaseAdminApp() {
     app = existing;
     return app;
   }
+  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID?.trim() || process.env.FIREBASE_PROJECT_ID?.trim();
+  if (process.env.FIRESTORE_EMULATOR_HOST && projectId) {
+    app = initializeApp({ projectId });
+    return app;
+  }
   const serviceAccount = parseServiceAccount();
   if (!serviceAccount?.client_email || !serviceAccount.private_key) return null;
   app = initializeApp({

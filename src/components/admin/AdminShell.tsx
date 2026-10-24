@@ -13,6 +13,8 @@ import { isExpenseAlert } from "@/lib/admin/expenses";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { HiOutlineBuildingOffice } from "react-icons/hi2";
+import { LEGAL_FOOTER_LINKS } from "@/lib/legal/config";
+import { useCookieConsent } from "@/components/legal/CookieConsentProvider";
 
 type NavIcon = typeof HiOutlineHome;
 
@@ -55,6 +57,7 @@ const items: NavEntry[] = [
     icon: HiOutlineBriefcase,
     children: [
       { href: "/admin/operacional/contrato", label: "Modelo de contrato", icon: HiOutlineDocumentText },
+      { href: "/admin/operacional/consentimento", label: "Termo de consentimento", icon: HiOutlineShieldCheck },
       { href: "/admin/operacional/relatorios", label: "Gerador de relatórios", icon: HiOutlineChartBar },
     ],
   },
@@ -304,6 +307,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const lastScrollY = useRef(0);
   const mobileTitle = meta.title !== "Painel" ? meta.title : titleForPath(pathname);
+  const { openPreferences } = useCookieConsent();
 
   useEffect(() => {
     setMobileOpen(false);
@@ -489,6 +493,31 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
             )
           )}
         </nav>
+        <div className="shrink-0 border-t border-white/15 py-4">
+          <p className="px-2 text-xs font-semibold tracking-[0.08em] text-white/60 uppercase">Legal</p>
+          <div className="mt-2 flex flex-col">
+            {LEGAL_FOOTER_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex min-h-10 items-center px-2 text-sm text-white/80 hover:text-white"
+                onClick={() => setMobileOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <button
+              type="button"
+              className="flex min-h-10 items-center px-2 text-left text-sm text-white/80 hover:text-white"
+              onClick={() => {
+                setMobileOpen(false);
+                openPreferences();
+              }}
+            >
+              Preferências de cookies
+            </button>
+          </div>
+        </div>
         <div className="shrink-0 border-t border-white/15 pt-4">
           <p className="truncate px-2 text-sm font-medium">{profileName}</p>
           <p className="truncate px-2 text-xs text-white/70">{user?.email}</p>
