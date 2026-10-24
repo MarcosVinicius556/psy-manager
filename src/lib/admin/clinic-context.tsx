@@ -63,6 +63,7 @@ import {
   recurrenceDates,
   sharesMatchTotal,
 } from "./schedule";
+import { syncAppointmentWithGoogle } from "@/lib/google-calendar/sync-client";
 import {
   emptyClinical,
   type Appointment,
@@ -591,6 +592,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           toast.success(`${booked.length} sessões recorrentes agendadas.`);
           await consumePackageCredits(booked.length);
           await refresh();
+          for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
           return { id: ids[0] || "", sessions: booked.map((date, index) => ({ id: ids[index], date })) };
         }
         assertScheduleFree(payload, id);
@@ -616,10 +618,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
             toast.success("Atendimento atualizado, com as outras sessões do pacote.");
             await consumePackageCredits(companions.length);
             await refresh();
+            void syncAppointmentWithGoogle(id);
+            for (const createdId of created) void syncAppointmentWithGoogle(createdId);
             return { id, sessions: [{ id, date: payload.date }, ...companions.map((item, index) => ({ id: created[index], date: item.date }))] };
           }
           toast.success("Atendimento atualizado.");
           await refresh();
+          void syncAppointmentWithGoogle(id);
           return { id, sessions: [] };
         }
         if (companions.length) {
@@ -639,6 +644,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           toast.success(`${ids.length} sessões do pacote agendadas.`);
           await consumePackageCredits(ids.length);
           await refresh();
+          for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
           return {
             id: ids[0] || "",
             sessions: [{ ...payload, status: "agendado" as const }, ...companions].map((item, index) => ({ id: ids[index], date: item.date })),
@@ -648,6 +654,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         toast.success("Atendimento agendado.");
         await consumePackageCredits(1);
         await refresh();
+        void syncAppointmentWithGoogle(created);
         return { id: created, sessions: [{ id: created, date: payload.date }] };
       },
       async createHaverPayments(sessions, input) {
@@ -768,6 +775,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
             : "Agendamento cancelado."
         );
         await refresh();
+        void syncAppointmentWithGoogle(id, "delete");
       },
       async savePackage(input, id) {
         const uid = currentUid();

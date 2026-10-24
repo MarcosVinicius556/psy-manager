@@ -151,6 +151,7 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
       : "agendado",
     clinical: mapClinical(data.clinical),
     accessUids: strings(data.accessUids),
+    googleEventId: data.googleEventId ? text(data.googleEventId) : null,
     createdAt: text(data.createdAt),
     updatedAt: text(data.updatedAt),
   };

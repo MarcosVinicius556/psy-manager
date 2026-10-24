@@ -19,6 +19,7 @@ export default function DayTimeline({
   onPick,
   onPickOnline,
   ranges,
+  externalBusy = [],
 }: {
   date: string;
   appointments: Appointment[];
@@ -31,6 +32,7 @@ export default function DayTimeline({
   onPick: (startTime: string) => void;
   onPickOnline?: (startTime: string) => void;
   ranges?: { startTime: string; endTime: string }[];
+  externalBusy?: { startTime: string; endTime: string; label?: string }[];
 }) {
   const [now, setNow] = useState(() => new Date());
   const openedDate = useRef("");
@@ -44,9 +46,12 @@ export default function DayTimeline({
     return timelineSlots(ranges).filter((slot) => {
       if (isBookableStart(date, slot, now)) return true;
       const slotEnd = fromMinutes(toMinutes(slot) + SLOT_STEP);
-      return appointments.some((item) => rangesOverlap(slot, slotEnd, item.startTime, item.endTime));
+      return (
+        appointments.some((item) => rangesOverlap(slot, slotEnd, item.startTime, item.endTime)) ||
+        externalBusy.some((item) => rangesOverlap(slot, slotEnd, item.startTime, item.endTime))
+      );
     });
-  }, [appointments, date, now, ranges]);
+  }, [appointments, date, externalBusy, now, ranges]);
   const pageCount = Math.ceil(slots.length / PAGE_SIZE);
   const [page, setPage] = useState(0);
 
@@ -82,15 +87,18 @@ export default function DayTimeline({
         const covering = appointments.filter((item) =>
           rangesOverlap(slot, slotEnd, item.startTime, item.endTime)
         );
+        const busyHere = externalBusy.filter((item) => rangesOverlap(slot, slotEnd, item.startTime, item.endTime));
         const startsHere = covering.filter((item) => item.startTime >= slot && item.startTime < slotEnd);
-        const professionalBusy = covering.some((item) => professionalId && item.professionalId === professionalId);
+        const busyStartsHere = busyHere.filter((item) => item.startTime >= slot && item.startTime < slotEnd);
+        const professionalBusy =
+          covering.some((item) => professionalId && item.professionalId === professionalId) || busyHere.length > 0;
         const locationBusy = covering.some((item) => viewLocationId && item.locationId === viewLocationId);
         const onlineOnly = !professionalBusy && locationBusy && Boolean(onPickOnline) && isBookableStart(date, slot, now);
 
         return (
           <div key={slot} className="grid grid-cols-[3.5rem_1fr] gap-2 border-b border-[#e7eee8] py-1.5 sm:grid-cols-[4rem_1fr] sm:gap-3">
             <span className="pt-3 text-sm font-medium text-muted">{slot}</span>
-            {covering.length === 0 ? (
+            {covering.length === 0 && busyHere.length === 0 ? (
               <button
                 type="button"
                 onClick={() => onPick(slot)}
@@ -122,8 +130,18 @@ export default function DayTimeline({
                     </Link>
                   );
                 })}
-                {startsHere.length === 0 && (
+                {busyStartsHere.map((item, index) => (
+                  <p key={`google-${slot}-${index}`} className="rounded-md bg-paper px-3 py-2 text-sm text-muted">
+                    {item.startTime}–{item.endTime} · {item.label || "Ocupado (Google)"}
+                  </p>
+                ))}
+                {startsHere.length === 0 && covering.length > 0 && (
                   <p className="rounded-md bg-paper px-3 py-2 text-sm text-muted">Ocupado até {covering[0].endTime}</p>
+                )}
+                {startsHere.length === 0 && covering.length === 0 && busyHere.length > 0 && (
+                  <p className="rounded-md bg-paper px-3 py-2 text-sm text-muted">
+                    Ocupado (Google) até {busyHere[0].endTime}
+                  </p>
                 )}
                 {onlineOnly && (
                   <button

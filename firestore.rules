@@ -369,6 +369,10 @@ service cloud.firestore {
         && shareMoneyLocked(4) && shareMoneyLocked(5) && shareMoneyLocked(6) && shareMoneyLocked(7);
     }
 
+    match /integrations/{uid} {
+      allow read, write: if false;
+    }
+
     match /sessionFeedbacks/{token} {
       allow get: if true;
       allow update: if resource.data.answeredAtMillis == null
