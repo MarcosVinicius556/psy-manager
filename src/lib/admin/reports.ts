@@ -17,6 +17,7 @@ import { packageTypeLabel } from "./packages";
 import type {
   Appointment,
   CareLocation,
+  ClinicAttachment,
   ClinicMember,
   Expense,
   Patient,
@@ -78,7 +79,7 @@ export type ReportRun = {
   nome: string;
   definition: ReportDefinition;
   rowCount: number;
-  pdf: { id: string; nome: string; url: string; mime: string } | null;
+  pdf: ClinicAttachment | null;
   createdAt: string;
 };
 
@@ -517,7 +518,7 @@ function buildRows(entity: EntityId, store: ReportStore): ReportRow[] {
   if (entity === "patients") {
     return store.patients.map((item) => ({
       ...item,
-      temContrato: Boolean(item.contratoAssinado?.url),
+      temContrato: Boolean(item.contratoAssinado && (item.contratoAssinado.url || item.contratoAssinado.asset?.publicId)),
     }));
   }
   if (entity === "appointments") {

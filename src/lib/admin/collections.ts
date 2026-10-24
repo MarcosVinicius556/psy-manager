@@ -74,14 +74,27 @@ function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+function mapCloudinaryAsset(value: unknown): ClinicAttachment["asset"] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const data = value as { publicId?: unknown; resourceType?: unknown; format?: unknown };
+  const publicId = text(data.publicId);
+  const resourceType = text(data.resourceType);
+  if (!publicId) return undefined;
+  if (resourceType !== "image" && resourceType !== "raw" && resourceType !== "video") return undefined;
+  const format = text(data.format);
+  return { publicId, resourceType, format: format || undefined };
+}
+
 function mapAttachment(value: unknown): ClinicAttachment | null {
   const data = (value ?? {}) as Partial<ClinicAttachment>;
   const url = text(data.url);
-  if (!url) return null;
+  const asset = mapCloudinaryAsset(data.asset);
+  if (!url && !asset) return null;
   return {
-    id: text(data.id) || url,
+    id: text(data.id) || url || asset?.publicId || crypto.randomUUID(),
     nome: text(data.nome) || "Arquivo",
-    url,
+    url: url || undefined,
+    asset,
     mime: text(data.mime),
   };
 }
@@ -135,6 +148,7 @@ function mapPatient(id: string, data: DocumentData): Patient {
     contatoEmergencia: text(data.contatoEmergencia),
     observacoes: text(data.observacoes),
     foto: text(data.foto),
+    fotoAsset: mapCloudinaryAsset(data.fotoAsset) ?? null,
     contratoAssinado: mapAttachment(data.contratoAssinado),
     status: data.status === "inativo" ? "inativo" : "ativo",
     createdAt: text(data.createdAt),

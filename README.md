@@ -60,7 +60,9 @@ A lista completa está em [`.env.example`](.env.example).
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_KEY`, `NEXT_PUBLIC_AUTH_DOMAIN`, `NEXT_PUBLIC_PROJECT_ID`, `NEXT_PUBLIC_STORAGE_BUCKET`, `NEXT_PUBLIC_MESSAGE_SENDER_ID`, `NEXT_PUBLIC_APP_ID`, `NEXT_PUBLIC_MEASUREMENT_ID` | Cliente | Configuração web do Firebase. É pública por desenho; a trava é `firestore.rules` e `storage.rules` |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cliente | Nome do cloud, visível nas URLs |
-| `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Só servidor | Upload em `src/app/api/image/upload/route.ts`. Sem `NEXT_PUBLIC_` |
+| `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Só servidor | Upload (`/api/image/upload`), URLs assinadas (`/api/media`). Sem `NEXT_PUBLIC_` |
+
+Anexos clínicos usam entrega `authenticated` no Cloudinary; ver `docs/security/cloudinary-assets.md` e `npm run migrate:cloudinary-auth` (dry-run).
 | `EMAIL_TO`, `GMAIL_APP_PASSWORD` | Só servidor | SMTP. Sem elas o e-mail não sai |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Cliente | E-mail público de contato |
 

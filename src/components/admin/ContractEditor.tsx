@@ -18,6 +18,9 @@ import {
   MdUndo,
 } from "react-icons/md";
 import { uploadClinicFile } from "@/lib/admin/attachments";
+import { fetchSignedMediaUrl } from "@/lib/cloudinary/client-media";
+import { parseMarkdownImageRef } from "@/lib/cloudinary/markdown-asset";
+import { publicIdFromLegacyUrl } from "@/lib/cloudinary/asset";
 import {
   CONTRACT_FIELDS,
   CONTRACT_FIELD_TOKEN,
@@ -83,11 +86,37 @@ function Runs({ runs }: { runs: TextRun[] }) {
   );
 }
 
+function ContractPreviewImage({ url, alt }: { url: string; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    const asset = parseMarkdownImageRef(url) || publicIdFromLegacyUrl(url);
+    if (asset) {
+      fetchSignedMediaUrl(asset)
+        .then((signed) => {
+          if (active) setSrc(signed);
+        })
+        .catch(() => {
+          if (active) setSrc(null);
+        });
+      return () => {
+        active = false;
+      };
+    }
+    setSrc(url);
+    return () => {
+      active = false;
+    };
+  }, [url]);
+  if (!src) return <p className="my-2 text-sm text-muted">Carregando imagem…</p>;
+  return <img src={src} alt={alt} className="my-2 max-h-48 max-w-full rounded-md" />;
+}
+
 function PreviewBlock({ block }: { block: ContractBlock }) {
   if (block.type === "space") return <div className="h-2" />;
   if (block.type === "rule") return <hr className="border-[#d7e0d8]" />;
   if (block.type === "image") {
-    return <img src={block.url} alt={block.alt || "Imagem"} className="my-2 max-h-48 max-w-full rounded-md" />;
+    return <ContractPreviewImage url={block.url} alt={block.alt || "Imagem"} />;
   }
   if (block.type === "code") {
     return <pre className="overflow-x-auto rounded-md bg-white px-3 py-2 font-mono text-xs text-ink">{block.text || " "}</pre>;
@@ -356,7 +385,9 @@ function ContractEditor({ value, onChange }: { value: string; onChange: (value: 
     try {
       const uploaded = await uploadClinicFile(file, { kind: "contract-template" }, "foto");
       const alt = uploaded.nome.replace(/\.[^.]+$/, "") || "imagem";
-      insertToken(`![${alt}](${uploaded.url})`);
+      if (!uploaded.asset) throw new Error("Não foi possível referenciar a imagem.");
+      const { encodeMarkdownImageRef } = await import("@/lib/cloudinary/markdown-asset");
+      insertToken(`![${alt}](${encodeMarkdownImageRef(uploaded.asset)})`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível enviar a imagem.");
     } finally {

@@ -393,7 +393,12 @@ function tokensFromRuns(runs: TextRun[]): PdfToken[] {
 }
 
 async function imageDataUrl(url: string) {
-  const response = await fetch(url);
+  const { parseMarkdownImageRef } = await import("@/lib/cloudinary/markdown-asset");
+  const { fetchSignedMediaUrl } = await import("@/lib/cloudinary/client-media");
+  const { publicIdFromLegacyUrl } = await import("@/lib/cloudinary/asset");
+  const asset = parseMarkdownImageRef(url) || publicIdFromLegacyUrl(url);
+  const fetchUrl = asset ? await fetchSignedMediaUrl(asset) : url;
+  const response = await fetch(fetchUrl);
   if (!response.ok) throw new Error("Não foi possível carregar a imagem do contrato.");
   const blob = await response.blob();
   const buffer = await blob.arrayBuffer();

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { uploadClinicFile, type AttachmentKind, type ClinicUploadTarget } from "@/lib/admin/attachments";
 import type { ClinicAttachment } from "@/lib/admin/types";
+import { openAttachment } from "@/lib/cloudinary/client-media";
 import { Field } from "./ui";
 
 export default function FileAttachments({
@@ -71,9 +72,13 @@ export default function FileAttachments({
         <ul className="mb-3 grid gap-2">
           {files.map((file) => (
             <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-paper px-3 py-2">
-              <a href={file.url} target="_blank" rel="noreferrer" className="font-medium text-teal">
+              <button
+                type="button"
+                className="btn-text font-medium text-teal"
+                onClick={() => openAttachment(file).catch(() => toast.error("Não foi possível abrir o arquivo."))}
+              >
                 {file.nome}
-              </a>
+              </button>
               {!disabled && (
                 <button type="button" className="btn-text" disabled={uploading} onClick={() => remove(file.id)}>
                   Remover
@@ -97,9 +102,14 @@ export function ReceiptLinks({ files, align = "end" }: { files: ClinicAttachment
   return (
     <div className={`flex flex-col gap-1 ${align === "end" ? "items-end" : "items-start"}`}>
       {files.map((file) => (
-        <a key={file.id} href={file.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-teal">
+        <button
+          key={file.id}
+          type="button"
+          className="btn-text text-sm font-semibold text-teal"
+          onClick={() => openAttachment(file).catch(() => undefined)}
+        >
           {files.length > 1 ? file.nome : "Comprovante"}
-        </a>
+        </button>
       ))}
     </div>
   );
