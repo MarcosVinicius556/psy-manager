@@ -17,6 +17,8 @@ import { isPaymentMethod } from "./format";
 import { buildLegacyAccount, buildReplayDeniedAccount, buildTrialAccount, expirePatch } from "../saas/model";
 import { reserveTrial } from "../saas/account-store";
 import { assertClinicWrite } from "../saas/guard";
+import { trialEligibleFromUserDoc } from "./google-auth-flow";
+import { singleFlight } from "./single-flight";
 import { getFirebaseAuth, getFirebaseDb } from "./firebase";
 import {
   contractVersionSummary,
@@ -699,53 +701,22 @@ export async function removeNotification(id: string) {
   await deleteDoc(doc(getFirebaseDb(), "notifications", id));
 }
 
-export async function upsertPsychologist(uid: string, email: string, extras?: { nome?: string; foto?: string }) {
+export type UpsertPsychologistResult = { trialEligible: boolean };
+
+async function upsertPsychologistOnce(uid: string, email: string, extras?: { nome?: string; foto?: string }): Promise<UpsertPsychologistResult> {
   const normalized = email.trim().toLowerCase();
-  const membersRef = collection(getFirebaseDb(), "members");
-  let current: { ref: ReturnType<typeof doc>; data: () => DocumentData } | undefined;
-  try {
-    const byUid = await getDocs(query(membersRef, where("uid", "==", uid)));
-    const ranked = [...byUid.docs].sort((a, b) => memberScore(b.data()) - memberScore(a.data()));
-    current = ranked[0];
-    for (const extra of ranked.slice(1)) await deleteDoc(extra.ref);
-  } catch {
-    current = undefined;
-  }
-  if (!current) {
-    const byOwner = await getDocs(query(membersRef, where("ownerUid", "==", uid)));
-    current = byOwner.docs.find((item) => text(item.data().email) === normalized || item.data().uid === uid);
-  }
-  const fallback = normalized.split("@")[0];
-  const suggestedName = extras?.nome?.trim() || "";
-  const existingName = current ? text(current.data().nome) : "";
-  const nome = existingName && existingName !== fallback ? existingName : suggestedName || existingName || fallback;
-  const foto = (current ? text(current.data().foto) : "") || extras?.foto?.trim() || "";
-  if (current) {
-    await updateDoc(current.ref, { uid, ownerUid: uid, email: normalized, nome, foto, ativo: true });
-  } else {
-    await addDoc(membersRef, {
-      uid,
-      ownerUid: uid,
-      email: normalized,
-      nome,
-      telefone: "",
-      foto: "",
-      valorBase: 0,
-      valorSocial: 0,
-      workHours: [],
-      ativo: true,
-      createdAt: new Date().toISOString(),
-    });
-  }
-  const userRef = doc(getFirebaseDb(), "users", uid);
+  const db = getFirebaseDb();
+  const userRef = doc(db, "users", uid);
   const profile = await getDoc(userRef);
   const role = profile.data()?.role === "super_admin" ? "super_admin" : "psicologo";
+  let trialEligible = trialEligibleFromUserDoc(profile.data());
+
   if (!profile.exists()) {
-    const eligible = await reserveTrial(normalized, uid);
+    trialEligible = await reserveTrial(normalized, uid);
     const stamp = new Date().toISOString();
-    const account = eligible
-      ? buildTrialAccount({ uid, email: normalized, nome, clinicName: "", now: Date.now(), termsAcceptedAt: stamp })
-      : buildReplayDeniedAccount({ uid, email: normalized, nome, clinicName: "", now: Date.now(), termsAcceptedAt: stamp });
+    const account = trialEligible
+      ? buildTrialAccount({ uid, email: normalized, nome: extras?.nome?.trim() || normalized.split("@")[0], clinicName: "", now: Date.now(), termsAcceptedAt: stamp })
+      : buildReplayDeniedAccount({ uid, email: normalized, nome: extras?.nome?.trim() || normalized.split("@")[0], clinicName: "", now: Date.now(), termsAcceptedAt: stamp });
     await setDoc(userRef, account);
   } else {
     await setDoc(userRef, { uid, email: normalized, role }, { merge: true });
@@ -756,7 +727,59 @@ export async function upsertPsychologist(uid: string, email: string, extras?: { 
       await updateDoc(userRef, expirePatch(new Date().toISOString()));
     }
   }
+
+  const membersRef = collection(db, "members");
+  const canonicalRef = doc(db, "members", uid);
+  let current: { ref: ReturnType<typeof doc>; data: () => DocumentData } | undefined;
+  const canonical = await getDoc(canonicalRef);
+  if (canonical.exists()) {
+    current = { ref: canonicalRef, data: () => canonical.data() };
+  } else if (profile.exists()) {
+    try {
+      const byUid = await getDocs(query(membersRef, where("uid", "==", uid)));
+      const ranked = [...byUid.docs].sort((a, b) => memberScore(b.data()) - memberScore(a.data()));
+      current = ranked[0];
+      for (const extra of ranked.slice(1)) await deleteDoc(extra.ref);
+    } catch {
+      current = undefined;
+    }
+    if (!current) {
+      const byOwner = await getDocs(query(membersRef, where("ownerUid", "==", uid)));
+      current = byOwner.docs.find((item) => text(item.data().email) === normalized || item.data().uid === uid);
+    }
+  }
+
+  const fallback = normalized.split("@")[0];
+  const suggestedName = extras?.nome?.trim() || "";
+  const existingName = current ? text(current.data().nome) : "";
+  const nome = existingName && existingName !== fallback ? existingName : suggestedName || existingName || fallback;
+  const foto = (current ? text(current.data().foto) : "") || extras?.foto?.trim() || "";
+  const memberPayload = {
+    uid,
+    ownerUid: uid,
+    email: normalized,
+    nome,
+    telefone: current ? text(current.data().telefone) : "",
+    foto,
+    valorBase: current ? Number(current.data().valorBase) || 0 : 0,
+    valorSocial: current ? Number(current.data().valorSocial) || 0 : 0,
+    workHours: current && Array.isArray(current.data().workHours) ? current.data().workHours : [],
+    ativo: true,
+    createdAt: current ? text(current.data().createdAt) || new Date().toISOString() : new Date().toISOString(),
+  };
+
+  if (current) {
+    await updateDoc(current.ref, { uid, ownerUid: uid, email: normalized, nome, foto, ativo: true });
+  } else {
+    await setDoc(canonicalRef, memberPayload);
+  }
+
   await publishDirectory({ uid, email: normalized, nome, foto });
+  return { trialEligible };
+}
+
+export async function upsertPsychologist(uid: string, email: string, extras?: { nome?: string; foto?: string }) {
+  return singleFlight(`upsert-psychologist:${uid}`, () => upsertPsychologistOnce(uid, email, extras));
 }
 
 export async function getUserRole(uid: string) {
