@@ -65,23 +65,33 @@ export default function Drawer({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`absolute inset-y-0 right-0 flex h-full w-full flex-col bg-white shadow-[0_18px_50px_rgba(61,82,64,0.18)] transition-transform duration-300 ease-out ${
-          size === "wide" ? "max-w-[44rem]" : "max-w-[560px]"
+        className={`absolute inset-0 flex h-full w-full flex-col bg-white shadow-[0_18px_50px_rgba(61,82,64,0.18)] transition-transform duration-300 ease-out sm:inset-y-0 sm:right-0 sm:left-auto ${
+          size === "wide" ? "sm:max-w-[44rem]" : "sm:max-w-[560px]"
         } ${shown ? "translate-x-0" : "translate-x-full"}`}
       >
-        <header className="flex items-center justify-between gap-4 border-b border-[#e7eee8] px-6 py-5">
-          <h2 className="font-serif text-2xl font-medium text-teal">{title}</h2>
+        <header
+          className="flex items-center justify-between gap-3 border-b border-[#e7eee8] px-4 py-3 sm:px-6 sm:py-5"
+          style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+        >
+          <h2 className="font-serif text-[clamp(1.4rem,5vw,1.75rem)] font-medium leading-tight text-teal">{title}</h2>
           <button
             type="button"
-            className="rounded-md border border-transparent p-2 text-teal transition-colors duration-300 hover:border-teal hover:bg-transparent"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-transparent text-teal transition-colors duration-300 hover:border-teal hover:bg-transparent"
             onClick={onClose}
             aria-label="Fechar"
           >
             <HiOutlineX size={22} />
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-5">{held}</div>
-        {footer ? <div className="border-t border-[#e7eee8] px-6 py-4">{footer}</div> : null}
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{held}</div>
+        {footer ? (
+          <div
+            className="border-t border-[#e7eee8] px-4 py-3 sm:px-6 sm:py-4"
+            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+          >
+            {footer}
+          </div>
+        ) : null}
       </aside>
     </div>
   );

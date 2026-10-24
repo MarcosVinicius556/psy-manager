@@ -40,7 +40,7 @@ import {
 import { loadDashboardLayout, saveDashboardLayout } from "@/lib/admin/dashboard-store";
 import { DASHBOARD_WIDGET_COMPONENTS } from "./widgets";
 
-const chip = "px-2 py-1 text-xs";
+const chip = "inline-flex min-h-11 min-w-11 items-center justify-center px-3 py-2 text-sm";
 
 function WidgetToolbar({
   widget,

@@ -99,32 +99,34 @@ export default function Home() {
     <div className="landing overflow-x-hidden">
       <section id="inicio" className="landing-hero">
         <HeroLandscape />
-        <div className="container relative z-10 max-w-[760px] text-center text-white">
-          <p className="text-[0.78rem] font-medium uppercase tracking-[0.18em] text-white/70">Psy Manager</p>
-          <h1 className="mx-auto mt-5 max-w-[14ch] text-[clamp(1.85rem,8vw,4.4rem)] leading-[1.12] text-white sm:max-w-none">
+        <div className="site-container relative z-10">
+          <div className="mx-auto max-w-[760px] text-center text-white">
+          <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-white/70">Psy Manager</p>
+          <h1 className="mx-auto mt-4 text-[clamp(2.05rem,1.25rem+3.2vw,4.4rem)] leading-[1.14] text-balance text-white sm:mt-5">
             Organize o consultório.
             <br />
             Cuide do que importa.
           </h1>
-          <p className="mx-auto mt-6 max-w-[540px] px-1 text-[1.05rem] leading-[1.7] text-white/80 sm:text-[1.12rem]">
+          <p className="mx-auto mt-5 max-w-[540px] text-base leading-[1.7] text-white/80 sm:mt-6 sm:text-[1.12rem]">
             Agenda, pacientes, financeiro e documentos em um painel só para o psicólogo. O sistema do consultório, separado da página da clínica.
           </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/cadastro" className="btn-primary">
+          <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:mt-9 sm:flex-row sm:items-center">
+            <Link href="/cadastro" className="btn-primary w-full sm:w-auto">
               Começar gratuitamente
             </Link>
-            <Link href="/admin/login" className="btn-text">
+            <Link href="/admin/login" className="btn-text w-full sm:w-auto">
               Já tem uma conta? Entrar
             </Link>
           </div>
+          </div>
         </div>
-        <div className="relative z-10 mx-auto mt-14 w-[min(92%,1040px)] translate-y-8 sm:mt-16 sm:translate-y-12">
+        <div className="relative z-10 mx-auto mt-10 w-full max-w-[1040px] px-5 sm:mt-16 sm:translate-y-12">
           <DashboardMock />
         </div>
       </section>
 
-      <section className="bg-paper pt-24 pb-8">
-        <div className="container grid gap-8 sm:grid-cols-3">
+      <section className="bg-paper pt-16 pb-6 sm:pt-24 sm:pb-8">
+        <div className="site-container grid gap-6 sm:grid-cols-3 sm:gap-8">
           {[
             ["Um painel", "Agenda, caixa e pacientes no mesmo lugar — sem abrir cinco abas para fechar o dia."],
             ["Conta individual", "Cada psicólogo entra com o próprio acesso e trabalha só os dados do seu consultório."],
@@ -138,20 +140,20 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="produto" className="bg-paper py-24">
-        <div className="container">
+      <section id="produto" className="bg-paper py-16 sm:py-24">
+        <div className="site-container">
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">O produto</p>
-          <h2 className="mt-3 max-w-2xl text-[clamp(2rem,4vw,3.2rem)] leading-[1.15]">
+          <h2 className="mt-3 max-w-2xl text-[clamp(1.7rem,1.15rem+2.2vw,3.2rem)] leading-[1.18]">
             O painel que você usa depois da sessão
           </h2>
           <p className="mt-4 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
             Psy Manager não é a vitrine da profissional. É o sistema de trás: quem veio, quem falta pagar, qual sala está ocupada e qual contrato precisa sair. Abaixo, o mesmo visual do painel — com dados de demonstração.
           </p>
 
-          <div className="mt-16 grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="mt-10 grid items-center gap-8 sm:mt-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
             <div>
               <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-accent">Agenda</p>
-              <h3 className="mt-3 text-[clamp(1.8rem,3vw,2.4rem)]">O dia inteiro, sem perder o local</h3>
+              <h3 className="mt-3 text-[clamp(1.55rem,1.2rem+1.4vw,2.4rem)] leading-[1.2]">O dia inteiro, sem perder o local</h3>
               <p className="mt-4 leading-[1.75] text-muted">
                 A agenda mostra o horário, o paciente e o consultório. Horários livres aparecem como “Livre — agendar”. Atendimentos agendados, em andamento ou concluídos ficam na grade do dia, com profissional e local.
               </p>
@@ -162,10 +164,10 @@ export default function Home() {
             <AgendaMock />
           </div>
 
-          <div className="mt-20 grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="mt-12 grid items-center gap-8 sm:mt-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
             <div className="lg:order-2">
               <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-accent">Pacientes</p>
-              <h3 className="mt-3 text-[clamp(1.8rem,3vw,2.4rem)]">Ficha, histórico e próxima sessão</h3>
+              <h3 className="mt-3 text-[clamp(1.55rem,1.2rem+1.4vw,2.4rem)] leading-[1.2]">Ficha, histórico e próxima sessão</h3>
               <p className="mt-4 leading-[1.75] text-muted">
                 A lista mostra quem está ativo, quem pausou e quando é o próximo encontro. Dentro da ficha ficam dados clínicos, anexos e o rastro do acompanhamento — o que importa para continuar o trabalho, não para publicar no site.
               </p>
@@ -178,10 +180,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-20 grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="mt-12 grid items-center gap-8 sm:mt-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
             <div>
               <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-accent">Financeiro</p>
-              <h3 className="mt-3 text-[clamp(1.8rem,3vw,2.4rem)]">O mês em três números</h3>
+              <h3 className="mt-3 text-[clamp(1.55rem,1.2rem+1.4vw,2.4rem)] leading-[1.2]">O mês em três números</h3>
               <p className="mt-4 leading-[1.75] text-muted">
                 A receber, em atraso e já recebido. Pacote de oito sessões, avulsa, vencimento do mês — o painel junta o que costuma ficar espalhado em planilha, bloco e PIX.
               </p>
@@ -194,14 +196,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="recursos" className="bg-white py-24">
-        <div className="container">
+      <section id="recursos" className="bg-white py-16 sm:py-24">
+        <div className="site-container">
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Recursos</p>
-          <h2 className="mt-3 max-w-xl text-[clamp(2rem,4vw,3rem)] leading-[1.15]">Tudo o que o painel já cobre</h2>
+          <h2 className="mt-3 max-w-xl text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">Tudo o que o painel já cobre</h2>
           <p className="mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
             Não é uma lista de promessas. São os módulos que o consultório usa hoje: do primeiro cadastro ao PDF do relatório.
           </p>
-          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, text }) => (
               <li key={title} className="landing-card">
                 <span className="landing-icon">
@@ -215,14 +217,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="como-funciona" className="bg-paper py-24">
-        <div className="container">
+      <section id="como-funciona" className="bg-paper py-16 sm:py-24">
+        <div className="site-container">
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Como funciona</p>
-          <h2 className="mt-3 max-w-xl text-[clamp(2rem,4vw,3rem)] leading-[1.15]">Três passos para o consultório entrar no ritmo</h2>
+          <h2 className="mt-3 max-w-xl text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">Três passos para o consultório entrar no ritmo</h2>
           <p className="mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
             O primeiro dia não precisa de implementação. Entra, cadastra o essencial e já vê o mês.
           </p>
-          <ol className="mt-12 grid gap-6 md:grid-cols-3">
+          <ol className="mt-8 grid gap-4 sm:mt-12 sm:gap-6 md:grid-cols-3">
             {steps.map((step) => (
               <li key={step.n} className="landing-card">
                 <span className="font-serif text-4xl text-teal/30">{step.n}</span>
@@ -234,14 +236,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="para-quem" className="bg-white py-24">
-        <div className="container">
+      <section id="para-quem" className="bg-white py-16 sm:py-24">
+        <div className="site-container">
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Para quem</p>
-          <h2 className="mt-3 max-w-2xl text-[clamp(2rem,4vw,3rem)] leading-[1.15]">Feito para o uso profissional — não para a vitrine</h2>
+          <h2 className="mt-3 max-w-2xl text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">Feito para o uso profissional — não para a vitrine</h2>
           <p className="mt-4 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
             A landing da clínica continua sendo a página da profissional. O Psy Manager é o que fica do lado de cá: a operação do consultório, com conta própria e dados do seu trabalho.
           </p>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:mt-12 sm:gap-5 md:grid-cols-3">
             {audiences.map((item) => (
               <article key={item.title} className="landing-card">
                 <h3 className="text-[1.45rem]">{item.title}</h3>
@@ -254,10 +256,11 @@ export default function Home() {
 
       <PlansSection />
 
-      <section id="faq" className="bg-white py-24">
-        <div className="container max-w-3xl">
+      <section id="faq" className="bg-white py-16 sm:py-24">
+        <div className="site-container">
+          <div className="mx-auto max-w-3xl">
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Perguntas frequentes</p>
-          <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] leading-[1.15]">O que já dá para saber antes de entrar</h2>
+          <h2 className="mt-3 text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">O que já dá para saber antes de entrar</h2>
           <div className="mt-8 grid gap-3">
             {[
               ["Quanto tempo dura a avaliação?", "30 dias, contados da criação da conta. A data e a hora de término ficam no painel, em Assinatura."],
@@ -273,19 +276,22 @@ export default function Home() {
               </details>
             ))}
           </div>
+          </div>
         </div>
       </section>
 
-      <section id="privacidade" className="bg-paper py-24">
-        <div className="container max-w-3xl">
+      <section id="privacidade" className="bg-paper py-16 sm:py-24">
+        <div className="site-container">
+          <div className="mx-auto max-w-3xl">
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Privacidade</p>
-          <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] leading-[1.15]">Dados do consultório ficam no consultório</h2>
+          <h2 className="mt-3 text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">Dados do consultório ficam no consultório</h2>
           <p className="mt-4 leading-relaxed text-muted">
             O cadastro pede nome, e-mail e senha. O nome do consultório fica para quando você quiser configurar o espaço. Dados de pacientes e evoluções ficam na conta de quem atende. O fim da avaliação não apaga esse material. O texto completo está nos termos e na política de privacidade — e ainda precisa de revisão jurídica antes de uma oferta comercial fechada.
           </p>
-          <div className="mt-6 flex flex-wrap gap-4">
-            <Link href="/termos" className="font-semibold text-teal">Termos de uso</Link>
-            <Link href="/privacidade" className="font-semibold text-teal">Política de privacidade</Link>
+          <div className="mt-6 flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-4">
+            <Link href="/termos" className="inline-flex min-h-11 items-center font-semibold text-teal">Termos de uso</Link>
+            <Link href="/privacidade" className="inline-flex min-h-11 items-center font-semibold text-teal">Política de privacidade</Link>
+          </div>
           </div>
         </div>
       </section>

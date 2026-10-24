@@ -64,12 +64,12 @@ export default function ReceivePayment({ payment, onClose }: { payment: Payment;
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.18)]" role="dialog" aria-modal="true">
+    <div className="sheet-host fixed inset-0 z-[90] grid place-items-center bg-ink/40 p-4">
+      <div className="sheet-panel max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-md bg-white p-5 shadow-[0_18px_50px_rgba(61,82,64,0.18)] sm:p-6" role="dialog" aria-modal="true">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-accent">Financeiro</p>
-            <h2 className="mt-1 font-serif text-3xl text-teal">{open ? "Confirmar pagamento" : "Histórico"}</h2>
+            <h2 className="mt-1 font-serif text-[clamp(1.5rem,5vw,1.875rem)] leading-tight text-teal">{open ? "Confirmar pagamento" : "Histórico"}</h2>
             <p className="mt-1 text-muted">
               {patientName(payment.patientId)} · {payment.descricao}
             </p>
@@ -78,7 +78,7 @@ export default function ReceivePayment({ payment, onClose }: { payment: Payment;
             Fechar
           </button>
         </div>
-        <dl className="mb-4 grid grid-cols-3 gap-3 rounded-md bg-paper px-4 py-3 text-sm">
+        <dl className="mb-4 grid gap-3 rounded-md bg-paper px-4 py-3 text-sm sm:grid-cols-3">
           <div>
             <dt className="text-muted">Acordado</dt>
             <dd className="font-num font-semibold">{formatMoney(agreed)}</dd>

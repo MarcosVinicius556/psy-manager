@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers } from "react-icons/hi";
+import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineMenu, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers, HiOutlineX } from "react-icons/hi";
 import { EmailBanner, OnboardingCard, TrialBanner } from "./AccountStatus";
 import BrandLogo from "@/components/BrandLogo";
 import Avatar from "./Avatar";
@@ -85,12 +85,6 @@ function linkClass(current: boolean, collapsed: boolean, nested = false) {
   }`;
 }
 
-function chipClass(current: boolean) {
-  return `shrink-0 rounded-md border px-3 py-2 text-sm transition-colors duration-300 ${
-    current ? "border-white bg-white text-teal hover:bg-transparent hover:text-white" : "border-transparent bg-white/10 hover:border-white hover:bg-transparent"
-  }`;
-}
-
 function FadeLabel({ show, className, children }: { show: boolean; className?: string; children: ReactNode }) {
   return (
     <span
@@ -131,14 +125,12 @@ function NavGroup({
   item,
   collapsed,
   pathname,
-  variant,
   open,
   onToggle,
 }: {
   item: NavGroupItem;
   collapsed: boolean;
   pathname: string;
-  variant: "desktop" | "mobile";
   open: boolean;
   onToggle: () => void;
 }) {
@@ -187,29 +179,6 @@ function NavGroup({
       window.removeEventListener("scroll", placeFlyout, true);
     };
   }, [flyoutOpen, open, onToggle]);
-
-  if (variant === "mobile") {
-    return (
-      <>
-        <button type="button" aria-expanded={open} className={chipClass(groupActive && !open)} onClick={onToggle}>
-          {item.label}
-        </button>
-        <span
-          className={`grid min-w-0 transition-[grid-template-columns] duration-300 ease-out ${
-            open ? "grid-cols-[1fr]" : "grid-cols-[0fr]"
-          }`}
-        >
-          <span className="flex min-w-0 gap-2 overflow-hidden">
-            {item.children.map((child) => (
-              <Link key={child.href} href={child.href} className={chipClass(isCurrent(child.href, pathname))}>
-                {child.label}
-              </Link>
-            ))}
-          </span>
-        </span>
-      </>
-    );
-  }
 
   const highlighted = collapsed ? groupActive : groupActive && !open;
 
@@ -306,6 +275,27 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const unread = notifications.filter((item) => !item.lida).length + pendingInvites + expenses.filter((expense) => isExpenseAlert(expense)).length;
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    mobileCloseRef.current?.focus();
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("psy-sidebar") === "1");
@@ -360,7 +350,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 item={entry}
                 collapsed={collapsed}
                 pathname={pathname}
-                variant="desktop"
                 open={openGroup === entry.label}
                 onToggle={() => toggleGroup(entry.label)}
               />
@@ -398,39 +387,136 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
       </aside>
 
-      <div className="sticky top-0 z-20 flex gap-2 overflow-auto bg-teal px-3 py-3 text-white md:hidden">
-        {menu.map((entry) =>
-          isGroup(entry) ? (
-            <NavGroup
-              key={entry.label}
-              item={entry}
-              collapsed={false}
-              pathname={pathname}
-              variant="mobile"
-              open={openGroup === entry.label}
-              onToggle={() => toggleGroup(entry.label)}
-            />
-          ) : (
-            <Link key={entry.href} href={entry.href} className={chipClass(isCurrent(entry.href, pathname))}>
-              {entry.label}
-              {entry.href === "/admin/notificacoes" && unread > 0 ? ` (${unread})` : ""}
-            </Link>
-          )
-        )}
+      <header
+        className="sticky top-0 z-30 bg-teal text-white md:hidden"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="flex h-14 items-center justify-between gap-3 px-4">
+          <Link href="/admin" aria-label="Psy Manager" className="rounded-md bg-white px-2 py-1">
+            <BrandLogo variant="lockup" height={32} className="max-w-[52vw]" />
+          </Link>
+          <button
+            type="button"
+            className="grid h-11 w-11 place-items-center rounded-md border border-white/20"
+            aria-expanded={mobileOpen}
+            aria-controls="admin-mobile-nav"
+            aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+            onClick={() => setMobileOpen((value) => !value)}
+          >
+            {mobileOpen ? <HiOutlineX size={24} /> : <HiOutlineMenu size={24} />}
+          </button>
+        </div>
+      </header>
+
+      {mobileOpen && (
         <button
           type="button"
-          className="shrink-0 rounded-md border border-transparent bg-white/10 px-3 py-2 text-sm transition-colors duration-300 hover:border-white hover:bg-transparent"
-          onClick={async () => {
-            await logout();
-            router.replace("/admin/login");
-          }}
-        >
-          Sair
-        </button>
+          className="fixed inset-0 z-40 bg-ink/40 md:hidden"
+          aria-label="Fechar menu"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+      <div
+        id="admin-mobile-nav"
+        role="dialog"
+        aria-modal={mobileOpen}
+        aria-label="Menu do painel"
+        inert={mobileOpen ? undefined : true}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-teal px-4 text-white transition-transform duration-300 ease-out md:hidden ${
+          mobileOpen ? "translate-x-0" : "pointer-events-none -translate-x-full"
+        }`}
+        style={{
+          paddingTop: "max(1rem, env(safe-area-inset-top))",
+          paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/admin" aria-label="Psy Manager" className="rounded-md bg-white px-2 py-1" onClick={() => setMobileOpen(false)}>
+            <BrandLogo variant="lockup" height={36} />
+          </Link>
+          <button
+            ref={mobileCloseRef}
+            type="button"
+            className="grid h-11 w-11 place-items-center rounded-md border border-white/25"
+            aria-label="Fechar menu"
+            onClick={() => setMobileOpen(false)}
+          >
+            <HiOutlineX size={22} />
+          </button>
+        </div>
+        <nav className="mt-6 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a")) setMobileOpen(false);
+        }}>
+          {menu.map((entry) =>
+            isGroup(entry) ? (
+              <NavGroup
+                key={entry.label}
+                item={entry}
+                collapsed={false}
+                pathname={pathname}
+                open={openGroup === entry.label}
+                onToggle={() => toggleGroup(entry.label)}
+              />
+            ) : (
+              <NavAnchor key={entry.href} item={entry} collapsed={false} pathname={pathname} unread={unread} />
+            )
+          )}
+        </nav>
+        <div className="shrink-0 border-t border-white/15 pt-4">
+          <p className="truncate px-2 text-sm font-medium">{profileName}</p>
+          <p className="truncate px-2 text-xs text-white/70">{user?.email}</p>
+          <button
+            type="button"
+            className="mt-3 flex min-h-11 w-full items-center gap-2 rounded-md border border-transparent px-3 text-sm text-white/80"
+            onClick={async () => {
+              await logout();
+              router.replace("/admin/login");
+            }}
+          >
+            <HiOutlineLogout size={18} />
+            Sair
+          </button>
+        </div>
       </div>
 
-      <div className={`transition-[padding] duration-300 ease-out ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
-        <div className="mx-auto w-[min(94%,1200px)] py-8 md:py-10">
+      <nav className="admin-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-[#d7e0d8] bg-white md:hidden" aria-label="Atalhos" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="grid grid-cols-5">
+          {(
+            [
+              { href: "/admin", label: "Início", icon: HiOutlineHome },
+              { href: "/admin/agenda", label: "Agenda", icon: HiOutlineCalendar },
+              { href: "/admin/pacientes", label: "Pacientes", icon: HiOutlineUsers },
+              { href: "/admin/financeiro", label: "Financeiro", icon: HiOutlineCash },
+            ] as const
+          ).map((item) => {
+            const Icon = item.icon;
+            const current = isCurrent(item.href, pathname);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[0.65rem] font-medium leading-tight ${current ? "text-accent" : "text-teal"}`}
+              >
+                <Icon size={22} />
+                <span className="max-w-full">{item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[0.68rem] font-medium ${mobileOpen ? "text-accent" : "text-teal"}`}
+            aria-expanded={mobileOpen}
+            aria-controls="admin-mobile-nav"
+            onClick={() => setMobileOpen(true)}
+          >
+            <HiOutlineMenu size={22} />
+            Menu
+          </button>
+        </div>
+      </nav>
+
+      <div className={`pb-[calc(4.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-5 md:py-10">
           <EmailBanner />
           <TrialBanner />
           <OnboardingCard />

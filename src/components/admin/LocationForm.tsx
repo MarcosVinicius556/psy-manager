@@ -114,7 +114,7 @@ export default function LocationForm({
           </p>
           <div className="flex flex-wrap gap-2">
             <input
-              className={`${fieldClass} min-w-56 flex-1`}
+              className={`${fieldClass} min-w-0 flex-1 sm:min-w-56`}
               type="email"
               value={email}
               onChange={(event) => {

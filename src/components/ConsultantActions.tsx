@@ -15,12 +15,12 @@ export default function ConsultantActions({
 }) {
   const mail = email || process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
   return (
-    <div className="flex flex-wrap gap-3">
-      <a href={consultantWhatsAppUrl()} className="btn-primary" target="_blank" rel="noreferrer">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <a href={consultantWhatsAppUrl()} className="btn-primary w-full sm:w-auto" target="_blank" rel="noreferrer">
         {whatsappLabel}
       </a>
       {mail ? (
-        <a href={consultantMailto(mail)} className="btn-text">
+        <a href={consultantMailto(mail)} className="btn-text w-full sm:w-auto">
           {emailLabel}
         </a>
       ) : null}

@@ -131,14 +131,17 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
     }
   }
 
+  const inputClass =
+    "h-12 w-full rounded-full border border-[#d7e0d8] bg-white text-base text-ink outline-none transition placeholder:text-muted focus:border-teal";
+
   return (
-    <div className="grid min-h-screen place-items-center bg-[#d7e0d8] p-3 sm:p-6">
-      <div className="grid w-full max-w-[1080px] overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(23,47,51,0.18)] lg:min-h-[680px] lg:grid-cols-2">
-        <div className="flex flex-col justify-center bg-[#f6f7f5] px-6 py-8 sm:px-10 sm:py-10">
+    <div className="grid min-h-dvh place-items-center bg-[#d7e0d8] px-4 py-4 sm:p-6" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+      <div className="grid w-full max-w-[1080px] overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_rgba(23,47,51,0.18)] lg:min-h-[680px] lg:grid-cols-2">
+        <div className="flex flex-col justify-center bg-[#f6f7f5] px-5 py-8 sm:px-10 sm:py-10">
           <Link href="/" aria-label="Psy Manager" className="inline-flex">
-            <BrandLogo height={48} priority />
+            <BrandLogo height={44} priority className="max-w-[70vw]" />
           </Link>
-          <h1 className="mt-6 font-serif text-[2rem] font-medium leading-tight text-ink">
+          <h1 className="mt-6 font-serif text-[clamp(1.7rem,6vw,2rem)] font-medium leading-tight text-ink">
             {mode === "login" ? "Que bom ver você de novo" : "Vamos começar juntos"}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -177,11 +180,14 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
                 <input
                   value={nome}
                   onChange={(event) => setNome(event.target.value)}
+                  type="text"
                   autoComplete="name"
+                  autoCapitalize="words"
+                  enterKeyHint="next"
                   placeholder="Nome e sobrenome"
                   required
                   minLength={3}
-                  className="h-12 w-full rounded-full border border-[#d7e0d8] bg-white pr-12 pl-5 text-sm outline-none transition focus:border-teal"
+                  className={`${inputClass} pr-12 pl-5`}
                 />
                 <HiOutlineUser className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-lg text-muted" />
               </label>
@@ -190,12 +196,17 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
               <span className="sr-only">E-mail</span>
               <input
                 type="email"
+                inputMode="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
                 placeholder="Seu e-mail"
                 required
-                className="h-12 w-full rounded-full border border-[#d7e0d8] bg-white pr-12 pl-5 text-sm outline-none transition focus:border-teal"
+                className={`${inputClass} pr-12 pl-5`}
               />
               <HiOutlineEnvelope className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-lg text-muted" />
             </label>
@@ -206,14 +217,18 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint={mode === "login" ? "go" : "next"}
                 placeholder={mode === "signup" ? "Senha, mínimo de 8 caracteres" : "Sua senha"}
                 required
                 minLength={mode === "signup" ? 8 : 6}
-                className="h-12 w-full rounded-full border border-[#d7e0d8] bg-white pr-12 pl-5 text-sm outline-none transition focus:border-teal"
+                className={`${inputClass} pr-14 pl-5`}
               />
               <button
                 type="button"
-                className="absolute top-1/2 right-3 -translate-y-1/2 p-1 text-muted"
+                className="absolute top-1/2 right-1 grid h-11 w-11 -translate-y-1/2 place-items-center text-muted"
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 onClick={() => setShowPassword((current) => !current)}
               >
@@ -228,29 +243,33 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
                   value={confirm}
                   onChange={(event) => setConfirm(event.target.value)}
                   autoComplete="new-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
                   placeholder="Confirme a senha"
                   required
                   minLength={8}
                   aria-invalid={mismatch}
-                  className="h-12 w-full rounded-full border border-[#d7e0d8] bg-white px-5 text-sm outline-none transition focus:border-teal"
+                  className={`${inputClass} px-5`}
                 />
               </label>
             )}
             {mismatch && <p className="px-2 text-sm text-accent">As senhas ainda não estão iguais.</p>}
 
             {mode === "login" ? (
-              <div className="flex items-center justify-between gap-3 px-1 pt-1 text-sm">
-                <label className="flex items-center gap-2 text-muted">
-                  <input type="checkbox" className="accent-teal" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+              <div className="flex flex-col gap-1 px-1 pt-1 text-base sm:flex-row sm:items-center sm:justify-between">
+                <label className="flex min-h-11 items-center gap-3 text-muted">
+                  <input type="checkbox" className="size-5 accent-teal" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
                   Lembrar de mim
                 </label>
-                <button type="button" className="font-semibold text-teal" onClick={onForgot}>
+                <button type="button" className="min-h-11 text-left font-semibold text-teal sm:text-right" onClick={onForgot}>
                   Esqueci a senha
                 </button>
               </div>
             ) : (
-              <label className="flex items-start gap-3 px-1 pt-1 text-sm leading-relaxed text-muted">
-                <input type="checkbox" className="mt-1 accent-teal" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} required />
+              <label className="flex items-start gap-3 px-1 pt-1 text-base leading-relaxed text-muted">
+                <input type="checkbox" className="mt-1 size-5 accent-teal" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} required />
                 <span>
                   Li e aceito os{" "}
                   <Link href="/termos" className="font-semibold text-teal underline decoration-leaf underline-offset-2">termos de uso</Link>
@@ -268,7 +287,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
             {message && <p className="px-1 text-sm text-accent" role="status">{message}</p>}
 
             <button
-              className="mt-1 h-12 w-full rounded-full bg-teal text-sm font-semibold text-white transition hover:bg-teal-mid disabled:opacity-60"
+              className="mt-1 h-12 w-full rounded-full bg-teal text-base font-semibold text-white transition hover:bg-teal-mid disabled:opacity-60"
               disabled={submitting || !configured}
             >
               {submitting ? "Aguarde..." : mode === "login" ? "Entrar" : "Começar meus 30 dias"}
@@ -285,7 +304,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
             type="button"
             onClick={onGoogle}
             disabled={submitting || !configured}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#d5ddd6] bg-white text-sm font-semibold text-ink transition hover:border-teal disabled:opacity-60"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#d5ddd6] bg-white text-base font-semibold text-ink transition hover:border-teal disabled:opacity-60"
           >
             <GoogleMark />
             {mode === "login" ? "Entrar com o Google" : "Criar conta com o Google"}
@@ -298,7 +317,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
           )}
         </div>
 
-        <div className="relative order-first min-h-48 lg:order-none lg:min-h-full">
+        <div className="relative hidden min-h-full lg:block">
           <img src="/images/landing/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#122428]/80 via-[#122428]/15 to-transparent" />
           <p className="absolute right-5 bottom-5 left-5 max-w-sm rounded-2xl border border-white/25 bg-white/12 px-4 py-3 text-sm leading-relaxed text-white backdrop-blur-md">

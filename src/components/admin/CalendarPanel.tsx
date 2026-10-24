@@ -24,7 +24,7 @@ function NavButton({ label, direction, onClick }: { label: string; direction: "p
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#e2e8ea] text-teal hover:bg-sky-soft"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-[#e2e8ea] text-teal hover:bg-sky-soft"
     >
       <Icon size={18} />
     </button>
@@ -77,7 +77,7 @@ export default function CalendarPanel({
                   onMonth(`${item}-${month.slice(5, 7)}`);
                   setLevel("month");
                 }}
-                className={`h-10 rounded-md text-sm ${active ? "bg-teal text-white" : "text-ink hover:bg-sky-soft"}`}
+                className={`min-h-11 rounded-md text-base ${active ? "bg-teal text-white" : "text-ink hover:bg-sky-soft"}`}
               >
                 {item}
               </button>
@@ -115,7 +115,7 @@ export default function CalendarPanel({
                     setLevel("day");
                   }
                 }}
-                className={`h-10 rounded-md text-sm ${
+                className={`min-h-11 rounded-md text-base ${
                   active
                     ? "bg-teal text-white"
                     : blocked
@@ -165,7 +165,7 @@ export default function CalendarPanel({
               type="button"
               disabled={blocked}
               onClick={() => onSelect(date)}
-              className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-md text-sm ${
+              className={`relative mx-auto flex aspect-square w-full max-w-11 items-center justify-center rounded-md text-sm ${
                 active
                   ? "bg-teal text-white"
                   : blocked

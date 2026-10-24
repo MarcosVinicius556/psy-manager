@@ -9,10 +9,10 @@ export default function PlansSection() {
   const email = consultantEmail();
 
   return (
-    <section id="planos" className="bg-paper py-24">
-      <div className="container">
+    <section id="planos" className="bg-paper py-16 sm:py-24">
+      <div className="site-container">
         <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Valores</p>
-        <h2 className="mt-3 max-w-2xl text-[clamp(2rem,4vw,3rem)] leading-[1.15]">
+        <h2 className="mt-3 max-w-2xl text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">
           {TRIAL_DAYS} dias gratuitos. O plano contínuo se fecha com um consultor.
         </h2>
         <p className="mt-4 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
@@ -32,11 +32,11 @@ export default function PlansSection() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
-            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <Link href="/cadastro" className="btn-primary">
+            <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <Link href="/cadastro" className="btn-primary w-full sm:w-auto">
                 Começar gratuitamente
               </Link>
-              <Link href="/admin/login" className="btn-text">
+              <Link href="/admin/login" className="btn-text w-full sm:w-auto">
                 Entrar
               </Link>
             </div>

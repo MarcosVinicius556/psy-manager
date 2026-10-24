@@ -52,6 +52,11 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
     if (locationId) setPlaceId(locationId);
   }, [locationId]);
 
+  useEffect(() => {
+    if (locationId) return;
+    if (window.matchMedia("(max-width: 767px)").matches) setPeriod("hoje");
+  }, [locationId]);
+
   const creating = params.get("novo") === "1";
   const editId = params.get("edit");
   const editing = appointments.find((item) => item.id === editId);
@@ -184,7 +189,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           />
         </div>
       )}
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
         {(
           [
             ["hoje", "Hoje"],
@@ -196,14 +201,14 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
             key={value}
             type="button"
             onClick={() => setPeriod(value)}
-            className={period === value ? "btn-chip-active" : "btn-chip"}
+            className={`${period === value ? "btn-chip-active" : "btn-chip"} w-full sm:w-auto`}
           >
             {label}
           </button>
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <Card>
+      <div className="grid items-start gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <Card className="max-lg:order-2">
           <p className="mb-3 text-sm text-ink">
             Marcações do local <strong>{placeName}</strong>
           </p>
@@ -222,7 +227,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
             }}
           />
         </Card>
-        <Card>
+        <Card className="max-lg:order-1">
           <h2 className="mb-1 text-2xl font-medium text-teal">{formatDate(selected)}</h2>
           <p className="mb-1 text-sm font-medium text-ink">{placeName}</p>
           <p className="mb-4 text-sm text-muted">

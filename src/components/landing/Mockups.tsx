@@ -270,9 +270,162 @@ function Td({ children, className = "" }: { children?: ReactNode; className?: st
   return <td className={`font-num border-b border-[#eef2ee] px-2 py-1.5 align-middle text-[11px] ${className}`}>{children}</td>;
 }
 
+function PhoneBar() {
+  return (
+    <div className="mb-3 flex items-center justify-between rounded-md bg-teal px-3 py-2.5 text-white">
+      <span className="text-sm font-semibold">Psy Manager</span>
+      <span className="text-xs text-white/75">Helena</span>
+    </div>
+  );
+}
+
+function DashboardPhone() {
+  const totals = [
+    ["A receber", "R$ 8.400,00"],
+    ["Em atraso", "R$ 650,00"],
+    ["Recebido", "R$ 6.200,00"],
+  ];
+  return (
+    <div className="bg-paper px-3 py-4 sm:hidden">
+      <PhoneBar />
+      <h2 className="font-serif text-[1.65rem] leading-tight text-teal">Início</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">O dia da clínica em um só lugar.</p>
+      <div className="mt-4 grid gap-2">
+        {totals.map(([label, value]) => (
+          <div key={label} className="rounded-md bg-white px-3 py-3 shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+            <p className="text-sm text-muted">{label}</p>
+            <p className="font-num mt-1 text-xl font-semibold text-teal">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 rounded-md bg-white p-3 shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+        <p className="text-sm font-medium text-ink">Hoje · Consultório Centro</p>
+        <ul className="mt-2 grid gap-2 text-sm leading-snug">
+          <li className="rounded-md bg-sky-soft px-3 py-2.5">
+            <strong>14:00 · Ana Souza</strong>
+            <span className="mt-0.5 block text-muted">Agendado</span>
+          </li>
+          <li className="rounded-md bg-sky-soft px-3 py-2.5">
+            <strong>15:00 · Pedro Lima</strong>
+            <span className="mt-0.5 block text-muted">Concluído</span>
+          </li>
+          <li className="rounded-md px-3 py-2.5 text-muted">16:30 · Livre — agendar</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function AgendaPhone() {
+  const rows = [
+    ["14:00", "Ana Souza", "14:00–14:50 · Consultório Centro"],
+    ["15:00", "Pedro Lima", "15:00–15:50 · Consultório Centro"],
+    ["16:30", "Marina Costa", "Online · Consultório Centro"],
+  ];
+  return (
+    <div className="bg-paper px-3 py-4 sm:hidden">
+      <PhoneBar />
+      <h2 className="font-serif text-[1.65rem] leading-tight text-teal">Agenda</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">Consultório Centro. Horários livres de Helena Alves.</p>
+      <span className="btn-primary mt-4 w-full">Novo atendimento</span>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <span className="btn-chip-active justify-center">Hoje</span>
+        <span className="btn-chip justify-center">Semana</span>
+        <span className="btn-chip justify-center">Mês</span>
+      </div>
+      <div className="mt-3 rounded-md bg-white p-3 shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+        <p className="font-serif text-xl leading-tight text-teal">20/10/2026</p>
+        <p className="mt-1 text-sm text-muted">Grade de Helena Alves neste local.</p>
+        <ul className="mt-3 grid gap-2">
+          {rows.map(([time, name, extra]) => (
+            <li key={time} className="grid grid-cols-[3.25rem_1fr] gap-2 border-b border-[#e7eee8] pb-2 text-sm last:border-0">
+              <span className="pt-2 font-medium text-muted">{time}</span>
+              <span className="rounded-md bg-sky-soft px-3 py-2">
+                <strong>{name}</strong>
+                <span className="mt-0.5 block text-muted">{extra}</span>
+              </span>
+            </li>
+          ))}
+          <li className="grid grid-cols-[3.25rem_1fr] gap-2 text-sm">
+            <span className="pt-2 font-medium text-muted">17:20</span>
+            <span className="rounded-md px-3 py-2 text-muted">Livre — agendar</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function PatientsPhone() {
+  const rows = [
+    ["Ana Souza", "(11) 98812-4401", "Ativo"],
+    ["Pedro Lima", "(11) 97730-2198", "Ativo"],
+    ["Helena Dias", "(11) 97301-5567", "Inativo"],
+  ];
+  return (
+    <div className="bg-paper px-3 py-4 sm:hidden">
+      <PhoneBar />
+      <h2 className="font-serif text-[1.65rem] leading-tight text-teal">Pacientes</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">Cadastro e acompanhamento.</p>
+      <span className="btn-primary mt-4 w-full">Novo paciente</span>
+      <div className="mt-3 rounded-md border border-[#e2e8ea] bg-white px-3 py-3 text-sm text-muted">Buscar por nome, telefone ou e-mail</div>
+      <ul className="mt-3 grid gap-2">
+        {rows.map(([name, phone, status]) => (
+          <li key={name} className="rounded-md bg-white px-3 py-3 shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-semibold text-teal">{name}</p>
+              <Pill tone={status === "Ativo" ? "sage" : "muted"}>{status}</Pill>
+            </div>
+            <p className="mt-1 text-sm text-muted">{phone}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FinancePhone() {
+  const rows = [
+    ["Ana Souza", "Pacote 8 sessões", "R$ 960,00", "Pago"],
+    ["Pedro Lima", "Sessão avulsa", "R$ 180,00", "Em haver"],
+    ["Helena Dias", "Sessão avulsa", "R$ 180,00", "Não pago"],
+  ] as const;
+  return (
+    <div className="bg-paper px-3 py-4 sm:hidden">
+      <PhoneBar />
+      <h2 className="font-serif text-[1.65rem] leading-tight text-teal">Contas a receber</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">Pagamentos previstos, recebidos e em aberto.</p>
+      <div className="mt-4 grid gap-2">
+        <div className="rounded-md bg-white px-3 py-3 shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+          <p className="text-sm text-muted">Recebido</p>
+          <p className="font-num mt-1 text-xl font-semibold text-teal">R$ 6.200,00</p>
+        </div>
+        <div className="rounded-md bg-white px-3 py-3 shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+          <p className="text-sm text-muted">A receber</p>
+          <p className="font-num mt-1 text-xl font-semibold text-teal">R$ 8.400,00</p>
+        </div>
+      </div>
+      <ul className="mt-3 grid gap-2">
+        {rows.map(([name, desc, value, status]) => (
+          <li key={name} className="rounded-md bg-white px-3 py-3 text-sm shadow-[0_10px_24px_rgba(61,82,64,0.06)]">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold text-teal">{name}</p>
+              <Pill tone={status === "Pago" ? "teal" : status === "Não pago" ? "accent" : "sage"}>{status}</Pill>
+            </div>
+            <p className="mt-1 text-muted">{desc}</p>
+            <p className="font-num mt-1 font-semibold">{value}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function DashboardMock() {
   return (
     <Chrome>
+      <DashboardPhone />
+      <div className="hidden sm:block">
       <Shell current="inicio">
         <PageTitle title="Início" subtitle="O dia da clínica em um só lugar." />
         <div className="mb-3 grid gap-2.5 sm:grid-cols-3">
@@ -404,6 +557,7 @@ export function DashboardMock() {
           </div>
         </div>
       </Shell>
+      </div>
     </Chrome>
   );
 }
@@ -420,6 +574,8 @@ export function AgendaMock() {
   ];
   return (
     <Chrome>
+      <AgendaPhone />
+      <div className="hidden sm:block">
       <Shell current="agenda">
         <PageTitle
           title="Agenda"
@@ -462,6 +618,7 @@ export function AgendaMock() {
           </Card>
         </div>
       </Shell>
+      </div>
     </Chrome>
   );
 }
@@ -476,6 +633,8 @@ export function PatientsMock() {
   ] as const;
   return (
     <Chrome>
+      <PatientsPhone />
+      <div className="hidden sm:block">
       <Shell current="pacientes">
         <PageTitle
           title="Pacientes"
@@ -522,6 +681,7 @@ export function PatientsMock() {
           </table>
         </Card>
       </Shell>
+      </div>
     </Chrome>
   );
 }
@@ -535,6 +695,8 @@ export function FinanceMock() {
   ] as const;
   return (
     <Chrome>
+      <FinancePhone />
+      <div className="hidden sm:block">
       <Shell current="financeiro">
         <PageTitle
           title="Contas a receber"
@@ -595,6 +757,7 @@ export function FinanceMock() {
           </table>
         </Card>
       </Shell>
+      </div>
     </Chrome>
   );
 }

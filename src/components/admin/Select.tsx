@@ -93,7 +93,7 @@ export default function Select({
                 onChange(option.value);
                 setOpen(false);
               }}
-              className={`w-full px-4 py-2.5 text-left text-sm ${active ? "bg-teal text-white" : "text-ink hover:bg-sky-soft"}`}
+              className={`min-h-11 w-full px-4 py-3 text-left text-base ${active ? "bg-teal text-white" : "text-ink hover:bg-sky-soft"}`}
             >
               {option.label}
             </button>
@@ -117,7 +117,7 @@ export default function Select({
           if (!open) place();
           setOpen((current) => !current);
         }}
-        className="flex w-full items-center justify-between gap-3 rounded-md border border-[#e2e8ea] bg-white px-4 py-3 text-left text-sm text-ink outline-none transition-colors focus:border-teal disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex min-h-12 w-full items-center justify-between gap-3 rounded-md border border-[#e2e8ea] bg-white px-4 py-3 text-left text-base text-ink outline-none transition-colors focus:border-teal disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className={selected ? "truncate" : "truncate text-muted"}>{selected?.label || placeholder}</span>
         <HiOutlineChevronDown className={`shrink-0 text-teal transition-transform ${open ? "rotate-180" : ""}`} size={18} />

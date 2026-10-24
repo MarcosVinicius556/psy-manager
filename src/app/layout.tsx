@@ -1,8 +1,15 @@
 import "../styles/globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Header from "@/components/header";
 import Providers from "@/components/Providers";
 import { Inter, Cormorant_Garamond, Figtree } from "next/font/google";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#3d5240",
+};
 
 export const metadata: Metadata = {
   title: "Psy Manager | Gestão para psicólogos",
