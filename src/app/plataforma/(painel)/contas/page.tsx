@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { DataTable, Empty, PageTitle, Pill, Td, Th } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { ACCOUNT_LABEL, matchesAccountFilter, STATUS_LABEL, type AccountRecord } from "@/lib/saas/model";
 import { listManagedAccounts } from "@/lib/saas/platform-store";
 
@@ -48,47 +49,82 @@ export default function AccountsPage() {
   return (
     <div>
       <PageTitle title="Contas" subtitle="Profissionais e consultórios. A lista não inclui prontuário, evolução ou anexos clínicos." />
-      <div className="mb-4 flex flex-wrap gap-2">
-        {filters.map(([id, label]) => (
-          <button key={id} type="button" className={filter === id ? "btn-chip-active" : "btn-chip"} onClick={() => { setFilter(id); setPage(0); }}>{label}</button>
-        ))}
+      <div className="sticky top-14 z-10 -mx-4 mb-4 space-y-3 bg-paper/95 px-4 py-3 backdrop-blur-md md:static md:mx-0 md:bg-transparent md:p-0">
+        <div className="flex flex-wrap gap-2">
+          {filters.map(([id, label]) => (
+            <button key={id} type="button" className={filter === id ? "btn-chip-active" : "btn-chip"} onClick={() => { setFilter(id); setPage(0); }}>{label}</button>
+          ))}
+        </div>
+        <input
+          id="busca"
+          className={`${fieldClass} max-w-full md:max-w-md`}
+          value={search}
+          onChange={(event) => { setSearch(event.target.value); setPage(0); }}
+          placeholder="nome, e-mail ou consultório"
+          type="search"
+          inputMode="search"
+          autoComplete="off"
+          aria-label="Buscar contas"
+        />
       </div>
-      <label className="mb-4 block max-w-md text-sm font-medium" htmlFor="busca">Buscar</label>
-      <input id="busca" className="mb-4 w-full max-w-md rounded-md border border-[#e2e8ea] px-4 py-3 text-sm" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="Nome, e-mail ou consultório" />
       {loading && <p className="text-muted">Carregando contas...</p>}
       {error && <p className="text-accent">{error}</p>}
       {!loading && visible.length === 0 && <Empty>Nenhuma conta neste filtro.</Empty>}
       {visible.length > 0 && (
-        <DataTable minWidth={980}>
-          <thead>
-            <tr>
-              <Th>Nome</Th>
-              <Th>E-mail</Th>
-              <Th>Consultório</Th>
-              <Th>Cadastro</Th>
-              <Th>Último acesso</Th>
-              <Th>Plano</Th>
-              <Th>Trial</Th>
-              <Th>Assinatura</Th>
-              <Th>Conta</Th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <MobileListGrid>
             {visible.map((account) => (
-              <tr key={account.uid}>
-                <Td><Link href={`/plataforma/contas/${account.uid}`} className="font-semibold text-teal">{account.nome || "Sem nome"}</Link></Td>
-                <Td>{account.email}</Td>
-                <Td>{account.clinicName || "—"}</Td>
-                <Td>{account.createdAt ? new Date(account.createdAt).toLocaleDateString("pt-BR") : "—"}</Td>
-                <Td>{account.lastSeenAt ? new Date(account.lastSeenAt).toLocaleString("pt-BR") : "—"}</Td>
-                <Td>{account.planId || "—"}</Td>
-                <Td>{account.trialEndsAt ? new Date(account.trialEndsAt).toLocaleDateString("pt-BR") : "—"}</Td>
-                <Td><Pill tone={account.subscriptionStatus === "ativa" ? "teal" : account.subscriptionStatus === "trial_ativo" ? "sage" : "muted"}>{account.subscriptionStatus ? STATUS_LABEL[account.subscriptionStatus] : "—"}</Pill></Td>
-                <Td>{account.accountStatus ? ACCOUNT_LABEL[account.accountStatus] : "—"}</Td>
-              </tr>
+              <ListCard
+                key={account.uid}
+                href={`/plataforma/contas/${account.uid}`}
+                title={account.nome || "Sem nome"}
+                subtitleLines={[account.email, account.clinicName || "Sem consultório"].filter(Boolean)}
+                meta={
+                  <Pill tone={account.subscriptionStatus === "ativa" ? "teal" : account.subscriptionStatus === "trial_ativo" ? "sage" : "muted"}>
+                    {account.subscriptionStatus ? STATUS_LABEL[account.subscriptionStatus] : "—"}
+                  </Pill>
+                }
+                trailing={
+                  <span className="text-xs text-muted">
+                    {account.createdAt ? new Date(account.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                  </span>
+                }
+              />
             ))}
-          </tbody>
-        </DataTable>
+          </MobileListGrid>
+          <ResponsiveTableWrap>
+            <DataTable minWidth={980}>
+              <thead>
+                <tr>
+                  <Th>Nome</Th>
+                  <Th>E-mail</Th>
+                  <Th>Consultório</Th>
+                  <Th>Cadastro</Th>
+                  <Th>Último acesso</Th>
+                  <Th>Plano</Th>
+                  <Th>Trial</Th>
+                  <Th>Assinatura</Th>
+                  <Th>Conta</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((account) => (
+                  <tr key={account.uid}>
+                    <Td><Link href={`/plataforma/contas/${account.uid}`} className="font-semibold text-teal">{account.nome || "Sem nome"}</Link></Td>
+                    <Td>{account.email}</Td>
+                    <Td>{account.clinicName || "—"}</Td>
+                    <Td>{account.createdAt ? new Date(account.createdAt).toLocaleDateString("pt-BR") : "—"}</Td>
+                    <Td>{account.lastSeenAt ? new Date(account.lastSeenAt).toLocaleString("pt-BR") : "—"}</Td>
+                    <Td>{account.planId || "—"}</Td>
+                    <Td>{account.trialEndsAt ? new Date(account.trialEndsAt).toLocaleDateString("pt-BR") : "—"}</Td>
+                    <Td><Pill tone={account.subscriptionStatus === "ativa" ? "teal" : account.subscriptionStatus === "trial_ativo" ? "sage" : "muted"}>{account.subscriptionStatus ? STATUS_LABEL[account.subscriptionStatus] : "—"}</Pill></Td>
+                    <Td>{account.accountStatus ? ACCOUNT_LABEL[account.accountStatus] : "—"}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </ResponsiveTableWrap>
+        </>
       )}
       {pages > 1 && (
         <div className="mt-4 flex items-center gap-3 text-sm">

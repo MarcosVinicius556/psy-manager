@@ -25,15 +25,20 @@ export function AdminPageMetaProvider({ children }: { children: ReactNode }) {
   return <AdminPageMetaContext.Provider value={value}>{children}</AdminPageMetaContext.Provider>;
 }
 
+export function useOptionalAdminPageMeta() {
+  return useContext(AdminPageMetaContext) ?? null;
+}
+
 export function useAdminPageMeta() {
-  const ctx = useContext(AdminPageMetaContext);
+  const ctx = useOptionalAdminPageMeta();
   if (!ctx) throw new Error("useAdminPageMeta deve ser usado dentro de AdminPageMetaProvider");
   return ctx;
 }
 
 export function useSetAdminPageMeta(meta: AdminPageMeta) {
-  const { setMeta } = useAdminPageMeta();
+  const ctx = useOptionalAdminPageMeta();
   useEffect(() => {
-    setMeta({ title: meta.title, action: meta.action });
-  }, [meta.action, meta.title, setMeta]);
+    if (!ctx) return;
+    ctx.setMeta({ title: meta.title, action: meta.action });
+  }, [ctx, meta.action, meta.title]);
 }

@@ -31,8 +31,26 @@ export function SaasProvider({ children }: { children: ReactNode }) {
 
   async function refresh() {
     if (!user) return;
+    const preflight = await readAccount(user.uid);
+    if (preflight.exists && preflight.account.role === "super_admin") {
+      const nextPlans = publishedOrDefault(await loadPlans().catch(() => []));
+      const nextInbox = await listInbox(user.uid).catch(() => []);
+      setAccount(preflight.account);
+      setPlans(nextPlans);
+      setInbox(nextInbox);
+      setClinicWriteGate(() => {});
+      try {
+        await touchLastSeen(user.uid, preflight.account.lastSeenAt);
+      } catch (seenError) {
+        console.error(seenError);
+      }
+      return;
+    }
     await upsertPsychologist(user.uid, user.email || "", { nome: user.displayName || "", foto: user.photoURL || "" });
     const loaded = await readAccount(user.uid);
+    if (!loaded.exists) {
+      throw new Error("Conta não encontrada.");
+    }
     const reconciled = await reconcileAccount(loaded.account);
     const nextPlans = publishedOrDefault(await loadPlans().catch(() => []));
     const nextInbox = await listInbox(user.uid).catch(() => []);
@@ -180,8 +198,12 @@ function emptyAccessAccount(): AccountRecord {
   };
 }
 
+export function useOptionalSaas() {
+  return useContext(SaasContext) ?? null;
+}
+
 export function useSaas() {
-  const context = useContext(SaasContext);
+  const context = useOptionalSaas();
   if (!context) throw new Error("useSaas deve ser usado dentro de SaasProvider");
   return context;
 }

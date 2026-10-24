@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { AdminAccountNotices } from "@/components/admin/AccountStatus";
-import { useSetAdminPageMeta } from "@/lib/admin/page-meta-context";
+import { useOptionalAdminPageMeta, useSetAdminPageMeta } from "@/lib/admin/page-meta-context";
+import { useOptionalSaas } from "@/lib/saas/context";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -13,15 +14,20 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 }
 
 export function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
-  useSetAdminPageMeta({ title });
+  const pageMeta = useOptionalAdminPageMeta();
+  const saas = useOptionalSaas();
+  useSetAdminPageMeta({ title, action });
+  const desktopTitleClass = pageMeta ? "min-w-0 max-md:hidden" : "min-w-0 admin-desktop-only";
+  const mobileSubtitleClass = pageMeta ? "min-w-0 md:hidden" : "min-w-0 admin-mobile-only";
+
   return (
     <>
       <div className="mb-4 flex flex-col items-stretch gap-3 md:mb-6 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-4">
-        <div className="min-w-0 admin-desktop-only">
+        <div className={desktopTitleClass}>
           <h1 className="text-[clamp(1.7rem,1.2rem+2vw,2.4rem)] font-medium leading-tight text-teal">{title}</h1>
           {subtitle && <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">{subtitle}</p>}
         </div>
-        <div className="min-w-0 admin-mobile-only">
+        <div className={mobileSubtitleClass}>
           {subtitle ? <p className="text-sm leading-relaxed text-muted">{subtitle}</p> : null}
         </div>
         {action ? (
@@ -30,7 +36,7 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
           </div>
         ) : null}
       </div>
-      <AdminAccountNotices />
+      {saas ? <AdminAccountNotices /> : null}
     </>
   );
 }

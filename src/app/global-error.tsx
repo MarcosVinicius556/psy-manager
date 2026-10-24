@@ -1,6 +1,6 @@
 "use client";
 
-export default function AdminGlobalError({
+export default function GlobalError({
   error,
   reset,
 }: {
