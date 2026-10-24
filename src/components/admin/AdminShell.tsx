@@ -277,7 +277,7 @@ function NavGroup({
 }
 
 function AdminShellInner({ children }: { children: React.ReactNode }) {
-  const { meta, setMeta } = useAdminPageMeta();
+  const { meta, actionRef, setMeta } = useAdminPageMeta();
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user, role } = useAuth();
@@ -334,8 +334,9 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    setMeta({ title: titleForPath(pathname), action: undefined });
-  }, [pathname, setMeta]);
+    actionRef.current = undefined;
+    setMeta({ title: titleForPath(pathname) });
+  }, [pathname, setMeta, actionRef]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches) return;
@@ -432,7 +433,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <MobileHeader title={mobileTitle} onOpenMenu={() => setMobileOpen(true)} />
+      <MobileHeader title={mobileTitle} action={actionRef.current} onOpenMenu={() => setMobileOpen(true)} />
 
       {mobileOpen && (
         <button

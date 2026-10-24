@@ -40,7 +40,7 @@ function PlatformShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
-  const { meta, setMeta } = useAdminPageMeta();
+  const { meta, actionRef, setMeta } = useAdminPageMeta();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tabbarHidden, setTabbarHidden] = useState(false);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
@@ -67,8 +67,9 @@ function PlatformShellInner({ children }: { children: React.ReactNode }) {
   }, [mobileOpen]);
 
   useEffect(() => {
-    setMeta({ title: titleForPath(pathname), action: undefined });
-  }, [pathname, setMeta]);
+    actionRef.current = undefined;
+    setMeta({ title: titleForPath(pathname) });
+  }, [pathname, setMeta, actionRef]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches) return;
@@ -128,7 +129,7 @@ function PlatformShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <MobileHeader title={mobileTitle} action={meta.action} onOpenMenu={() => setMobileOpen(true)} />
+      <MobileHeader title={mobileTitle} action={actionRef.current} onOpenMenu={() => setMobileOpen(true)} />
 
       {mobileOpen && (
         <button type="button" className="fixed inset-0 z-40 bg-ink/40 md:hidden" aria-label="Fechar menu" onClick={() => setMobileOpen(false)} />

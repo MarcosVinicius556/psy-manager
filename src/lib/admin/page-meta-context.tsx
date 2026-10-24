@@ -1,6 +1,16 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
 
 export type AdminPageMeta = {
   title: string;
@@ -8,7 +18,11 @@ export type AdminPageMeta = {
 };
 
 type AdminPageMetaContextValue = {
+  /** Page title for the mobile header (stable state). */
   meta: AdminPageMeta;
+  /** Latest page action slot; updated each render without forcing parent re-renders. */
+  actionRef: MutableRefObject<ReactNode | undefined>;
+  setTitle: (title: string) => void;
   setMeta: (patch: Partial<AdminPageMeta>) => void;
 };
 
@@ -17,11 +31,21 @@ const defaultMeta: AdminPageMeta = { title: "Painel" };
 const AdminPageMetaContext = createContext<AdminPageMetaContextValue | undefined>(undefined);
 
 export function AdminPageMetaProvider({ children }: { children: ReactNode }) {
-  const [meta, setMetaState] = useState<AdminPageMeta>(defaultMeta);
-  const setMeta = useCallback((patch: Partial<AdminPageMeta>) => {
-    setMetaState((current) => ({ ...current, ...patch }));
+  const [title, setTitleState] = useState(defaultMeta.title);
+  const actionRef = useRef<ReactNode | undefined>(undefined);
+
+  const setTitle = useCallback((next: string) => {
+    setTitleState((current) => (current === next ? current : next));
   }, []);
-  const value = useMemo(() => ({ meta, setMeta }), [meta, setMeta]);
+
+  const setMeta = useCallback((patch: Partial<AdminPageMeta>) => {
+    if (patch.title !== undefined) setTitle(patch.title);
+    if ("action" in patch) actionRef.current = patch.action;
+  }, [setTitle]);
+
+  const meta = useMemo(() => ({ title }), [title]);
+  const value = useMemo(() => ({ meta, actionRef, setTitle, setMeta }), [meta, setTitle, setMeta]);
+
   return <AdminPageMetaContext.Provider value={value}>{children}</AdminPageMetaContext.Provider>;
 }
 
@@ -37,8 +61,11 @@ export function useAdminPageMeta() {
 
 export function useSetAdminPageMeta(meta: AdminPageMeta) {
   const ctx = useOptionalAdminPageMeta();
+  if (ctx) {
+    ctx.actionRef.current = meta.action;
+  }
   useEffect(() => {
     if (!ctx) return;
-    ctx.setMeta({ title: meta.title, action: meta.action });
-  }, [ctx, meta.action, meta.title]);
+    ctx.setTitle(meta.title);
+  }, [ctx, meta.title]);
 }

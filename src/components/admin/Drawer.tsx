@@ -54,11 +54,12 @@ export default function Drawer({
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className={`fixed inset-0 z-50 ${shown ? "" : "pointer-events-none"}`} aria-hidden={!shown}>
       <button
         type="button"
         aria-label="Fechar painel"
-        className={`absolute inset-0 bg-ink/40 transition-opacity duration-300 ${shown ? "opacity-100" : "opacity-0"}`}
+        tabIndex={shown ? 0 : -1}
+        className={`absolute inset-0 bg-ink/40 transition-opacity duration-300 ${shown ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
       />
       <aside
