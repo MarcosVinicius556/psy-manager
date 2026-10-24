@@ -128,7 +128,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      const legal = page.getByRole("navigation").filter({ has: page.getByRole("link", { name: "Início" }) }).getByRole("button", { name: "Legal" });
+      const legal = page.locator("aside.md\\:flex").getByRole("button", { name: "Legal" });
       await expect(legal).toHaveAttribute("aria-expanded", "false");
       await legal.click();
       await expect(legal).toHaveAttribute("aria-expanded", "true");
