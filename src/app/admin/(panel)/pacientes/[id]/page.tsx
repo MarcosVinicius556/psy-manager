@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import AppointmentForm from "@/components/admin/AppointmentForm";
 import Drawer from "@/components/admin/Drawer";
@@ -119,7 +119,19 @@ export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
   const { patients, appointments, payments, packages, sessionFeedbacks, loading, cancelAppointment, locationName, saveSignedContract } = useClinic();
   const [editing, setEditing] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [scheduling, setScheduling] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("agendar") !== "1") return;
+    setScheduling(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("agendar");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [pendingCancel, setPendingCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);

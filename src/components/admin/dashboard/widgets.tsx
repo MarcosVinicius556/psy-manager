@@ -39,6 +39,10 @@ function useDebtors() {
   return useMemo(() => unpaidPatients(patients, clinicPayments), [patients, clinicPayments]);
 }
 
+function sparklineMonths(month: string, count: number, valueFor: (isoMonth: string) => number) {
+  return Array.from({ length: count }, (_, index) => valueFor(addMonths(month, -(count - 1 - index))));
+}
+
 function ReceivableWidget() {
   const clinicPayments = useClinicPayments();
   const currentMonth = todayISO().slice(0, 7);
@@ -51,6 +55,7 @@ function ReceivableWidget() {
       maxMonth={latestDueMonth(clinicPayments, currentMonth)}
       value={receivableInMonth(clinicPayments, month)}
       previous={receivableInMonth(clinicPayments, addMonths(month, -1))}
+      sparkline={sparklineMonths(month, 6, (iso) => receivableInMonth(clinicPayments, iso))}
       onMonth={setMonth}
     />
   );
@@ -69,6 +74,7 @@ function OverdueWidget() {
       maxMonth={currentMonth}
       value={overdueInMonth(clinicPayments, month, today)}
       previous={overdueInMonth(clinicPayments, addMonths(month, -1), today)}
+      sparkline={sparklineMonths(month, 6, (iso) => overdueInMonth(clinicPayments, iso, today))}
       onMonth={setMonth}
     />
   );
@@ -86,6 +92,7 @@ function ReceivedWidget() {
       maxMonth={currentMonth}
       value={receivedInMonth(clinicPayments, month)}
       previous={receivedInMonth(clinicPayments, addMonths(month, -1))}
+      sparkline={sparklineMonths(month, 6, (iso) => receivedInMonth(clinicPayments, iso))}
       onMonth={setMonth}
     />
   );

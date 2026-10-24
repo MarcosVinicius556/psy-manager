@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutGroup } from "motion/react";
-import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers, HiOutlineX } from "react-icons/hi";
+import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers } from "react-icons/hi";
 import BrandLogo from "@/components/BrandLogo";
 import { AdminPageMotion } from "@/components/admin/motion/AdminPageMotion";
 import { SidebarActivePill } from "@/components/admin/motion/NavPill";
@@ -390,31 +390,10 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const unread = notifications.filter((item) => !item.lida).length + pendingInvites + expenses.filter((expense) => isExpenseAlert(expense)).length;
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [tabbarHidden, setTabbarHidden] = useState(false);
-  const mobileCloseRef = useRef<HTMLButtonElement>(null);
   const lastScrollY = useRef(0);
   const mobileTitle = meta.title !== "Painel" ? meta.title : titleForPath(pathname);
   const { openPreferences } = useCookieConsent();
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    mobileCloseRef.current?.focus();
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setMobileOpen(false);
-    }
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [mobileOpen]);
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("psy-sidebar") === "1");
@@ -431,7 +410,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   }, [pathname, setMeta, actionRef]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches) return;
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023px)").matches) return;
     function onScroll() {
       const y = window.scrollY;
       const delta = y - lastScrollY.current;
@@ -458,7 +437,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
       <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden bg-teal pb-16 pt-6 text-white transition-[width,padding] duration-300 ease-out md:flex ${
+        className={`fixed bottom-4 left-4 top-4 z-30 hidden flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-footer pb-4 pt-5 text-white shadow-[0_28px_80px_rgba(23,47,51,0.22)] transition-[width,padding] duration-300 ease-out lg:flex ${
           collapsed ? "w-[4.75rem] px-2" : "w-72 px-4"
         }`}
       >
@@ -528,87 +507,25 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <MobileHeader title={mobileTitle} action={actionRef.current} onOpenMenu={() => setMobileOpen(true)} />
+      <MobileHeader title={mobileTitle} action={actionRef.current} />
 
-      {mobileOpen && (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-ink/40 md:hidden"
-          aria-label="Fechar menu"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-      <div
-        id="admin-mobile-nav"
-        role="dialog"
-        aria-modal={mobileOpen}
-        aria-label="Menu do painel"
-        aria-hidden={!mobileOpen}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-teal px-4 text-white transition-transform duration-300 ease-out md:hidden ${
-          mobileOpen ? "translate-x-0" : "pointer-events-none -translate-x-full"
-        }`}
-        style={{
-          paddingTop: "max(1rem, env(safe-area-inset-top))",
-          paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+      <MobileTabBar
+        pathname={pathname}
+        hidden={tabbarHidden}
+        menu={menu}
+        onCookiePreferences={openPreferences}
+        onLogout={async () => {
+          await logout();
+          router.replace("/admin/login");
         }}
+      />
+
+      <div
+        className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out lg:pb-8 ${
+          collapsed ? "lg:pl-[calc(1rem+4.75rem+1rem)]" : "lg:pl-[calc(1rem+18rem+1rem)]"
+        }`}
       >
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/admin" aria-label="Psy Manager" className="rounded-md bg-white px-2 py-1" onClick={() => setMobileOpen(false)}>
-            <BrandLogo variant="lockup" height={36} />
-          </Link>
-          <button
-            ref={mobileCloseRef}
-            type="button"
-            className="grid h-11 w-11 place-items-center rounded-md border border-white/25"
-            aria-label="Fechar menu"
-            onClick={() => setMobileOpen(false)}
-          >
-            <HiOutlineX size={22} />
-          </button>
-        </div>
-        <nav className="mt-6 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" onClick={(event) => {
-          if ((event.target as HTMLElement).closest("a")) setMobileOpen(false);
-        }}>
-          {menu.map((entry) =>
-            isGroup(entry) ? (
-              <NavGroup
-                key={entry.label}
-                item={entry}
-                collapsed={false}
-                pathname={pathname}
-                open={openGroup === entry.label}
-                onToggle={() => toggleGroup(entry.label)}
-                onCookiePreferences={() => {
-                  setMobileOpen(false);
-                  openPreferences();
-                }}
-              />
-            ) : (
-              <NavAnchor key={entry.href} item={entry} collapsed={false} pathname={pathname} unread={unread} />
-            )
-          )}
-        </nav>
-        <div className="shrink-0 border-t border-white/15 pt-4">
-          <p className="truncate px-2 text-sm font-medium">{profileName}</p>
-          <p className="truncate px-2 text-xs text-white/70">{user?.email}</p>
-          <button
-            type="button"
-            className="mt-3 flex min-h-11 w-full items-center gap-2 rounded-md border border-transparent px-3 text-sm text-white/80"
-            onClick={async () => {
-              await logout();
-              router.replace("/admin/login");
-            }}
-          >
-            <HiOutlineLogout size={18} />
-            Sair
-          </button>
-        </div>
-      </div>
-
-      <MobileTabBar pathname={pathname} hidden={tabbarHidden} menuOpen={mobileOpen} onOpenMenu={() => setMobileOpen(true)} />
-
-      <div className={`pb-[calc(6.25rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
-        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 md:py-10">
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 lg:py-8">
           <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>
       </div>
