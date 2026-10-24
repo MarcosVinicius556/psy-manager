@@ -1,3 +1,4 @@
+import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { consultantWhatsAppUrl } from "@/lib/contact";
 
@@ -14,15 +15,15 @@ export default function Footer() {
           </div>
           <div>
             <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Produto</h4>
-            <a href="/#produto" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+            <Link href="/#produto" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
               O painel
-            </a>
-            <a href="/#planos" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+            </Link>
+            <Link href="/#planos" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
               Planos
-            </a>
-            <a href="/#faq" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+            </Link>
+            <Link href="/#faq" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
               Perguntas
-            </a>
+            </Link>
           </div>
           <div>
             <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Acesso</h4>

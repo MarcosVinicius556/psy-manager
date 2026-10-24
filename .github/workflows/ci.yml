@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_KEY: ci-placeholder-api-key
+      NEXT_PUBLIC_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
+      NEXT_PUBLIC_PROJECT_ID: ci-placeholder
+      NEXT_PUBLIC_STORAGE_BUCKET: ci-placeholder.appspot.com
+      NEXT_PUBLIC_MESSAGE_SENDER_ID: "000000000000"
+      NEXT_PUBLIC_APP_ID: 1:000000000000:web:ciplaceholder
+      NEXT_PUBLIC_MEASUREMENT_ID: G-CIPLACEHOLDER
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ci-placeholder
+      CLOUDINARY_API_KEY: ci-placeholder
+      CLOUDINARY_API_SECRET: ci-placeholder
+      NEXT_PUBLIC_CONTACT_EMAIL: ci@example.com
+      EMAIL_TO: ci@example.com
+      GMAIL_APP_PASSWORD: ci-placeholder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Cache do Next.js
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.ts', 'tsconfig.json', 'postcss.config.mjs', 'eslint.config.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('package-lock.json') }}-
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  master-pr-source:
+    name: master-pr-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exigir develop ou hotfix/* quando a base é master
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "Evento $EVENT_NAME: a verificação de origem não se aplica."
+            exit 0
+          fi
+          if [ "$BASE_REF" != "master" ]; then
+            echo "Base $BASE_REF: a verificação de origem não se aplica."
+            exit 0
+          fi
+          case "$HEAD_REF" in
+            develop|hotfix/*)
+              echo "Origem permitida: $HEAD_REF"
+              ;;
+            *)
+              echo "Pull requests para master só podem vir de develop ou hotfix/*. Origem recebida: $HEAD_REF"
+              exit 1
+              ;;
+          esac
