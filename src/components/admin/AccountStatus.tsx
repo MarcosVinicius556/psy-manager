@@ -7,6 +7,8 @@ import { getFirebaseAuth } from "@/lib/admin/firebase";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { saveProfile } from "@/lib/saas/account-store";
 import { useSaas } from "@/lib/saas/context";
+import { AdminStaggerItem } from "@/components/admin/motion/AdminPageMotion";
+import { CardTitle } from "@/components/admin/ui";
 import { buildOnboardingSteps } from "@/lib/saas/onboarding";
 import { ACCOUNT_LABEL, daysRemaining, STATUS_LABEL, type AccountRecord } from "@/lib/saas/model";
 
@@ -151,10 +153,11 @@ export function OnboardingCard() {
   }
 
   return (
-    <section className="mb-6 rounded-md bg-white p-6 shadow-[0_18px_50px_rgba(61,82,64,0.08)]">
+    <AdminStaggerItem>
+      <section className="admin-card mb-6 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal/70">Primeiros passos</p>
+          <CardTitle>Primeiros passos</CardTitle>
           <h2 className="mt-1 text-2xl text-teal">{snapshot.complete ? "Tudo pronto por aqui" : "Configure o consultório"}</h2>
           <p className="mt-1 text-sm text-muted">
             {snapshot.complete
@@ -178,7 +181,7 @@ export function OnboardingCard() {
         {snapshot.steps.map((step) => (
           <li
             key={step.id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-paper px-3 py-2 text-sm sm:flex-nowrap"
+            className="motion-press flex flex-wrap items-center justify-between gap-2 rounded-xl bg-paper px-3 py-2 text-sm sm:flex-nowrap"
           >
             <span className="flex min-w-0 items-start gap-2">
               <span className="mt-0.5 text-teal" aria-hidden>
@@ -200,6 +203,7 @@ export function OnboardingCard() {
         ))}
       </ol>
     </section>
+    </AdminStaggerItem>
   );
 }
 
@@ -207,7 +211,7 @@ export function BlockedAccount({ account }: { account: AccountRecord }) {
   const label = account.accountStatus === "desativada" || account.accountStatus === "suspensa" ? ACCOUNT_LABEL[account.accountStatus] : "Indisponível";
   const commercial = account.subscriptionStatus && account.subscriptionStatus in STATUS_LABEL ? STATUS_LABEL[account.subscriptionStatus as keyof typeof STATUS_LABEL] : "Sem assinatura paga";
   return (
-    <section className="rounded-md bg-white p-8 shadow-[0_18px_50px_rgba(61,82,64,0.08)]">
+    <section className="admin-card bg-white p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Conta {label}</p>
       <h1 className="mt-2 text-4xl text-teal">O painel clínico está pausado</h1>
       <p className="mt-3 max-w-2xl text-muted">
