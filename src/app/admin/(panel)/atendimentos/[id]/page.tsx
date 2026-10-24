@@ -116,7 +116,7 @@ export default function AppointmentPage() {
       {appointment.status === "concluido" && feedback && (
         <Card className="mb-4">
           <h2 className="mb-3 text-2xl font-medium text-teal">Feedback do paciente</h2>
-          <FeedbackShare feedback={feedback} email={patient?.email || ""} patientNome={patient?.nome || patientName(appointment.patientId)} />
+          <FeedbackShare feedback={feedback} patientEmail={patient?.email || ""} />
         </Card>
       )}
       <Card>

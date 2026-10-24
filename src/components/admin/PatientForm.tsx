@@ -54,7 +54,7 @@ export default function PatientForm({
     if (!file) return;
     setUploadingPhoto(true);
     try {
-      const uploaded = await uploadClinicFile(file, "clinica/pacientes", "foto");
+      const uploaded = await uploadClinicFile(file, { kind: "patient-photo" }, "foto");
       set("foto", uploaded.url);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível enviar a foto.");

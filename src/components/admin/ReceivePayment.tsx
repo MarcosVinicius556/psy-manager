@@ -130,7 +130,7 @@ export default function ReceivePayment({ payment, onClose }: { payment: Payment;
               description="Um PDF ou uma imagem deste recebimento. PNG, JPG, WebP ou PDF, até 10 MB."
               files={receipt ? [receipt] : []}
               onChange={(files) => setReceipt(files[0] ?? null)}
-              folder={`clinica/comprovantes/${payment.id}`}
+              uploadTarget={{ kind: "payment-receipt", paymentId: payment.id }}
               kind="documento"
               multiple={false}
               onBusy={setUploadingReceipt}

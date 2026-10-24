@@ -106,7 +106,7 @@ export default function ClinicalForm({ appointment }: { appointment: Appointment
         description="Documentos e imagens da anamnese. PNG, JPG, WebP ou PDF, até 10 MB. Salve a ficha para gravar."
         files={clinical.anamneseArquivos}
         onChange={(anamneseArquivos) => set("anamneseArquivos", anamneseArquivos)}
-        folder={`clinica/anamnese/${appointment.id}`}
+        uploadTarget={{ kind: "appointment-anamnese", appointmentId: appointment.id }}
         kind="documento"
         disabled={locked}
         onBusy={(busy) => setUploading((count) => count + (busy ? 1 : -1))}
@@ -116,7 +116,7 @@ export default function ClinicalForm({ appointment }: { appointment: Appointment
         description="Documentos e imagens das atividades desenvolvidas neste atendimento. PNG, JPG, WebP ou PDF, até 10 MB. Salve a ficha para gravar."
         files={clinical.atividadesArquivos}
         onChange={(atividadesArquivos) => set("atividadesArquivos", atividadesArquivos)}
-        folder={`clinica/atividades/${appointment.id}`}
+        uploadTarget={{ kind: "appointment-atividade", appointmentId: appointment.id }}
         kind="documento"
         disabled={locked}
         onBusy={(busy) => setUploading((count) => count + (busy ? 1 : -1))}

@@ -1,6 +1,15 @@
 import type { ClinicAttachment } from "./types";
+import { authorizedHeaders } from "./api-auth";
+import type { UploadKind } from "@/lib/server/upload-policy";
 
 export type AttachmentKind = "foto" | "documento";
+
+export type ClinicUploadTarget = {
+  kind: UploadKind;
+  patientId?: string;
+  appointmentId?: string;
+  paymentId?: string;
+};
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const PHOTO_LIMIT = 5 * 1024 * 1024;
@@ -24,13 +33,25 @@ export function clinicFileError(file: File, kind: AttachmentKind) {
   return null;
 }
 
-export async function uploadClinicFile(file: File, folder: string, kind: AttachmentKind): Promise<ClinicAttachment> {
+function uploadQuery(target: ClinicUploadTarget, kind: AttachmentKind) {
+  const params = new URLSearchParams({ accept: kind, kind: target.kind });
+  if (target.patientId) params.set("patientId", target.patientId);
+  if (target.appointmentId) params.set("appointmentId", target.appointmentId);
+  if (target.paymentId) params.set("paymentId", target.paymentId);
+  return params;
+}
+
+export async function uploadClinicFile(file: File, target: ClinicUploadTarget, kind: AttachmentKind): Promise<ClinicAttachment> {
   const invalid = clinicFileError(file, kind);
   if (invalid) throw new Error(invalid);
   const form = new FormData();
   form.append("file", file);
-  const params = new URLSearchParams({ folder, accept: kind });
-  const response = await fetch(`/api/image/upload?${params.toString()}`, { method: "POST", body: form });
+  const headers = await authorizedHeaders();
+  const response = await fetch(`/api/image/upload?${uploadQuery(target, kind).toString()}`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
   const data = (await response.json()) as { url?: string; error?: string };
   if (!response.ok || !data.url) throw new Error(data.error || "Não foi possível enviar o arquivo.");
   return {

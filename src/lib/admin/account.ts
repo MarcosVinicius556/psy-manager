@@ -1,5 +1,6 @@
 import { FirebaseError } from "firebase/app";
 import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, signOut, updatePassword, updateProfile } from "firebase/auth";
+import { authorizedHeaders } from "./api-auth";
 import { getFirebaseAuth, getRegistrationAuth } from "./firebase";
 
 function currentUser() {
@@ -36,8 +37,10 @@ export async function uploadAvatar(file: File) {
   const user = currentUser();
   const form = new FormData();
   form.append("file", file);
-  const response = await fetch(`/api/image/upload?folder=avatars/${user.uid}`, {
+  const headers = await authorizedHeaders();
+  const response = await fetch("/api/image/upload?accept=foto&kind=avatar", {
     method: "POST",
+    headers,
     body: form,
   });
   const data = (await response.json()) as { url?: string; error?: string };

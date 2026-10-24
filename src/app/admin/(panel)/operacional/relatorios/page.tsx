@@ -21,7 +21,7 @@ import {
 import { formatDate, todayISO } from "@/lib/admin/format";
 import {
   cloneDefinition,
-  clinicPdfHref,
+  openClinicPdf,
   createReportPdf,
   defaultDefinition,
   describeReport,
@@ -187,7 +187,7 @@ export default function ReportsPage() {
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const file = new File([bytes], `${reportFileSlug(label)}.pdf`, { type: "application/pdf" });
       downloadPdfBlob(file, label);
-      const pdf = await uploadClinicFile(file, "relatorios", "documento");
+      const pdf = await uploadClinicFile(file, { kind: "report" }, "documento");
       await createReportRun({ nome: label, definition, rowCount: result.count, pdf });
       if (favoriteId) await saveReportTemplate(label, definition, favoriteId);
       toast.success("Relatório gerado. O PDF foi baixado e ficou na listagem.");
@@ -312,14 +312,17 @@ export default function ReportsPage() {
                     <Td>{run.rowCount}</Td>
                     <Td>
                       {run.pdf?.url ? (
-                        <a
-                          href={clinicPdfHref(run.pdf.url, run.pdf.nome || run.nome)}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
                           className="font-medium text-teal"
+                          onClick={() => {
+                            openClinicPdf(run.pdf!.url, run.pdf!.nome || run.nome).catch(() =>
+                              toast.error("Não foi possível abrir o PDF.")
+                            );
+                          }}
                         >
                           Baixar PDF
-                        </a>
+                        </button>
                       ) : (
                         "—"
                       )}

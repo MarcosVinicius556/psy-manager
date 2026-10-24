@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { uploadClinicFile, type AttachmentKind } from "@/lib/admin/attachments";
+import { uploadClinicFile, type AttachmentKind, type ClinicUploadTarget } from "@/lib/admin/attachments";
 import type { ClinicAttachment } from "@/lib/admin/types";
 import { Field } from "./ui";
 
@@ -11,7 +11,7 @@ export default function FileAttachments({
   description,
   files,
   onChange,
-  folder,
+  uploadTarget,
   kind,
   multiple = true,
   disabled = false,
@@ -21,7 +21,7 @@ export default function FileAttachments({
   description: string;
   files: ClinicAttachment[];
   onChange: (files: ClinicAttachment[]) => void;
-  folder: string;
+  uploadTarget: ClinicUploadTarget;
   kind: AttachmentKind;
   multiple?: boolean;
   disabled?: boolean;
@@ -44,7 +44,7 @@ export default function FileAttachments({
     try {
       for (const file of batch) {
         try {
-          accepted.push(await uploadClinicFile(file, folder, kind));
+          accepted.push(await uploadClinicFile(file, uploadTarget, kind));
         } catch (error) {
           toast.error(error instanceof Error ? error.message : "Não foi possível enviar o arquivo.");
         }
