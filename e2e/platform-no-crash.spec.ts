@@ -46,11 +46,15 @@ async function loginDemo(page: import("@playwright/test").Page) {
 }
 
 async function loginPlatformOwner(page: import("@playwright/test").Page) {
-  await page.goto("/plataforma/login");
-  await page.getByLabel("E-mail").fill(platformEmail);
-  await page.getByLabel("Senha").fill(platformPassword);
+  await page.goto("/admin/login");
+  await page.getByPlaceholder("Seu e-mail").fill(platformEmail);
+  await page.getByPlaceholder("Sua senha").fill(platformPassword);
   await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
-  await page.waitForURL((url) => url.pathname === "/plataforma", { timeout: 60_000 });
+  await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("login"), { timeout: 60_000 });
+  await page.goto("/plataforma", { waitUntil: "load" });
+  await page.waitForURL((url) => url.pathname === "/plataforma" || url.pathname.startsWith("/plataforma/"), { timeout: 60_000 });
+  await expect(page.getByText("Verificando o acesso da plataforma")).toHaveCount(0, { timeout: 60_000 });
+  await expect(page).not.toHaveURL(/login/);
 }
 
 test.describe("platform routes — no client exceptions", () => {
@@ -79,6 +83,8 @@ test.describe("platform routes — no client exceptions", () => {
   });
 
   test.describe("super_admin plataforma", () => {
+    test.describe.configure({ timeout: 120_000 });
+
     test.beforeEach(async ({ page }) => {
       await loginPlatformOwner(page);
     });
