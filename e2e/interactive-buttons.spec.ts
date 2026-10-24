@@ -37,6 +37,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
     if (width < 1280) {
       await page.getByRole("button", { name: "Abrir menu" }).click();
       await expect(page.locator("#site-menu")).toHaveClass(/translate-x-0/);
+      await page.waitForTimeout(320);
     }
     await expectReceivesPointerAtCenter(entrar);
     await entrar.click();
@@ -65,6 +66,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
     test("financeiro filtros sheet opens on mobile", async ({ page }, testInfo) => {
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin/financeiro", { waitUntil: "domcontentloaded" });
+      await page.getByRole("tab", { name: "Lançamentos" }).click();
       const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
       if (!isMobile) {
         test.skip();
