@@ -33,6 +33,23 @@ export function SaasProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     await upsertPsychologist(user.uid, user.email || "", { nome: user.displayName || "", foto: user.photoURL || "" });
     const loaded = await readAccount(user.uid);
+    if (!loaded.exists) {
+      throw new Error("Conta não encontrada.");
+    }
+    if (loaded.account.role === "super_admin") {
+      const nextPlans = publishedOrDefault(await loadPlans().catch(() => []));
+      const nextInbox = await listInbox(user.uid).catch(() => []);
+      setAccount(loaded.account);
+      setPlans(nextPlans);
+      setInbox(nextInbox);
+      setClinicWriteGate(() => {});
+      try {
+        await touchLastSeen(user.uid, loaded.account.lastSeenAt);
+      } catch (seenError) {
+        console.error(seenError);
+      }
+      return;
+    }
     const reconciled = await reconcileAccount(loaded.account);
     const nextPlans = publishedOrDefault(await loadPlans().catch(() => []));
     const nextInbox = await listInbox(user.uid).catch(() => []);
