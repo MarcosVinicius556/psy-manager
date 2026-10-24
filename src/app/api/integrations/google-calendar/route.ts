@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { googleCalendarIntegrationAvailable } from "@/lib/google-calendar/config";
+import { userIntegrationKey } from "@/lib/google-calendar/integration-keys";
 import { readIntegration, toPublicSettings } from "@/lib/google-calendar/store";
 import { requireGoogleUser } from "@/lib/google-calendar/api-auth";
 
@@ -18,6 +19,6 @@ export async function GET(request: Request) {
   if (!("uid" in auth)) {
     return NextResponse.json({ available: false, settings: toPublicSettings(null) });
   }
-  const record = await readIntegration(auth.uid);
-  return NextResponse.json({ available: true, settings: toPublicSettings(record) });
+  const record = await readIntegration(userIntegrationKey(auth.uid));
+  return NextResponse.json({ available: true, settings: toPublicSettings(record, "user") });
 }

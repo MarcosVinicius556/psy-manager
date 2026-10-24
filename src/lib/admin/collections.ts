@@ -152,6 +152,7 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
     clinical: mapClinical(data.clinical),
     accessUids: strings(data.accessUids),
     googleEventId: data.googleEventId ? text(data.googleEventId) : null,
+    googleLocationEventId: data.googleLocationEventId ? text(data.googleLocationEventId) : null,
     createdAt: text(data.createdAt),
     updatedAt: text(data.updatedAt),
   };

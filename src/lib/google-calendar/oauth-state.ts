@@ -6,6 +6,8 @@ type StatePayload = {
   uid: string;
   nonce: string;
   exp: number;
+  integrationKey?: string;
+  locationId?: string;
 };
 
 function signingKey() {
@@ -18,8 +20,13 @@ function sign(body: string) {
   return createHmac("sha256", signingKey()).update(body).digest("base64url");
 }
 
-export function createOAuthState(uid: string, nonce: string, now = Date.now()) {
-  const payload: StatePayload = { uid, nonce, exp: now + TTL_MS };
+export function createOAuthState(
+  uid: string,
+  nonce: string,
+  now = Date.now(),
+  extra?: { integrationKey?: string; locationId?: string }
+) {
+  const payload: StatePayload = { uid, nonce, exp: now + TTL_MS, ...extra };
   const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const signature = sign(body);
   return `${body}.${signature}`;

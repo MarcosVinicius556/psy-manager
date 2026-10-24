@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireGoogleUser } from "@/lib/google-calendar/api-auth";
+import { userIntegrationKey } from "@/lib/google-calendar/integration-keys";
 import { readIntegration, toPublicSettings, updateSettings } from "@/lib/google-calendar/store";
 import type { GoogleCalendarEventTitleMode } from "@/lib/google-calendar/types";
 
@@ -8,7 +9,8 @@ export const runtime = "nodejs";
 export async function PATCH(request: Request) {
   const auth = await requireGoogleUser(request);
   if ("error" in auth) return auth.error;
-  const record = await readIntegration(auth.uid);
+  const key = userIntegrationKey(auth.uid);
+  const record = await readIntegration(key);
   if (!record?.refreshTokenEncrypted) {
     return NextResponse.json({ reason: "nao_conectado" }, { status: 400 });
   }
@@ -17,6 +19,8 @@ export async function PATCH(request: Request) {
     calendarSummary?: string | null;
     syncToGoogle?: boolean;
     syncFromGoogle?: boolean;
+    blockGoogleBusy?: boolean;
+    showGoogleEventTitles?: boolean;
     eventTitleMode?: GoogleCalendarEventTitleMode;
   };
   const patch: Parameters<typeof updateSettings>[1] = {};
@@ -24,8 +28,10 @@ export async function PATCH(request: Request) {
   if (typeof body.calendarSummary === "string" || body.calendarSummary === null) patch.calendarSummary = body.calendarSummary;
   if (typeof body.syncToGoogle === "boolean") patch.syncToGoogle = body.syncToGoogle;
   if (typeof body.syncFromGoogle === "boolean") patch.syncFromGoogle = body.syncFromGoogle;
+  if (typeof body.blockGoogleBusy === "boolean") patch.blockGoogleBusy = body.blockGoogleBusy;
+  if (typeof body.showGoogleEventTitles === "boolean") patch.showGoogleEventTitles = body.showGoogleEventTitles;
   if (body.eventTitleMode === "generic" || body.eventTitleMode === "first_name") patch.eventTitleMode = body.eventTitleMode;
-  await updateSettings(auth.uid, patch);
-  const next = await readIntegration(auth.uid);
-  return NextResponse.json({ settings: toPublicSettings(next) });
+  await updateSettings(key, patch);
+  const next = await readIntegration(key);
+  return NextResponse.json({ settings: toPublicSettings(next, "user") });
 }

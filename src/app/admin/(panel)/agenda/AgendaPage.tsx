@@ -64,18 +64,25 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
       }
       try {
         const token = await authUser.getIdToken();
+        const locationQuery = activeLocationId ? `&locationId=${encodeURIComponent(activeLocationId)}` : "";
         const response = await fetch(
-          `/api/integrations/google-calendar/busy?from=${encodeURIComponent(selected)}&to=${encodeURIComponent(selected)}`,
+          `/api/integrations/google-calendar/busy?from=${encodeURIComponent(selected)}&to=${encodeURIComponent(selected)}${locationQuery}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!response.ok) {
           if (active) setGoogleBusy([]);
           return;
         }
-        const data = (await response.json()) as { blocks?: { date: string; startTime: string; endTime: string }[] };
+        const data = (await response.json()) as {
+          blocks?: { date: string; startTime: string; endTime: string; label?: string; masked?: boolean }[];
+        };
         const blocks = (data.blocks || [])
           .filter((item) => item.date === selected)
-          .map((item) => ({ startTime: item.startTime, endTime: item.endTime, label: "Ocupado (Google)" }));
+          .map((item) => ({
+            startTime: item.startTime,
+            endTime: item.endTime,
+            label: item.label || "Ocupado",
+          }));
         if (active) setGoogleBusy(blocks);
       } catch {
         if (active) setGoogleBusy([]);
@@ -85,7 +92,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
     return () => {
       active = false;
     };
-  }, [selected, user?.uid]);
+  }, [selected, user?.uid, activeLocationId]);
 
   useEffect(() => {
     if (locationId) return;

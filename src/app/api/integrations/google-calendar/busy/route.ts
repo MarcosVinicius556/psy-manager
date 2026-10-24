@@ -1,29 +1,43 @@
 import { NextResponse } from "next/server";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { locationSharedWithUid } from "@/lib/google-calendar/access";
 import { requireGoogleUser } from "@/lib/google-calendar/api-auth";
-import { fetchFreeBusy, getValidAccessToken } from "@/lib/google-calendar/google-api";
-import { readIntegration } from "@/lib/google-calendar/store";
+import { busyBlocksForUid } from "@/lib/google-calendar/busy-service";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const auth = await requireGoogleUser(request);
   if ("error" in auth) return auth.error;
-  const record = await readIntegration(auth.uid);
-  if (!record?.refreshTokenEncrypted || !record.syncFromGoogle || !record.calendarId) {
-    return NextResponse.json({ blocks: [] });
-  }
   const url = new URL(request.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
+  const locationId = url.searchParams.get("locationId") || "";
   if (!from || !to) {
     return NextResponse.json({ reason: "intervalo_invalido" }, { status: 400 });
   }
-  const accessToken = await getValidAccessToken(auth.uid);
-  const busy = await fetchFreeBusy(accessToken, record.calendarId, `${from}T00:00:00-03:00`, `${to}T23:59:59-03:00`);
-  const blocks = busy.map((item) => ({
-    date: item.start.slice(0, 10),
-    startTime: item.start.includes("T") ? item.start.split("T")[1]?.slice(0, 5) || "00:00" : "00:00",
-    endTime: item.end.includes("T") ? item.end.split("T")[1]?.slice(0, 5) || "23:59" : "23:59",
-  }));
+
+  const viewerUid = auth.uid;
+  const subjectUids = new Set<string>([viewerUid]);
+
+  if (locationId) {
+    const shared = await locationSharedWithUid(locationId, viewerUid);
+    if (!shared) {
+      return NextResponse.json({ reason: "sem_permissao" }, { status: 403 });
+    }
+    const db = getAdminDb();
+    if (db) {
+      const snap = await db.collection("locations").doc(locationId).get();
+      const memberUids = (snap.data()?.memberUids as string[]) || [];
+      for (const uid of memberUids) subjectUids.add(uid);
+    }
+  }
+
+  const blocks = [];
+  for (const subjectUid of subjectUids) {
+    const items = await busyBlocksForUid(subjectUid, viewerUid, from, to);
+    blocks.push(...items);
+  }
+
   return NextResponse.json({ blocks });
 }

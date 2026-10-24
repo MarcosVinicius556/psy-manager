@@ -125,6 +125,32 @@ export async function deleteCalendarEvent(accessToken: string, calendarId: strin
   if (response.status !== 204 && response.status !== 410 && !response.ok) throw new Error("excluir_evento_falhou");
 }
 
+export async function listCalendarEvents(accessToken: string, calendarId: string, timeMin: string, timeMax: string) {
+  const params = new URLSearchParams({
+    timeMin,
+    timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "250",
+  });
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!response.ok) throw new Error("listar_eventos_falhou");
+  const data = (await response.json()) as {
+    items?: { summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string } }[];
+  };
+  return (data.items || [])
+    .map((item) => {
+      const start = item.start?.dateTime || (item.start?.date ? `${item.start.date}T00:00:00` : "");
+      const end = item.end?.dateTime || (item.end?.date ? `${item.end.date}T23:59:00` : "");
+      if (!start || !end) return null;
+      return { summary: item.summary || "Ocupado", start, end };
+    })
+    .filter((item): item is { summary: string; start: string; end: string } => Boolean(item));
+}
+
 export async function fetchFreeBusy(accessToken: string, calendarId: string, timeMin: string, timeMax: string) {
   const response = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
     method: "POST",

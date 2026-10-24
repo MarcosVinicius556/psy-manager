@@ -63,6 +63,7 @@ import {
   recurrenceDates,
   sharesMatchTotal,
 } from "./schedule";
+import { assertGoogleScheduleFree } from "@/lib/google-calendar/check-conflict-client";
 import { syncAppointmentWithGoogle } from "@/lib/google-calendar/sync-client";
 import {
   emptyClinical,
@@ -544,6 +545,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           if (hours.length && !fitsWorkHours(hours, date, payload.startTime, payload.endTime)) {
             throw new Error(`Em ${formatDate(date)}, este horário está fora da sua grade de atendimento.`);
           }
+          await assertGoogleScheduleFree({ ...payload, date });
           assertScheduleFree({ ...payload, date });
         }
         if (!id && recurrence) {
@@ -565,18 +567,24 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           if (hours.length && !fitsWorkHours(hours, input.date, payload.startTime, payload.endTime)) {
             throw new Error("Este horário está fora da sua grade de atendimento.");
           }
+          await assertGoogleScheduleFree({ ...payload, date: input.date });
           assertScheduleFree({ ...payload, date: input.date });
-          const booked = dates.filter((date) => {
-            if (date === input.date) return true;
-            if (!isBookableStart(date, payload.startTime)) return false;
-            if (hours.length && !fitsWorkHours(hours, date, payload.startTime, payload.endTime)) return false;
-            try {
-              assertScheduleFree({ ...payload, date });
-              return true;
-            } catch {
-              return false;
+          const booked: string[] = [];
+          for (const date of dates) {
+            if (date === input.date) {
+              booked.push(date);
+              continue;
             }
-          });
+            if (!isBookableStart(date, payload.startTime)) continue;
+            if (hours.length && !fitsWorkHours(hours, date, payload.startTime, payload.endTime)) continue;
+            try {
+              await assertGoogleScheduleFree({ ...payload, date });
+              assertScheduleFree({ ...payload, date });
+              booked.push(date);
+            } catch {
+              // horário indisponível no sistema ou no Google
+            }
+          }
           const seriesId = crypto.randomUUID();
           const ids = await createAppointmentSeries(
             booked.map((date) => ({
@@ -595,6 +603,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
           return { id: ids[0] || "", sessions: booked.map((date, index) => ({ id: ids[index], date })) };
         }
+        await assertGoogleScheduleFree(payload);
         assertScheduleFree(payload, id);
         const packageSeriesId = moreDates.length ? crypto.randomUUID() : null;
         const companions = moreDates.map((date) => ({

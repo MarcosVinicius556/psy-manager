@@ -7,8 +7,12 @@ export type GoogleCalendarIntegrationSettings = {
   calendarSummary: string | null;
   syncToGoogle: boolean;
   syncFromGoogle: boolean;
+  blockGoogleBusy: boolean;
+  showGoogleEventTitles: boolean;
   eventTitleMode: GoogleCalendarEventTitleMode;
   connectedAt: string | null;
+  kind?: "user" | "location";
+  locationId?: string | null;
 };
 
 export type GoogleCalendarBusyBlock = {
@@ -18,6 +22,9 @@ export type GoogleCalendarBusyBlock = {
 };
 
 export type GoogleCalendarPrivateRecord = {
+  kind?: "user" | "location";
+  locationId?: string | null;
+  ownerUid?: string | null;
   refreshTokenEncrypted: string;
   accessTokenEncrypted?: string;
   accessTokenExpiresAt?: number;
@@ -26,6 +33,8 @@ export type GoogleCalendarPrivateRecord = {
   calendarSummary: string | null;
   syncToGoogle: boolean;
   syncFromGoogle: boolean;
+  blockGoogleBusy: boolean;
+  showGoogleEventTitles: boolean;
   eventTitleMode: GoogleCalendarEventTitleMode;
   connectedAt: string;
   oauthStateNonce?: string;
