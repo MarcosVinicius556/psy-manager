@@ -97,8 +97,10 @@ test.describe("platform routes — no client exceptions", () => {
       const tabBar = page.getByRole("navigation", { name: "Atalhos" });
       await expect(tabBar).toBeVisible({ timeout: 60_000 });
       await tabBar.getByRole("button", { name: "Menu" }).click();
-      await page.locator("#admin-mobile-nav").getByRole("link", { name: "Plataforma" }).click();
-      await page.waitForURL("**/plataforma**", { timeout: 60_000 });
+      const plataformaLink = page.locator("#admin-mobile-nav").getByRole("link", { name: "Plataforma" });
+      await expect(plataformaLink).toBeVisible({ timeout: 60_000 });
+      await plataformaLink.click();
+      await page.waitForURL((url) => url.pathname.startsWith("/plataforma"), { timeout: 60_000 });
       await page.waitForTimeout(800);
       expect(errors, errors.join("\n")).toEqual([]);
       await expect(page).not.toHaveURL(/login/);

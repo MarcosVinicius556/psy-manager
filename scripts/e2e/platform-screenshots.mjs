@@ -25,7 +25,7 @@ async function main() {
     ["plataforma-home-412", "/plataforma"],
     ["plataforma-contas-412", "/plataforma/contas"],
   ]) {
-    await page.goto(`${baseURL}${route}`, { waitUntil: "networkidle" });
+    await page.goto(`${baseURL}${route}`, { waitUntil: "load" });
     await page.waitForTimeout(1200);
     if (page.url().includes("login")) throw new Error(`Unexpected login redirect at ${route}`);
     await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: true });
