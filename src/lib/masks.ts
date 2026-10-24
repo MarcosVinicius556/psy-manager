@@ -10,6 +10,12 @@ export function maskCpf(value: string) {
   return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
 }
 
+export function maskCep(value: string) {
+  const numbers = digits(value, 8);
+  if (numbers.length <= 5) return numbers;
+  return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
+}
+
 export function maskPhone(value: string) {
   const numbers = digits(value, 11);
   if (!numbers) return "";

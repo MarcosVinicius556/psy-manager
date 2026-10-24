@@ -38,10 +38,20 @@ export interface PaymentEvent {
   createdAt: string;
 }
 
+export interface FiscalReceiptRecord {
+  numero: number;
+  arquivo: ClinicAttachment;
+  emitidoEm: string;
+  dataPagamento: string;
+  valor: number;
+}
+
 export interface Patient {
   id: string;
   nome: string;
   cpf: string;
+  cpfPagador: string;
+  cpfBeneficiario: string;
   nascimento: string;
   telefone: string;
   email: string;
@@ -118,6 +128,14 @@ export interface ClinicMember {
   email: string;
   telefone: string;
   foto: string;
+  cpf: string;
+  crpNumero: string;
+  crpRegiao: string;
+  enderecoLogradouro: string;
+  enderecoCidade: string;
+  enderecoUf: string;
+  enderecoCep: string;
+  reciboSequencia: number;
   valorBase: number;
   valorSocial: number;
   workHours: WorkShift[];
@@ -203,6 +221,7 @@ export interface Payment {
   paidAt: string | null;
   formaPagamento: PaymentMethod;
   historico: PaymentEvent[];
+  reciboFiscal: FiscalReceiptRecord | null;
   createdAt: string;
 }
 
@@ -265,7 +284,10 @@ export interface SessionFeedback {
 }
 export type MemberInput = Pick<ClinicMember, "nome" | "email">;
 export type PackageInput = Omit<SessionPackage, "id" | "createdAt" | "updatedAt" | "versao" | "historico" | "arquivado" | "arquivadoEm">;
-export type PaymentInput = Omit<Payment, "id" | "createdAt" | "paidAt" | "status" | "packageId" | "valorAcordado" | "historico" | "origem" | "recorrente" | "seriesId"> & {
+export type PaymentInput = Omit<
+  Payment,
+  "id" | "createdAt" | "paidAt" | "status" | "packageId" | "valorAcordado" | "historico" | "origem" | "recorrente" | "seriesId" | "reciboFiscal"
+> & {
   status?: PaymentStatus;
   packageId?: string | null;
   origem?: PaymentOrigin;
@@ -292,6 +314,8 @@ export function emptyPatient(): PatientInput {
   return {
     nome: "",
     cpf: "",
+    cpfPagador: "",
+    cpfBeneficiario: "",
     nascimento: "",
     telefone: "",
     email: "",
