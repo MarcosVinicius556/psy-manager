@@ -73,6 +73,7 @@ function PatientsContent() {
       <div className="sticky top-14 z-10 mb-4 space-y-3 bg-paper/95 py-3 backdrop-blur-md md:static md:bg-transparent md:p-0">
         <SegmentedControl
           ariaLabel="Filtrar pacientes"
+          layout="equal"
           value={status}
           onChange={setStatus}
           options={[
@@ -97,15 +98,18 @@ function PatientsContent() {
         ) : (
           <>
           <MobileListGrid>
-            {filtered.map((patient) => (
+            {filtered.map((patient) => {
+              const contactLines = [maskPhone(patient.telefone), patient.email].filter(Boolean);
+              return (
               <ListCard
                 key={patient.id}
                 href={`/admin/pacientes/${patient.id}`}
                 title={patient.nome}
-                subtitle={[maskPhone(patient.telefone), patient.email].filter(Boolean).join(" · ") || "Sem contato"}
+                subtitleLines={contactLines.length > 0 ? contactLines : ["Sem contato"]}
                 meta={<Pill tone={patient.status === "ativo" ? "sage" : "muted"}>{labelPatientStatus(patient.status)}</Pill>}
               />
-            ))}
+            );
+            })}
           </MobileListGrid>
           <ResponsiveTableWrap>
           <DataTable>

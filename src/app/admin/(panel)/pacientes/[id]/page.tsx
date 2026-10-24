@@ -164,7 +164,7 @@ export default function PatientDetailPage() {
   if (!patient) return <Empty>Paciente não encontrado.</Empty>;
 
   return (
-    <div>
+    <div className="admin-fab-pad">
       <PageTitle
         title={patient.nome}
         subtitle={`${maskPhone(patient.telefone)}${patient.email ? ` · ${patient.email}` : ""}`}
@@ -186,6 +186,7 @@ export default function PatientDetailPage() {
       <div className="mb-4">
         <SegmentedControl
           ariaLabel="Seções da ficha"
+          layout="equal"
           value={tab}
           onChange={setTab}
           options={[

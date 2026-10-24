@@ -31,7 +31,9 @@ export function TrialBanner() {
   }
   if (account.subscriptionStatus !== "trial_ativo") return null;
   const days = daysRemaining(account.trialEndsAtMillis, Date.now());
-  const end = account.trialEndsAt ? new Date(account.trialEndsAt).toLocaleString("pt-BR") : "";
+  const end = account.trialEndsAt
+    ? new Date(account.trialEndsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+    : "";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${days <= 7 ? "border-[#e8cfc4] bg-[#f6e6df]" : "border-leaf bg-sky-soft"}`}>
       Avaliação gratuita até {end}. {days === 1 ? "Resta 1 dia." : `Restam ${days} dias.`}{" "}
