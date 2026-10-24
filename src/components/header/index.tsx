@@ -53,21 +53,13 @@ export default function Header() {
   const barColor = solid ? "bg-ink" : "bg-white";
 
   return (
+    <>
     <header
       className={`landing fixed inset-x-0 top-0 z-[1000] pb-3 transition-[background,box-shadow,color] duration-300 ease-in-out ${
         solid ? "header-scrolled shadow-[0_1px_0_rgba(61,82,64,0.1)] backdrop-blur-[16px]" : "header-on-media"
       }`}
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
-      {open && (
-        <button
-          type="button"
-          className="fixed inset-0 z-[999] bg-teal/30 xl:hidden"
-          aria-label="Fechar menu"
-          onClick={() => setOpen(false)}
-        />
-      )}
-
       <div className="site-container relative z-[1002] flex items-center justify-between gap-3">
         <Link href="/" className="flex min-w-0 items-center" onClick={() => setOpen(false)} aria-label="Psy Manager">
           <BrandLogo
@@ -111,33 +103,44 @@ export default function Header() {
           </button>
         </div>
       </div>
-
-      <nav
-        id="site-menu"
-        ref={menuRef}
-        aria-label="Seções"
-        inert={open ? undefined : true}
-        className={`fixed inset-y-0 right-0 z-[1001] flex w-[min(20rem,86vw)] flex-col gap-1 overflow-y-auto bg-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] shadow-[-20px_0_40px_rgba(61,82,64,0.1)] transition-transform duration-300 ease-in-out xl:hidden ${
-          open ? "translate-x-0" : "pointer-events-none translate-x-full"
-        }`}
-      >
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="landing-nav-link flex min-h-11 items-center text-[1.05rem]"
-            onClick={() => setOpen(false)}
-          >
-            {link.label}
-          </Link>
-        ))}
-        <Link href="/admin/login" className="landing-nav-link flex min-h-11 items-center text-[1.05rem]" onClick={() => setOpen(false)}>
-          Entrar
-        </Link>
-        <Link href="/cadastro" className="btn-primary mt-4" onClick={() => setOpen(false)}>
-          Começar gratuitamente
-        </Link>
-      </nav>
     </header>
+
+    {open && (
+      <button
+        type="button"
+        className="fixed inset-0 z-[999] bg-teal/30 xl:hidden"
+        aria-label="Fechar menu"
+        onClick={() => setOpen(false)}
+      />
+    )}
+
+    <nav
+      id="site-menu"
+      ref={menuRef}
+      aria-label="Seções"
+      inert={open ? undefined : true}
+      aria-hidden={open ? undefined : true}
+      className={`landing fixed inset-y-0 right-0 z-[1001] flex w-[min(20rem,86vw)] flex-col gap-1 overflow-y-auto bg-paper px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] shadow-[-20px_0_40px_rgba(61,82,64,0.1)] transition-transform duration-300 ease-in-out xl:hidden ${
+        open ? "translate-x-0" : "pointer-events-none translate-x-full"
+      }`}
+    >
+      {navLinks.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="landing-nav-link site-menu-link flex min-h-11 items-center text-[1.05rem]"
+          onClick={() => setOpen(false)}
+        >
+          {link.label}
+        </Link>
+      ))}
+      <Link href="/admin/login" className="btn-text site-menu-cta mt-2 w-full" onClick={() => setOpen(false)}>
+        Entrar
+      </Link>
+      <Link href="/cadastro" className="btn-primary site-menu-cta mt-3 w-full" onClick={() => setOpen(false)}>
+        Começar gratuitamente
+      </Link>
+    </nav>
+    </>
   );
 }
