@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { MultiFactorResolver } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
+import MfaSignInChallenge from "@/components/auth/MfaSignInChallenge";
+import { isMfaSignInRequired } from "@/lib/auth/mfa-sign-in";
 import { HiOutlineEnvelope, HiOutlineEye, HiOutlineEyeSlash, HiOutlineUser } from "react-icons/hi2";
 import BrandLogo from "@/components/BrandLogo";
 import { useAuth } from "@/lib/admin/auth-context";
@@ -56,17 +59,18 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   const [honeypot, setHoneypot] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null);
   const mismatch = mode === "signup" && confirm.length > 0 && password !== confirm;
 
   useEffect(() => {
-    if (loading || !user || submitting || googleAuthBusy) return;
+    if (loading || !user || submitting || googleAuthBusy || mfaResolver) return;
     const googleRoute = consumeGoogleSignInRoute();
     if (googleRoute) {
       router.replace(googleRoute);
       return;
     }
     router.replace("/admin");
-  }, [googleAuthBusy, loading, router, submitting, user]);
+  }, [googleAuthBusy, loading, mfaResolver, router, submitting, user]);
 
   function switchMode(next: "login" | "signup") {
     setMessage("");
@@ -97,6 +101,11 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
       await signIn(email, password, remember);
       router.replace("/admin");
     } catch (error) {
+      if (isMfaSignInRequired(error)) {
+        setMfaResolver(error.resolver);
+        setSubmitting(false);
+        return;
+      }
       if (mode === "signup") {
         const { getFirebaseAuth } = await import("@/lib/admin/firebase");
         if (getFirebaseAuth().currentUser) {
@@ -130,6 +139,11 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
       }
       router.replace(result.eligible ? "/admin" : "/admin/assinatura");
     } catch (error) {
+      if (isMfaSignInRequired(error)) {
+        setMfaResolver(error.resolver);
+        setSubmitting(false);
+        return;
+      }
       if (error instanceof FirebaseError && error.code === "auth/popup-closed-by-user") {
         setSubmitting(false);
         return;
@@ -318,9 +332,28 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
 
             {message && <p className="px-1 text-sm text-accent" role="status">{message}</p>}
 
+            {mfaResolver && (
+              <MfaSignInChallenge
+                resolver={mfaResolver}
+                onCancel={() => {
+                  setMfaResolver(null);
+                  setMessage("");
+                }}
+                onSuccess={async () => {
+                  const { getFirebaseAuth } = await import("@/lib/admin/firebase");
+                  const { upsertPsychologist } = await import("@/lib/admin/collections");
+                  const current = getFirebaseAuth().currentUser;
+                  if (current) {
+                    await upsertPsychologist(current.uid, current.email || email);
+                  }
+                  router.replace("/admin");
+                }}
+              />
+            )}
+
             <button
               className="mt-1 h-12 w-full rounded-full bg-teal text-base font-semibold text-white transition hover:bg-teal-mid disabled:opacity-60"
-              disabled={submitting || !configured || (mode === "signup" && (!acceptTerms || !acceptDpa))}
+              disabled={submitting || !configured || Boolean(mfaResolver) || (mode === "signup" && (!acceptTerms || !acceptDpa))}
             >
               {submitting ? "Aguarde..." : mode === "login" ? "Entrar" : "Começar meus 30 dias"}
             </button>

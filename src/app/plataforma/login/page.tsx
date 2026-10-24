@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { MultiFactorResolver } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
+import MfaSignInChallenge from "@/components/auth/MfaSignInChallenge";
 import { fieldClass } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { getUserRole } from "@/lib/admin/collections";
+import { isMfaSignInRequired } from "@/lib/auth/mfa-sign-in";
 
 export default function PlatformLoginPage() {
   const { signIn, logout, configured } = useAuth();
@@ -14,6 +17,19 @@ export default function PlatformLoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null);
+
+  async function finishLogin() {
+    const { getFirebaseAuth } = await import("@/lib/admin/firebase");
+    const uid = getFirebaseAuth().currentUser?.uid;
+    const role = uid ? await getUserRole(uid) : "psicologo";
+    if (role !== "super_admin") {
+      await logout();
+      setMessage("Esta área é exclusiva do proprietário da plataforma.");
+      return;
+    }
+    router.replace("/plataforma");
+  }
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -21,16 +37,12 @@ export default function PlatformLoginPage() {
     setMessage("");
     try {
       await signIn(email, password);
-      const { getFirebaseAuth } = await import("@/lib/admin/firebase");
-      const uid = getFirebaseAuth().currentUser?.uid;
-      const role = uid ? await getUserRole(uid) : "psicologo";
-      if (role !== "super_admin") {
-        await logout();
-        setMessage("Esta área é exclusiva do proprietário da plataforma.");
+      await finishLogin();
+    } catch (error) {
+      if (isMfaSignInRequired(error)) {
+        setMfaResolver(error.resolver);
         return;
       }
-      router.replace("/plataforma");
-    } catch (error) {
       const code = error instanceof FirebaseError ? error.code : "";
       setMessage(code === "auth/too-many-requests" ? "Muitas tentativas. Aguarde e tente de novo." : "Não foi possível entrar.");
     } finally {
@@ -50,7 +62,19 @@ export default function PlatformLoginPage() {
         <label className="mt-4 block text-sm font-medium" htmlFor="senha">Senha</label>
         <input id="senha" type="password" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required className={`${fieldClass} mt-1`} value={password} onChange={(event) => setPassword(event.target.value)} />
         {message && <p className="mt-3 text-sm text-accent" role="alert">{message}</p>}
-        <button className="btn-primary mt-6 w-full" disabled={submitting || !configured}>{submitting ? "Entrando..." : "Entrar"}</button>
+        {mfaResolver && (
+          <MfaSignInChallenge
+            resolver={mfaResolver}
+            onCancel={() => setMfaResolver(null)}
+            onSuccess={() => {
+              setMfaResolver(null);
+              void finishLogin();
+            }}
+          />
+        )}
+        <button className="btn-primary mt-6 min-h-11 w-full" disabled={submitting || !configured || Boolean(mfaResolver)}>
+          {submitting ? "Entrando..." : "Entrar"}
+        </button>
       </form>
     </div>
   );

@@ -13,6 +13,7 @@ import { moneyInput, parseMoney, WEEKDAY_OPTIONS } from "@/lib/admin/format";
 import { maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
 import GoogleCalendarIntegration from "@/components/admin/GoogleCalendarIntegration";
+import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
 
 const dangerButton =
   "inline-flex cursor-pointer items-center justify-center rounded-md border border-[#a01f1f] bg-[#a01f1f] px-5 py-3 text-sm font-semibold text-white transition-colors duration-300 hover:bg-transparent hover:text-[#a01f1f] disabled:cursor-not-allowed disabled:opacity-60";
@@ -281,6 +282,8 @@ export default function SettingsPage() {
       </Card>
 
       <GoogleCalendarIntegration />
+
+      <SecuritySettingsCard />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>
