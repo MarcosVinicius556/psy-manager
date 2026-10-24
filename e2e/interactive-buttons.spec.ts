@@ -80,6 +80,26 @@ test.describe("interactive buttons — mobile and desktop", () => {
       await page.screenshot({ path: path.join(artifactRoot, "financeiro-filtros-412.png"), fullPage: true });
     });
 
+    test("mobile menu legal group collapsible", async ({ page }, testInfo) => {
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
+      if (!isMobile) {
+        test.skip();
+        return;
+      }
+      const errors = attachPageErrorCollector(page);
+      await page.goto("/admin", { waitUntil: "domcontentloaded" });
+      await page.locator(".admin-tabbar").getByRole("button", { name: "Menu" }).click();
+      const legal = page.locator("#admin-mobile-nav").getByRole("button", { name: "Legal" });
+      await expect(legal).toHaveAttribute("aria-expanded", "false");
+      await page.screenshot({ path: path.join(artifactRoot, "admin-menu-legal-collapsed-412.png"), fullPage: true });
+      await legal.click();
+      await expect(legal).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator("#admin-mobile-nav").getByRole("link", { name: "Termos de uso" })).toBeVisible();
+      await expect(page.locator("#admin-mobile-nav").getByRole("button", { name: "Preferências de cookies" })).toBeVisible();
+      await page.screenshot({ path: path.join(artifactRoot, "admin-menu-legal-expanded-412.png"), fullPage: true });
+      expect(errors, errors.join("\n")).toEqual([]);
+    });
+
     test("mobile menu drawer opens and closes", async ({ page }, testInfo) => {
       const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
       if (!isMobile) {
@@ -97,6 +117,22 @@ test.describe("interactive buttons — mobile and desktop", () => {
       await expect(page.locator("#admin-mobile-nav")).toHaveAttribute("aria-hidden", "true");
       const dashLink = page.locator(".admin-tabbar a[href='/admin']");
       await expectReceivesPointerAtCenter(dashLink);
+      expect(errors, errors.join("\n")).toEqual([]);
+    });
+
+    test("desktop sidebar legal group expands", async ({ page }, testInfo) => {
+      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 768;
+      if (!isDesktop) {
+        test.skip();
+        return;
+      }
+      const errors = attachPageErrorCollector(page);
+      await page.goto("/admin", { waitUntil: "domcontentloaded" });
+      const legal = page.getByRole("navigation").filter({ has: page.getByRole("link", { name: "Início" }) }).getByRole("button", { name: "Legal" });
+      await expect(legal).toHaveAttribute("aria-expanded", "false");
+      await legal.click();
+      await expect(legal).toHaveAttribute("aria-expanded", "true");
+      await expect(page.getByRole("link", { name: "Privacidade" })).toBeVisible();
       expect(errors, errors.join("\n")).toEqual([]);
     });
 

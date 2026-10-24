@@ -24,13 +24,40 @@ type NavLinkItem = {
   icon: NavIcon;
 };
 
+type NavActionItem = {
+  label: string;
+  icon: NavIcon;
+  action: "cookie-preferences";
+};
+
+type NavGroupChild = NavLinkItem | NavActionItem;
+
 type NavGroupItem = {
   label: string;
   icon: NavIcon;
-  children: NavLinkItem[];
+  children: NavGroupChild[];
 };
 
 type NavEntry = NavLinkItem | NavGroupItem;
+
+function isNavLinkChild(child: NavGroupChild): child is NavLinkItem {
+  return "href" in child;
+}
+
+function buildLegalNavGroup(): NavGroupItem {
+  return {
+    label: "Legal",
+    icon: HiOutlineShieldCheck,
+    children: [
+      ...LEGAL_FOOTER_LINKS.map((link) => ({
+        href: link.href,
+        label: link.label,
+        icon: HiOutlineDocumentText,
+      })),
+      { label: "Preferências de cookies", icon: HiOutlineCog, action: "cookie-preferences" },
+    ],
+  };
+}
 
 const items: NavEntry[] = [
   { href: "/admin", label: "Início", icon: HiOutlineHome },
@@ -61,6 +88,7 @@ const items: NavEntry[] = [
       { href: "/admin/operacional/relatorios", label: "Gerador de relatórios", icon: HiOutlineChartBar },
     ],
   },
+  buildLegalNavGroup(),
   { href: "/admin/assinatura", label: "Assinatura", icon: HiOutlineCreditCard },
   { href: "/admin/notificacoes", label: "Notificações", icon: HiOutlineBell },
   { href: "/admin/configuracoes", label: "Configurações", icon: HiOutlineCog },
@@ -97,7 +125,11 @@ function titleForPath(pathname: string) {
 }
 
 function groupForPath(menu: NavEntry[], pathname: string) {
-  const match = menu.find((entry) => isGroup(entry) && entry.children.some((child) => isCurrent(child.href, pathname)));
+  const match = menu.find(
+    (entry) =>
+      isGroup(entry) &&
+      entry.children.some((child) => isNavLinkChild(child) && isCurrent(child.href, pathname))
+  );
   return match && isGroup(match) ? match.label : null;
 }
 
@@ -153,14 +185,16 @@ function NavGroup({
   pathname,
   open,
   onToggle,
+  onCookiePreferences,
 }: {
   item: NavGroupItem;
   collapsed: boolean;
   pathname: string;
   open: boolean;
   onToggle: () => void;
+  onCookiePreferences?: () => void;
 }) {
-  const groupActive = item.children.some((child) => isCurrent(child.href, pathname));
+  const groupActive = item.children.some((child) => isNavLinkChild(child) && isCurrent(child.href, pathname));
   const [box, setBox] = useState({ top: 0, left: 0 });
   const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -242,6 +276,19 @@ function NavGroup({
           <div className="mt-1 flex flex-col gap-1">
             {item.children.map((child) => {
               const ChildIcon = child.icon;
+              if (!isNavLinkChild(child)) {
+                return (
+                  <button
+                    key={child.label}
+                    type="button"
+                    className={linkClass(false, false, true)}
+                    onClick={() => onCookiePreferences?.()}
+                  >
+                    <ChildIcon size={18} />
+                    <span className="flex-1 text-left">{child.label}</span>
+                  </button>
+                );
+              }
               return (
                 <Link key={child.href} href={child.href} className={linkClass(isCurrent(child.href, pathname), false, true)}>
                   <ChildIcon size={18} />
@@ -265,6 +312,22 @@ function NavGroup({
             <p className="px-3 pb-1 pt-2 text-[0.68rem] uppercase tracking-[0.16em] text-leaf">{item.label}</p>
             {item.children.map((child) => {
               const ChildIcon = child.icon;
+              if (!isNavLinkChild(child)) {
+                return (
+                  <button
+                    key={child.label}
+                    type="button"
+                    className={linkClass(false, false)}
+                    onClick={() => {
+                      onToggle();
+                      onCookiePreferences?.();
+                    }}
+                  >
+                    <ChildIcon size={18} />
+                    <span className="flex-1 text-left">{child.label}</span>
+                  </button>
+                );
+              }
               return (
                 <Link key={child.href} href={child.href} className={linkClass(isCurrent(child.href, pathname), false)}>
                   <ChildIcon size={18} />
@@ -402,6 +465,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                 pathname={pathname}
                 open={openGroup === entry.label}
                 onToggle={() => toggleGroup(entry.label)}
+                onCookiePreferences={openPreferences}
               />
             ) : (
               <NavAnchor key={entry.href} item={entry} collapsed={collapsed} pathname={pathname} unread={unread} />
@@ -487,37 +551,16 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                 pathname={pathname}
                 open={openGroup === entry.label}
                 onToggle={() => toggleGroup(entry.label)}
+                onCookiePreferences={() => {
+                  setMobileOpen(false);
+                  openPreferences();
+                }}
               />
             ) : (
               <NavAnchor key={entry.href} item={entry} collapsed={false} pathname={pathname} unread={unread} />
             )
           )}
         </nav>
-        <div className="shrink-0 border-t border-white/15 py-4">
-          <p className="px-2 text-xs font-semibold tracking-[0.08em] text-white/60 uppercase">Legal</p>
-          <div className="mt-2 flex flex-col">
-            {LEGAL_FOOTER_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex min-h-10 items-center px-2 text-sm text-white/80 hover:text-white"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <button
-              type="button"
-              className="flex min-h-10 items-center px-2 text-left text-sm text-white/80 hover:text-white"
-              onClick={() => {
-                setMobileOpen(false);
-                openPreferences();
-              }}
-            >
-              Preferências de cookies
-            </button>
-          </div>
-        </div>
         <div className="shrink-0 border-t border-white/15 pt-4">
           <p className="truncate px-2 text-sm font-medium">{profileName}</p>
           <p className="truncate px-2 text-xs text-white/70">{user?.email}</p>
