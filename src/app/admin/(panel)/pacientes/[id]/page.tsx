@@ -12,7 +12,8 @@ import ReceivePayment from "@/components/admin/ReceivePayment";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
-import { Card, DataTable, Empty, PageTitle, Pill, Td, Th } from "@/components/admin/ui";
+import StackedRow from "@/components/admin/mobile/StackedRow";
+import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, isUnpaid, paymentReceipts, remainingAmount } from "@/lib/admin/finance";
@@ -31,48 +32,77 @@ import type { Appointment, ClinicAttachment, Payment } from "@/lib/admin/types";
 
 function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payment: Payment) => void }) {
   return (
-    <DataTable>
-      <thead>
-        <tr>
-          <Th>Vencimento</Th>
-          <Th>Descrição</Th>
-          <Th>Acordado</Th>
-          <Th>Faltante</Th>
-          <Th>Status</Th>
-          <Th className="text-right">Ações</Th>
-        </tr>
-      </thead>
-      <tbody>
+    <>
+      <div className="admin-mobile-only min-w-0" data-mobile-list>
         {payments.map((payment) => {
           const remaining = remainingAmount(payment);
           const canReceive = remaining > 0 && payment.status !== "nao_pago";
           return (
-            <tr key={payment.id} className="hover:bg-paper">
-              <Td>{formatDate(payment.dueDate)}</Td>
-              <Td>
-                {payment.descricao}
-                {isUnpaid(payment) ? " · em aberto" : ""}
-              </Td>
-              <Td className="font-semibold">{formatMoney(agreedAmount(payment))}</Td>
-              <Td>{formatMoney(remaining)}</Td>
-              <Td>
+            <StackedRow
+              key={payment.id}
+              primary={payment.descricao}
+              amount={formatMoney(agreedAmount(payment))}
+              secondary={`Vence ${formatDate(payment.dueDate)}${isUnpaid(payment) ? " · em aberto" : ""}`}
+              status={
                 <Pill tone={payment.status === "pago" ? "teal" : payment.status === "nao_pago" ? "accent" : "sage"}>
                   {labelPaymentStatus(payment.status)}
                 </Pill>
-              </Td>
-              <Td className="text-right">
-                <div className="flex flex-col items-end gap-2">
-                  <button type="button" className={canReceive ? "btn-row" : "btn-text"} onClick={() => onOpen(payment)}>
-                    {canReceive ? "Receber" : "Histórico"}
-                  </button>
-                  <ReceiptLinks files={paymentReceipts(payment)} />
-                </div>
-              </Td>
-            </tr>
+              }
+              hint={remaining > 0 ? `Faltam ${formatMoney(remaining)}` : null}
+              actions={
+                <button type="button" className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => onOpen(payment)}>
+                  {canReceive ? "Receber" : "Histórico"}
+                </button>
+              }
+            />
           );
         })}
-      </tbody>
-    </DataTable>
+      </div>
+      <ResponsiveTableWrap>
+        <DataTable>
+          <thead>
+            <tr>
+              <Th>Vencimento</Th>
+              <Th>Descrição</Th>
+              <Th>Acordado</Th>
+              <Th>Faltante</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Ações</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {payments.map((payment) => {
+              const remaining = remainingAmount(payment);
+              const canReceive = remaining > 0 && payment.status !== "nao_pago";
+              return (
+                <tr key={payment.id} className="hover:bg-paper">
+                  <Td>{formatDate(payment.dueDate)}</Td>
+                  <Td>
+                    {payment.descricao}
+                    {isUnpaid(payment) ? " · em aberto" : ""}
+                  </Td>
+                  <Td className="font-semibold">{formatMoney(agreedAmount(payment))}</Td>
+                  <Td>{formatMoney(remaining)}</Td>
+                  <Td>
+                    <Pill tone={payment.status === "pago" ? "teal" : payment.status === "nao_pago" ? "accent" : "sage"}>
+                      {labelPaymentStatus(payment.status)}
+                    </Pill>
+                  </Td>
+                  <Td className="text-right">
+                    <div className="flex flex-col items-end gap-2">
+                      <button type="button" className={canReceive ? "btn-row" : "btn-text"} onClick={() => onOpen(payment)}>
+                        {canReceive ? "Receber" : "Histórico"}
+                      </button>
+                      <ReceiptLinks files={paymentReceipts(payment)} />
+                    </div>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </DataTable>
+      </ResponsiveTableWrap>
+    </>
   );
 }
 

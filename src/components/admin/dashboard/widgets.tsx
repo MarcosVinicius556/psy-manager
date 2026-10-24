@@ -7,7 +7,7 @@ import MonthTotalCard from "@/components/admin/MonthTotalCard";
 import Select from "@/components/admin/Select";
 import ListCard from "@/components/admin/mobile/ListCard";
 import StackedRow from "@/components/admin/mobile/StackedRow";
-import { Card, DataTable, Empty, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
+import { Card, DataTable, Empty, MobileListGrid, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import type { WidgetId } from "@/lib/admin/dashboard-layout";
@@ -200,7 +200,7 @@ function CalendarWidget() {
           <Empty>{activeLocationName ? `Nenhum atendimento em ${activeLocationName} neste dia.` : "Nenhum atendimento neste dia."}</Empty>
         ) : (
           <>
-            <div className="md:hidden">
+            <div className="admin-mobile-only min-w-0">
               {dayItems.map((item) => (
                 <StackedRow
                   key={item.id}
@@ -264,7 +264,7 @@ function FutureListWidget() {
         <Empty>Nenhum pagamento agendado.</Empty>
       ) : (
         <>
-          <div className="grid gap-3 md:hidden">
+          <MobileListGrid>
             {future.map((payment) => (
               <ListCard
                 key={payment.id}
@@ -274,7 +274,7 @@ function FutureListWidget() {
                 trailing={<span className="font-num text-sm font-semibold text-ink">{formatMoney(remainingAmount(payment))}</span>}
               />
             ))}
-          </div>
+          </MobileListGrid>
           <ResponsiveTableWrap>
             <DataTable minWidth={480}>
               <thead>
@@ -318,11 +318,11 @@ function DebtorsListWidget() {
         <Empty>Nenhum paciente inadimplente.</Empty>
       ) : (
         <>
-          <div className="grid gap-3 md:hidden">
+          <MobileListGrid>
             {debtors.map((patient) => (
               <ListCard key={patient.id} href={`/admin/pacientes/${patient.id}`} title={patient.nome} subtitle="Pagamento em aberto" />
             ))}
-          </div>
+          </MobileListGrid>
           <ResponsiveTableWrap>
             <DataTable minWidth={280}>
               <thead>

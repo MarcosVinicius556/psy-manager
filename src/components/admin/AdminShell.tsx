@@ -432,7 +432,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <MobileHeader title={mobileTitle} action={pathname === "/admin" ? undefined : meta.action} onOpenMenu={() => setMobileOpen(true)} />
+      <MobileHeader title={mobileTitle} onOpenMenu={() => setMobileOpen(true)} />
 
       {mobileOpen && (
         <button

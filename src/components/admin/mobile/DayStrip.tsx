@@ -27,6 +27,7 @@ export default function DayStrip({
 
   return (
     <div
+      data-allow-horizontal-scroll="true"
       className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-label="Dias da semana"
     >

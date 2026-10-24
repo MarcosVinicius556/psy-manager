@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { HiOutlineTrash } from "react-icons/hi";
-import { Card, DataTable, Empty, PageTitle, Td, Th } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { listContractTemplates, removeContractTemplate, writeContractTemplate } from "@/lib/admin/collections";
@@ -96,6 +97,18 @@ export default function ContractTemplatesPage() {
             ) : null}
           </div>
         ) : (
+          <>
+          <MobileListGrid>
+            {items.map((item) => (
+              <ListCard
+                key={item.id}
+                href={`/admin/operacional/contrato/${item.id}`}
+                title={item.nome}
+                subtitle={`Versão v${item.versao} · ${formatWhen(item.updatedAt)}`}
+              />
+            ))}
+          </MobileListGrid>
+          <ResponsiveTableWrap>
           <DataTable minWidth={720}>
             <thead>
               <tr>
@@ -129,6 +142,8 @@ export default function ContractTemplatesPage() {
               ))}
             </tbody>
           </DataTable>
+          </ResponsiveTableWrap>
+          </>
         )}
       </Card>
     </div>

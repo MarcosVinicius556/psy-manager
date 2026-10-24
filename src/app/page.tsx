@@ -203,7 +203,10 @@ export default function Home() {
           <p className="mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
             Não é uma lista de promessas. São os módulos que o consultório usa hoje: do primeiro cadastro ao PDF do relatório.
           </p>
-          <ul className="landing-feature-scroll mt-8 flex gap-4 overflow-x-auto pb-2 sm:mt-12 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
+          <ul
+            data-allow-horizontal-scroll="true"
+            className="landing-feature-scroll mt-8 flex gap-4 overflow-x-auto pb-2 sm:mt-12 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:pb-0 lg:grid-cols-3"
+          >
             {features.map(({ icon: Icon, title, text }) => (
               <li key={title} className="landing-card min-w-[min(88vw,20rem)] shrink-0 snap-center sm:min-w-0">
                 <span className="landing-icon">

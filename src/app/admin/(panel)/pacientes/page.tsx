@@ -8,7 +8,8 @@ import PatientForm from "@/components/admin/PatientForm";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
-import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
+import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { labelPatientStatus } from "@/lib/admin/format";
 import { maskPhone } from "@/lib/masks";
@@ -69,25 +70,17 @@ function PatientsContent() {
         }
       />
       <FloatingActionButton label="Novo paciente" onClick={() => replaceQuery({ novo: "1", edit: null })} />
-      <div className="sticky top-14 z-10 -mx-4 mb-4 space-y-3 bg-paper/95 px-4 py-3 backdrop-blur-md md:static md:mx-0 md:bg-transparent md:p-0">
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["todos", "Todos"],
-            ["ativo", "Ativos"],
-            ["inativo", "Inativos"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setStatus(value)}
-            className={status === value ? "btn-chip-active" : "btn-chip"}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <div className="sticky top-14 z-10 mb-4 space-y-3 bg-paper/95 py-3 backdrop-blur-md md:static md:bg-transparent md:p-0">
+        <SegmentedControl
+          ariaLabel="Filtrar pacientes"
+          value={status}
+          onChange={setStatus}
+          options={[
+            { value: "todos", label: "Todos" },
+            { value: "ativo", label: "Ativos" },
+            { value: "inativo", label: "Inativos" },
+          ]}
+        />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -103,7 +96,7 @@ function PatientsContent() {
           <Empty>Nenhum paciente encontrado.</Empty>
         ) : (
           <>
-          <div className="grid min-w-0 gap-3 md:hidden">
+          <MobileListGrid>
             {filtered.map((patient) => (
               <ListCard
                 key={patient.id}
@@ -113,7 +106,7 @@ function PatientsContent() {
                 meta={<Pill tone={patient.status === "ativo" ? "sage" : "muted"}>{labelPatientStatus(patient.status)}</Pill>}
               />
             ))}
-          </div>
+          </MobileListGrid>
           <ResponsiveTableWrap>
           <DataTable>
             <thead>
