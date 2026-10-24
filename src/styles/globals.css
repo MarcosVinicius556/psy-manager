@@ -355,6 +355,11 @@
   position: relative;
 }
 
+.landing-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3200px;
+}
+
 .landing-mockup-frame {
   overflow: hidden;
   border-radius: 20px;

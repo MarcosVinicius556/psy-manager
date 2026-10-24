@@ -1,22 +1,41 @@
+import dynamic from "next/dynamic";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import PlansSection from "@/components/landing/PlansSection";
 import HeroSection from "@/components/landing/sections/HeroSection";
-import SplitIntroSection from "@/components/landing/sections/SplitIntroSection";
-import MediaTourSection from "@/components/landing/sections/MediaTourSection";
-import StatementSection from "@/components/landing/sections/StatementSection";
-import SegmentedWorkspaceSection from "@/components/landing/sections/SegmentedWorkspaceSection";
-import CommunitySection from "@/components/landing/sections/CommunitySection";
 import BentoGridSection from "@/components/landing/sections/BentoGridSection";
-import UseCaseCarouselSection from "@/components/landing/sections/UseCaseCarouselSection";
-import FeatureGridHoverSection from "@/components/landing/sections/FeatureGridHoverSection";
 import LandingFaq from "@/components/landing/sections/LandingFaq";
 import LandingFinalCta from "@/components/landing/sections/LandingFinalCta";
+import UseCaseCarouselSection from "@/components/landing/sections/UseCaseCarouselSection";
+
+const sectionFallback = (minH: string) => (
+  <div className={`${minH} bg-landing-cream`} aria-hidden />
+);
+
+const SplitIntroSection = dynamic(() => import("@/components/landing/sections/SplitIntroSection"), {
+  loading: () => sectionFallback("min-h-[480px]"),
+});
+const MediaTourSection = dynamic(() => import("@/components/landing/sections/MediaTourSection"), {
+  loading: () => sectionFallback("min-h-[520px]"),
+});
+const StatementSection = dynamic(() => import("@/components/landing/sections/StatementSection"), {
+  loading: () => sectionFallback("min-h-[280px]"),
+});
+const SegmentedWorkspaceSection = dynamic(() => import("@/components/landing/sections/SegmentedWorkspaceSection"), {
+  loading: () => sectionFallback("min-h-[480px]"),
+});
+const CommunitySection = dynamic(() => import("@/components/landing/sections/CommunitySection"), {
+  loading: () => sectionFallback("min-h-[400px]"),
+});
+const FeatureGridHoverSection = dynamic(() => import("@/components/landing/sections/FeatureGridHoverSection"), {
+  loading: () => sectionFallback("min-h-[360px]"),
+});
 
 export default function LandingHome() {
   return (
     <div className="landing overflow-x-hidden bg-landing-cream">
       <HeroSection />
+      <div className="landing-below-fold">
       <SplitIntroSection />
       <MediaTourSection />
       <StatementSection />
@@ -25,6 +44,7 @@ export default function LandingHome() {
       <BentoGridSection />
       <UseCaseCarouselSection />
       <FeatureGridHoverSection />
+      </div>
       <PlansSection />
       <LandingFaq />
       <LandingFinalCta />
