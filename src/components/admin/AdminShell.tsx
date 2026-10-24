@@ -7,6 +7,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineMenu, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers, HiOutlineX } from "react-icons/hi";
 import { EmailBanner, OnboardingCard, TrialBanner } from "./AccountStatus";
 import BrandLogo from "@/components/BrandLogo";
+import MobileHeader, { MobileHeaderBrand } from "@/components/admin/mobile/MobileHeader";
+import { AdminPageMetaProvider, useAdminPageMeta } from "@/lib/admin/page-meta-context";
 import Avatar from "./Avatar";
 import { isExpenseAlert } from "@/lib/admin/expenses";
 import { useAuth } from "@/lib/admin/auth-context";
@@ -68,6 +70,28 @@ function isGroup(entry: NavEntry): entry is NavGroupItem {
 
 function isCurrent(href: string, pathname: string) {
   return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+}
+
+const routeTitles: { prefix: string; title: string }[] = [
+  { prefix: "/admin/agenda", title: "Agenda" },
+  { prefix: "/admin/pacientes", title: "Pacientes" },
+  { prefix: "/admin/financeiro", title: "Financeiro" },
+  { prefix: "/admin/despesas", title: "Contas a pagar" },
+  { prefix: "/admin/configuracoes", title: "Configurações" },
+  { prefix: "/admin/notificacoes", title: "Notificações" },
+  { prefix: "/admin/assinatura", title: "Assinatura" },
+  { prefix: "/admin/locais", title: "Locais" },
+  { prefix: "/admin/pacotes", title: "Pacotes" },
+  { prefix: "/admin/usuarios", title: "Usuários" },
+  { prefix: "/admin/operacional", title: "Operacional" },
+  { prefix: "/admin/atendimentos", title: "Atendimento" },
+  { prefix: "/admin/sala", title: "Sala" },
+];
+
+function titleForPath(pathname: string) {
+  if (pathname === "/admin") return "Início";
+  const match = routeTitles.find((item) => pathname.startsWith(item.prefix));
+  return match?.title ?? "Painel";
 }
 
 function groupForPath(menu: NavEntry[], pathname: string) {
@@ -253,7 +277,8 @@ function NavGroup({
   );
 }
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+function AdminShellInner({ children }: { children: React.ReactNode }) {
+  const { meta, setMeta } = useAdminPageMeta();
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user, role } = useAuth();
@@ -276,7 +301,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tabbarHidden, setTabbarHidden] = useState(false);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
+  const lastScrollY = useRef(0);
+  const mobileTitle = meta.title !== "Painel" ? meta.title : titleForPath(pathname);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -304,6 +332,24 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     setOpenGroup(groupForPath(menu, pathname));
+  }, [pathname]);
+
+  useEffect(() => {
+    setMeta({ title: titleForPath(pathname), action: undefined });
+  }, [pathname, setMeta]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches) return;
+    function onScroll() {
+      const y = window.scrollY;
+      const delta = y - lastScrollY.current;
+      if (y < 48) setTabbarHidden(false);
+      else if (delta > 8) setTabbarHidden(true);
+      else if (delta < -8) setTabbarHidden(false);
+      lastScrollY.current = y;
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, [pathname]);
 
   function toggleCollapsed() {
@@ -387,26 +433,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
       </aside>
 
-      <header
-        className="sticky top-0 z-30 bg-teal text-white md:hidden"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
-      >
-        <div className="flex h-14 items-center justify-between gap-3 px-4">
-          <Link href="/admin" aria-label="Psy Manager" className="rounded-md bg-white px-2 py-1">
-            <BrandLogo variant="lockup" height={32} className="max-w-[52vw]" />
-          </Link>
-          <button
-            type="button"
-            className="grid h-11 w-11 place-items-center rounded-md border border-white/20"
-            aria-expanded={mobileOpen}
-            aria-controls="admin-mobile-nav"
-            aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
-            onClick={() => setMobileOpen((value) => !value)}
-          >
-            {mobileOpen ? <HiOutlineX size={24} /> : <HiOutlineMenu size={24} />}
-          </button>
-        </div>
-      </header>
+      {pathname === "/admin" ? (
+        <MobileHeaderBrand onOpenMenu={() => setMobileOpen(true)} />
+      ) : (
+        <MobileHeader title={mobileTitle} action={meta.action} onOpenMenu={() => setMobileOpen(true)} />
+      )}
 
       {mobileOpen && (
         <button
@@ -479,7 +510,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
       </div>
 
-      <nav className="admin-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-[#d7e0d8] bg-white md:hidden" aria-label="Atalhos" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav
+        className={`admin-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-[#d7e0d8] bg-white/95 backdrop-blur-md transition-transform duration-300 ease-out md:hidden ${
+          tabbarHidden ? "translate-y-full" : "translate-y-0"
+        }`}
+        aria-label="Atalhos"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="grid grid-cols-5">
           {(
             [
@@ -495,16 +532,22 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[0.65rem] font-medium leading-tight ${current ? "text-accent" : "text-teal"}`}
+                aria-current={current ? "page" : undefined}
+                className={`relative flex min-h-[3.65rem] min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[0.65rem] font-semibold leading-tight ${
+                  current ? "text-accent" : "text-teal/80"
+                }`}
               >
-                <Icon size={22} />
+                {current ? (
+                  <span className="absolute inset-x-2 top-1 h-0.5 rounded-full bg-accent" aria-hidden="true" />
+                ) : null}
+                <Icon size={22} className={current ? "text-accent" : undefined} />
                 <span className="max-w-full">{item.label}</span>
               </Link>
             );
           })}
           <button
             type="button"
-            className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[0.68rem] font-medium ${mobileOpen ? "text-accent" : "text-teal"}`}
+            className={`flex min-h-[3.65rem] flex-col items-center justify-center gap-0.5 px-1 text-[0.65rem] font-semibold ${mobileOpen ? "text-accent" : "text-teal/80"}`}
             aria-expanded={mobileOpen}
             aria-controls="admin-mobile-nav"
             onClick={() => setMobileOpen(true)}
@@ -516,7 +559,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       </nav>
 
       <div className={`pb-[calc(4.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
-        <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-5 md:py-10">
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 md:py-10">
           <EmailBanner />
           <TrialBanner />
           <OnboardingCard />
@@ -524,5 +567,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminShell({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminPageMetaProvider>
+      <AdminShellInner>{children}</AdminShellInner>
+    </AdminPageMetaProvider>
   );
 }

@@ -437,6 +437,11 @@ header.landing:not(.header-on-media) .btn-text:hover:not(:disabled) {
     linear-gradient(to left, rgba(36, 48, 40, 0.14), rgba(36, 48, 40, 0)) right center / 12px 100% no-repeat scroll;
 }
 
+.landing-feature-scroll {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 767px) {
   input,
   select,

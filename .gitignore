@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Helper local do dono para copiar variáveis da Vercel. Não versionar.
 scripts/sync-vercel-env.mjs
+artifacts/
+test-results/
+*-debug.log

@@ -9,7 +9,11 @@ import DayTimeline from "@/components/admin/DayTimeline";
 import Drawer from "@/components/admin/Drawer";
 import MonthCalendar from "@/components/admin/MonthCalendar";
 import SetupNeeded from "@/components/admin/SetupNeeded";
-import { Card, DataTable, Empty, PageTitle, Pill, Td, Th } from "@/components/admin/ui";
+import DayStrip from "@/components/admin/mobile/DayStrip";
+import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
+import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import {
@@ -180,7 +184,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
     );
   });
 
-  if (loading) return <p className="text-muted">Carregando agenda...</p>;
+  if (loading) return <ListSkeleton rows={5} />;
 
   const missingPatient = patients.length === 0;
   const missingLocation = !locationId && workplaces.length === 0;
@@ -204,7 +208,8 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   );
 
   return (
-    <div>
+    <div className="relative">
+      <FloatingActionButton label="Novo atendimento" onClick={() => openNew()} />
       {locationId ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -249,8 +254,20 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           </button>
         ))}
       </div>
+      {(period === "hoje" || period === "semana") && (
+        <div className="mb-4 md:hidden">
+          <DayStrip
+            selected={selected}
+            marks={marks}
+            onSelect={(date) => {
+              setSelected(date);
+              setMonth(date.slice(0, 7));
+            }}
+          />
+        </div>
+      )}
       <div className="grid items-start gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <Card className="max-lg:order-2">
+        <Card className={`max-lg:order-2 ${period === "hoje" ? "max-md:hidden" : ""}`}>
           <p className="mb-3 text-sm text-ink">
             Marcações do local <strong>{placeName}</strong>
           </p>
@@ -320,6 +337,23 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           {visible.length === 0 ? (
             <Empty>Nenhum atendimento neste período.</Empty>
           ) : (
+            <>
+            <div className="grid gap-3 md:hidden">
+              {visible.map((item) => (
+                <ListCard
+                  key={item.id}
+                  href={`/admin/atendimentos/${item.id}`}
+                  title={visiblePatient(item.patientId)}
+                  subtitle={`${formatDate(item.date)} · ${item.startTime}–${item.endTime}`}
+                  meta={
+                    <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
+                      {labelAppointmentStatus(item.status)}
+                    </Pill>
+                  }
+                />
+              ))}
+            </div>
+            <ResponsiveTableWrap>
             <DataTable>
               <thead>
                 <tr>
@@ -365,6 +399,8 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
                 ))}
               </tbody>
             </DataTable>
+            </ResponsiveTableWrap>
+            </>
           )}
         </Card>
         </div>
