@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const demoEmail = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
-const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
+import { loginAsDemo } from "./helpers/login";
 
 const loggedOutRoutes = [
   "/admin/login",
@@ -37,11 +36,7 @@ test.describe("platform routes — no client exceptions", () => {
 
   test.describe("logged in", () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto("/admin/login");
-      await page.getByPlaceholder("Seu e-mail").fill(demoEmail);
-      await page.getByPlaceholder("Sua senha").fill(demoPassword);
-      await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
-      await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("login"), { timeout: 60_000 });
+      await loginAsDemo(page);
     });
 
     for (const route of loggedInRoutes) {

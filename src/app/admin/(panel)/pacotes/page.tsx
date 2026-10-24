@@ -5,7 +5,8 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import Drawer from "@/components/admin/Drawer";
 import Select from "@/components/admin/Select";
-import { Card, DataTable, Empty, PageTitle, Field, Pill, Td, Th, fieldClass } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, Field, Pill, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { formatDate, formatMoney, labelAppointmentStatus } from "@/lib/admin/format";
 import { PACKAGE_TYPES, SINGLE_SESSION_PACKAGE_MESSAGE, packageIntervalDays, packageTypeLabel } from "@/lib/admin/packages";
@@ -207,6 +208,19 @@ export default function PackagesPage() {
                 : "Nenhum pacote neste filtro."}
           </Empty>
         ) : (
+          <>
+          <MobileListGrid>
+            {filtered.map((item) => (
+              <ListCard
+                key={item.id}
+                title={item.nome}
+                subtitle={`${packageTypeLabel(item.tipo)} · ${item.sessoes} sessões`}
+                meta={item.arquivado ? <Pill tone="muted">Arquivado</Pill> : undefined}
+                onClick={() => openEdit(item)}
+              />
+            ))}
+          </MobileListGrid>
+          <ResponsiveTableWrap>
           <DataTable>
             <thead>
               <tr>
@@ -272,6 +286,8 @@ export default function PackagesPage() {
               })}
             </tbody>
           </DataTable>
+          </ResponsiveTableWrap>
+          </>
         )}
       </Card>
       <Drawer

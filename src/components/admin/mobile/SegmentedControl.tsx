@@ -13,6 +13,7 @@ export default function SegmentedControl<T extends string>({
 }) {
   return (
     <div
+      data-allow-horizontal-scroll="true"
       className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label={ariaLabel}
