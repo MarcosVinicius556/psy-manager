@@ -47,3 +47,13 @@ scripts/sync-vercel-env.mjs
 artifacts/
 test-results/
 *-debug.log
+
+# backups locais / CI
+.backup-work/
+.backup-restore-work/
+.backup-verify/
+.backup-verify-work/
+backup-staging/
+*.tar.gz
+*.tar.gz.age
+psy-manager-backup-*.manifest.json
