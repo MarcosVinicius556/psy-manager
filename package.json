@@ -18,6 +18,7 @@
   "dependencies": {
     "cloudinary": "^2.11.0",
     "firebase": "^13.0.0",
+    "firebase-admin": "^13.10.0",
     "jspdf": "^4.2.1",
     "next": "15.5.28",
     "nodemailer": "^7.0.5",
@@ -38,7 +39,6 @@
     "@types/react-dom": "^19",
     "@types/streamifier": "^0.1.2",
     "eslint": "^9.39.5",
-    "firebase-admin": "^13.0.0",
     "firebase-tools": "^14.0.0",
     "eslint-config-next": "^15.5.28",
     "postcss": "^8.5.26",

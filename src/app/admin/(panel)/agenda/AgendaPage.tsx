@@ -28,6 +28,7 @@ import {
 import { fromMinutes, rangesOverlap, SLOT_STEP, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
 import type { Appointment } from "@/lib/admin/types";
+import { getFirebaseAuth } from "@/lib/admin/firebase";
 
 type Period = "hoje" | "semana" | "mes";
 
@@ -42,6 +43,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   const [selected, setSelected] = useState(initial);
   const [month, setMonth] = useState(initial.slice(0, 7));
   const [placeId, setPlaceId] = useState(locationId || "");
+  const [googleBusy, setGoogleBusy] = useState<{ startTime: string; endTime: string; label?: string }[]>([]);
   const currentMember = members.find(
     (member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase()
   );
@@ -55,6 +57,46 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   useEffect(() => {
     if (locationId) setPlaceId(locationId);
   }, [locationId]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadGoogleBusy() {
+      const authUser = getFirebaseAuth().currentUser;
+      if (!authUser) {
+        if (active) setGoogleBusy([]);
+        return;
+      }
+      try {
+        const token = await authUser.getIdToken();
+        const locationQuery = activeLocationId ? `&locationId=${encodeURIComponent(activeLocationId)}` : "";
+        const response = await fetch(
+          `/api/integrations/google-calendar/busy?from=${encodeURIComponent(selected)}&to=${encodeURIComponent(selected)}${locationQuery}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!response.ok) {
+          if (active) setGoogleBusy([]);
+          return;
+        }
+        const data = (await response.json()) as {
+          blocks?: { date: string; startTime: string; endTime: string; label?: string; masked?: boolean }[];
+        };
+        const blocks = (data.blocks || [])
+          .filter((item) => item.date === selected)
+          .map((item) => ({
+            startTime: item.startTime,
+            endTime: item.endTime,
+            label: item.label || "Ocupado",
+          }));
+        if (active) setGoogleBusy(blocks);
+      } catch {
+        if (active) setGoogleBusy([]);
+      }
+    }
+    void loadGoogleBusy();
+    return () => {
+      active = false;
+    };
+  }, [selected, user?.uid, activeLocationId]);
 
   useEffect(() => {
     if (locationId) return;
@@ -264,6 +306,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
             ranges={dayRanges}
             onPick={(time) => openNew(time)}
             onPickOnline={(time) => openNew(time, true)}
+            externalBusy={googleBusy}
           />
           {outsideGrid.length > 0 && (
             <div className="mt-4 border-t border-[#e7eee8] pt-4">

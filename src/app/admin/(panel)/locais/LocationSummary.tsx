@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { locationPeople } from "@/lib/admin/workplaces";
 import type { CareLocation } from "@/lib/admin/types";
+import GoogleCalendarLocationIntegration from "@/components/admin/GoogleCalendarLocationIntegration";
 
 export default function LocationSummary({ location }: { location: CareLocation }) {
   const router = useRouter();
@@ -73,6 +74,7 @@ export default function LocationSummary({ location }: { location: CareLocation }
           <LocationMenu id={location.id} className="btn-text" />
         </div>
       </Card>
+      <GoogleCalendarLocationIntegration locationId={location.id} locationName={location.nome} />
       <Drawer
         open={editing}
         title={sharing ? "Compartilhar local" : "Editar local"}

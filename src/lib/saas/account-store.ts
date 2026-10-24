@@ -1,6 +1,6 @@
 import { FirebaseError } from "firebase/app";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, type DocumentData } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, runTransaction, setDoc, updateDoc, type DocumentData } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/admin/firebase";
 import {
   buildReplayDeniedAccount,
@@ -113,10 +113,20 @@ export async function loadPlans() {
 
 export async function reserveTrial(email: string, uid: string) {
   const ref = doc(getFirebaseDb(), "trialClaims", email);
-  const snapshot = await getDoc(ref);
-  if (snapshot.exists()) return snapshot.data().uid === uid;
-  await setDoc(ref, { email, uid, ownerUid: uid, createdAt: new Date().toISOString() });
-  return true;
+  try {
+    return await runTransaction(getFirebaseDb(), async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (snapshot.exists()) return snapshot.data().uid === uid;
+      transaction.set(ref, { email, uid, ownerUid: uid, createdAt: new Date().toISOString() });
+      return true;
+    });
+  } catch (error) {
+    if (error instanceof FirebaseError && error.code === "permission-denied") {
+      const snapshot = await getDoc(ref);
+      if (snapshot.exists()) return snapshot.data().uid === uid;
+    }
+    throw error;
+  }
 }
 
 export async function registerWorkspace(input: { nome: string; email: string; password: string }) {

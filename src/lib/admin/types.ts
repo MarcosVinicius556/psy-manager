@@ -99,6 +99,8 @@ export interface Appointment {
   status: AppointmentStatus;
   clinical: ClinicalRecord;
   accessUids: string[];
+  googleEventId: string | null;
+  googleLocationEventId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -216,7 +218,10 @@ export interface PaymentNotification {
 }
 
 export type PatientInput = Omit<Patient, "id" | "createdAt" | "contratoAssinado">;
-export type AppointmentInput = Omit<Appointment, "id" | "createdAt" | "updatedAt" | "accessUids" | "creditoEmHaver">;
+export type AppointmentInput = Omit<
+  Appointment,
+  "id" | "createdAt" | "updatedAt" | "accessUids" | "creditoEmHaver" | "googleEventId" | "googleLocationEventId"
+> & { googleEventId?: string | null; googleLocationEventId?: string | null };
 export type ExpenseInput = Omit<Expense, "id" | "createdAt" | "accessUids" | "ownerUid">;
 export type LocationInput = Pick<CareLocation, "nome" | "endereco" | "observacoes" | "memberIds" | "memberUids">;
 
