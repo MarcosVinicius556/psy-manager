@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import MonthTotalCard from "@/components/admin/MonthTotalCard";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -11,6 +11,7 @@ import PaymentForm from "@/components/admin/PaymentForm";
 import ReceivePayment from "@/components/admin/ReceivePayment";
 import { ReceiptLinks } from "@/components/admin/FileAttachments";
 import SetupNeeded from "@/components/admin/SetupNeeded";
+import FinanceFilterSheet from "@/components/admin/mobile/FinanceFilterSheet";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import ListCard from "@/components/admin/mobile/ListCard";
 import StackedRow from "@/components/admin/mobile/StackedRow";
@@ -50,6 +51,11 @@ function FinanceContent() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [view, setView] = useState<"lancamentos" | "emdia" | "aberto">("lancamentos");
+
+  useEffect(() => {
+    const preset = params.get("view");
+    if (preset === "aberto" || preset === "emdia" || preset === "lancamentos") setView(preset);
+  }, [params]);
   const [receiving, setReceiving] = useState<Payment | null>(null);
   const today = todayISO();
   const currentMonth = today.slice(0, 7);
@@ -85,7 +91,7 @@ function FinanceContent() {
   }
 
   return (
-    <div>
+    <div className="admin-fab-pad">
       <PageTitle
         title="Contas a receber"
         subtitle="Pagamentos previstos, recebidos e em aberto."
@@ -145,7 +151,17 @@ function FinanceContent() {
 
       {view === "lancamentos" && (
         <Card>
-          <div className="sticky top-14 z-10 -mx-4 mb-4 grid gap-3 bg-white px-4 py-3 md:static md:mx-0 md:grid-cols-4 md:bg-transparent md:p-0">
+          <FinanceFilterSheet
+            status={status}
+            month={month}
+            from={from}
+            to={to}
+            onStatus={setStatus}
+            onMonth={setMonth}
+            onFrom={setFrom}
+            onTo={setTo}
+          />
+          <div className="mb-4 hidden gap-3 md:grid md:grid-cols-4">
             <Select
               value={status}
               onChange={(next) => setStatus(next as typeof status)}
@@ -184,25 +200,25 @@ function FinanceContent() {
                     }
                     secondary={`Vence ${formatDate(payment.dueDate)} · ${payment.descricao}`}
                     meta={
-                      <div>
+                      <div className="flex flex-col items-end gap-1">
                         <p className="font-num font-semibold text-ink">{formatMoney(agreedAmount(payment))}</p>
                         <Pill tone={payment.status === "pago" ? "teal" : isUnpaid(payment) ? "accent" : "sage"}>
                           {labelPaymentStatus(payment.status)}
                         </Pill>
                       </div>
                     }
-                    actions={
-                      <>
-                        {remaining > 0 ? (
-                          <span className="text-xs text-muted">
-                            Faltam {formatMoney(remaining)}
-                            {received > 0 ? ` · recebido ${formatMoney(received)}` : ""}
-                          </span>
-                        ) : null}
-                        <button type="button" className={canReceive ? "btn-row" : "btn-text"} onClick={() => setReceiving(payment)}>
-                          {canReceive ? "Receber" : "Histórico"}
-                        </button>
-                      </>
+                    hint={
+                      remaining > 0 ? (
+                        <>
+                          Faltam {formatMoney(remaining)}
+                          {received > 0 ? ` · recebido ${formatMoney(received)}` : ""}
+                        </>
+                      ) : null
+                    }
+                    action={
+                      <button type="button" className={`min-h-11 min-w-[6.5rem] ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => setReceiving(payment)}>
+                        {canReceive ? "Receber" : "Histórico"}
+                      </button>
                     }
                   />
                 );

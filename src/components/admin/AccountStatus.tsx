@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { Field, fieldClass } from "@/components/admin/ui";
@@ -14,14 +14,14 @@ export function TrialBanner() {
   if (!account) return null;
   if (access.mode === "blocked") {
     return (
-      <div className="mb-6 rounded-md border border-[#e8cfc4] bg-[#f6e6df] px-4 py-3 text-sm text-accent">
+      <div className="rounded-md border border-[#e8cfc4] bg-[#f6e6df] px-4 py-3 text-sm text-accent">
         Conta {account.accountStatus === "desativada" ? "desativada" : "suspensa"}. Os dados do consultório não foram apagados. A área de assinatura continua disponível.
       </div>
     );
   }
   if (access.mode === "restricted") {
     return (
-      <div className="mb-6 rounded-md border border-[#e8cfc4] bg-[#f6e6df] px-4 py-3 text-sm">
+      <div className="rounded-md border border-[#e8cfc4] bg-[#f6e6df] px-4 py-3 text-sm">
         <p className="font-medium text-accent">A avaliação não está mais liberando novos lançamentos.</p>
         <p className="mt-1 text-muted">Pacientes, agenda e financeiro já salvos continuam no painel. Para voltar a lançar, use a página de assinatura. Nenhum pagamento é confirmado enquanto o provedor não estiver ligado.</p>
         <Link href="/admin/assinatura" className="mt-2 inline-flex font-semibold text-teal">Ver assinatura</Link>
@@ -32,20 +32,62 @@ export function TrialBanner() {
   const days = daysRemaining(account.trialEndsAtMillis, Date.now());
   const end = account.trialEndsAt ? new Date(account.trialEndsAt).toLocaleString("pt-BR") : "";
   return (
-    <div className={`mb-6 rounded-md border px-4 py-3 text-sm ${days <= 7 ? "border-[#e8cfc4] bg-[#f6e6df]" : "border-leaf bg-sky-soft"}`}>
+    <div className={`rounded-md border px-4 py-3 text-sm ${days <= 7 ? "border-[#e8cfc4] bg-[#f6e6df]" : "border-leaf bg-sky-soft"}`}>
       Avaliação gratuita até {end}. {days === 1 ? "Resta 1 dia." : `Restam ${days} dias.`}{" "}
       <Link href="/admin/assinatura" className="font-semibold text-teal">Ver condições</Link>
     </div>
   );
 }
 
+const EMAIL_BANNER_KEY = "psy-manager.email-banner-dismissed";
+
 export function EmailBanner() {
   const { emailVerified, account } = useSaas();
-  if (!account || account.billingAccess === "legado" || emailVerified) return null;
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!account?.uid) return;
+    try {
+      const raw = sessionStorage.getItem(EMAIL_BANNER_KEY);
+      if (raw === account.uid) setDismissed(true);
+    } catch {
+      /* ignore */
+    }
+  }, [account?.uid]);
+
+  if (!account || account.billingAccess === "legado" || emailVerified || dismissed) return null;
+
+  function dismiss() {
+    try {
+      sessionStorage.setItem(EMAIL_BANNER_KEY, account!.uid);
+    } catch {
+      /* ignore */
+    }
+    setDismissed(true);
+  }
+
   return (
-    <p className="mb-6 rounded-md border border-[#d7e0d8] bg-white px-4 py-3 text-sm text-muted">
-      Confirme o e-mail {account.email} pelo link enviado no cadastro. O acesso de avaliação já está aberto; a confirmação ajuda a recuperar a senha.
-    </p>
+    <div
+      role="status"
+      className="flex items-start gap-3 rounded-md border border-leaf bg-sky-soft px-4 py-3 text-sm text-ink"
+    >
+      <p className="min-w-0 flex-1 leading-relaxed">
+        <span className="font-medium text-teal">Confirme o e-mail</span>{" "}
+        <span className="break-all">{account.email}</span> pelo link enviado no cadastro. O acesso de avaliação já está aberto; a confirmação ajuda a recuperar a senha.
+      </p>
+      <button type="button" className="btn-text shrink-0 min-h-11 px-3 py-2 text-xs" onClick={dismiss} aria-label="Dispensar aviso de e-mail">
+        Dispensar
+      </button>
+    </div>
+  );
+}
+
+export function AdminAccountNotices() {
+  return (
+    <div className="mb-4 grid gap-3">
+      <EmailBanner />
+      <TrialBanner />
+    </div>
   );
 }
 

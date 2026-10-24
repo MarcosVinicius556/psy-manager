@@ -1,11 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { AdminAccountNotices } from "@/components/admin/AccountStatus";
 import { useSetAdminPageMeta } from "@/lib/admin/page-meta-context";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-md bg-white p-4 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-6 ${className}`}>
+    <section className={`min-w-0 overflow-hidden rounded-md bg-white p-4 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-6 ${className}`}>
       {children}
     </section>
   );
@@ -14,21 +15,37 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 export function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   useSetAdminPageMeta({ title, action });
   return (
-    <div className="mb-6 flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-4">
-      <div className="min-w-0 max-md:hidden">
-        <h1 className="text-[clamp(1.7rem,1.2rem+2vw,2.4rem)] font-medium leading-tight text-teal">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">{subtitle}</p>}
-      </div>
-      <div className="min-w-0 md:hidden">
-        {subtitle ? <p className="text-sm leading-relaxed text-muted">{subtitle}</p> : null}
-      </div>
-      {action ? (
-        <div className="flex w-full flex-col gap-2 max-md:hidden md:w-auto md:flex-row md:flex-wrap [&>*]:w-full md:[&>*]:w-auto">
-          {action}
+    <>
+      <div className="mb-4 flex flex-col items-stretch gap-3 md:mb-6 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-4">
+        <div className="min-w-0 max-md:hidden">
+          <h1 className="text-[clamp(1.7rem,1.2rem+2vw,2.4rem)] font-medium leading-tight text-teal">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">{subtitle}</p>}
         </div>
-      ) : null}
+        <div className="min-w-0 md:hidden">
+          {subtitle ? <p className="text-sm leading-relaxed text-muted">{subtitle}</p> : null}
+        </div>
+        {action ? (
+          <div className="flex w-full flex-col gap-2 max-md:hidden md:w-auto md:flex-row md:flex-wrap [&>*]:w-full md:[&>*]:w-auto">
+            {action}
+          </div>
+        ) : null}
+      </div>
+      <AdminAccountNotices />
+    </>
+  );
+}
+
+export function WidgetSectionTitle({ title, action }: { title: string; action?: ReactNode }) {
+  return (
+    <div className="admin-section-title mb-4 flex items-end justify-between gap-3">
+      <h2 className="min-w-0 text-xl font-medium leading-tight text-teal sm:text-2xl">{title}</h2>
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
+}
+
+export function WidgetSectionFooter({ children }: { children: ReactNode }) {
+  return <div className="mt-4 flex justify-end border-t border-[#eef2ee] pt-4">{children}</div>;
 }
 
 export const fieldClass =

@@ -13,7 +13,7 @@ const publicScreens = [
 ] as const;
 
 const authScreens = [
-  { name: "admin-home", path: "/admin" },
+  { name: "admin-dashboard", path: "/admin" },
   { name: "admin-agenda", path: "/admin/agenda" },
   { name: "admin-pacientes", path: "/admin/pacientes" },
   { name: "admin-financeiro", path: "/admin/financeiro" },

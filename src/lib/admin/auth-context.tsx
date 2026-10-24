@@ -67,11 +67,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getRedirectResult(auth)
       .then(async (credential) => {
         if (!credential) return;
-        const result = await completeGoogleProfile(credential.user);
-        rememberGoogleSignInRoute(result.eligible);
+        try {
+          const result = await completeGoogleProfile(credential.user);
+          rememberGoogleSignInRoute(result.eligible);
+        } catch (error) {
+          console.error(error);
+          if (error instanceof FirebaseError && error.code === "auth/operation-not-allowed") return;
+          await signOut(auth).catch(() => undefined);
+        }
       })
       .catch((error) => {
         console.error(error);
+        if (error instanceof FirebaseError && error.code === "auth/operation-not-allowed") return;
       })
       .finally(() => {
         if (active) setGoogleAuthBusy(false);
@@ -136,6 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { eligible: true, pendingRedirect: true };
       }
       if (error instanceof FirebaseError && error.code === "auth/popup-closed-by-user") {
+        throw error;
+      }
+      if (error instanceof FirebaseError && error.code === "auth/operation-not-allowed") {
         throw error;
       }
       if (error instanceof FirebaseError) throw error;
