@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 import BrandLogo from "@/components/BrandLogo";
 
 const navLinks = [
-  { href: "/#produto", label: "Produto" },
-  { href: "/#recursos", label: "Recursos" },
-  { href: "/#planos", label: "Valores" },
-  { href: "/#faq", label: "Perguntas" },
+  { href: "/#funcionalidades", label: "Funcionalidades" },
+  { href: "/#seguranca", label: "Segurança" },
+  { href: "/#planos", label: "Preços/Planos" },
+  { href: "/#faq", label: "Dúvidas" },
 ];
 
 export default function Header() {
@@ -50,27 +50,27 @@ export default function Header() {
   if (pathname.startsWith("/admin") || pathname.startsWith("/feedback") || pathname.startsWith("/plataforma") || pathname.startsWith("/cadastro")) return null;
 
   const solid = scrolled || open;
-  const barColor = solid ? "bg-ink" : "bg-white";
+  const barColor = "bg-ink";
 
   return (
     <>
     <header
-      className={`landing fixed inset-x-0 top-0 z-[1000] pb-3 transition-[background,box-shadow,color] duration-300 ease-in-out ${
-        solid ? "header-scrolled shadow-[0_1px_0_rgba(61,82,64,0.1)] backdrop-blur-[16px]" : "header-on-media"
+      className={`landing fixed inset-x-0 top-0 z-[1000] pb-3 transition-[background,box-shadow] duration-300 ease-in-out ${
+        solid ? "header-scrolled shadow-[0_1px_0_rgba(61,82,64,0.08)] backdrop-blur-[16px]" : "header-transparent"
       }`}
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
       <div className="site-container relative z-[1002] flex items-center justify-between gap-3">
         <Link href="/" className="flex min-w-0 items-center" onClick={() => setOpen(false)} aria-label="Psy Manager">
           <BrandLogo
-            variant={solid ? "lockup" : "mark"}
-            height={solid ? 40 : 36}
+            variant="lockup"
+            height={40}
             className="max-h-9 w-auto max-w-[58vw] sm:max-h-10"
             priority
           />
         </Link>
 
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-6 xl:flex" aria-label="Seções">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-5 xl:flex" aria-label="Seções">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="landing-nav-link">
               {link.label}
@@ -78,13 +78,13 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3 sm:gap-5">
+        <div className="flex items-center gap-3 sm:gap-4">
           <span className="hidden items-center gap-3 xl:flex">
-            <Link href="/admin/login" className="btn-text">
+            <Link href="/admin/login" className="btn-text landing-pill-ghost min-h-11">
               Entrar
             </Link>
-            <Link href="/cadastro" className="btn-primary">
-              Começar gratuitamente
+            <Link href="/cadastro" className="btn-primary landing-pill-cta min-h-11">
+              Testar grátis
             </Link>
           </span>
           <button
@@ -120,7 +120,7 @@ export default function Header() {
       aria-label="Seções"
       inert={open ? undefined : true}
       aria-hidden={open ? undefined : true}
-      className={`landing fixed inset-y-0 right-0 z-[1002] flex w-[min(20rem,86vw)] flex-col gap-1 overflow-y-auto bg-paper px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] shadow-[-20px_0_40px_rgba(61,82,64,0.1)] transition-transform duration-300 ease-in-out xl:hidden ${
+      className={`landing fixed inset-y-0 right-0 z-[1002] flex w-[min(20rem,86vw)] flex-col gap-1 overflow-y-auto bg-landing-cream px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] shadow-[-20px_0_40px_rgba(61,82,64,0.1)] transition-transform duration-300 ease-in-out xl:hidden ${
         open ? "translate-x-0" : "pointer-events-none translate-x-full"
       }`}
     >
@@ -134,11 +134,11 @@ export default function Header() {
           {link.label}
         </Link>
       ))}
-      <Link href="/admin/login" className="btn-text site-menu-cta mt-2 w-full" onClick={() => setOpen(false)}>
+      <Link href="/admin/login" className="btn-text site-menu-cta landing-pill-ghost mt-2 w-full min-h-11" onClick={() => setOpen(false)}>
         Entrar
       </Link>
-      <Link href="/cadastro" className="btn-primary site-menu-cta mt-3 w-full" onClick={() => setOpen(false)}>
-        Começar gratuitamente
+      <Link href="/cadastro" className="btn-primary site-menu-cta landing-pill-cta mt-3 w-full min-h-11" onClick={() => setOpen(false)}>
+        Testar grátis
       </Link>
     </nav>
     </>
