@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import type { Metadata, Viewport } from "next";
 import Header from "@/components/header";
 import Providers from "@/components/Providers";
+import { getSiteUrl } from "@/lib/site";
 import { Inter, Cormorant_Garamond, Figtree } from "next/font/google";
 
 export const viewport: Viewport = {
@@ -12,6 +13,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "Psy Manager | Gestão para psicólogos",
   icons: {
     icon: [

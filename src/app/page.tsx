@@ -203,12 +203,9 @@ export default function Home() {
           <p className="mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
             Não é uma lista de promessas. São os módulos que o consultório usa hoje: do primeiro cadastro ao PDF do relatório.
           </p>
-          <ul
-            data-allow-horizontal-scroll="true"
-            className="landing-feature-scroll mt-8 flex gap-4 overflow-x-auto pb-2 sm:mt-12 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:pb-0 lg:grid-cols-3"
-          >
+          <ul className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="landing-card min-w-[min(88vw,20rem)] shrink-0 snap-center sm:min-w-0">
+              <li key={title} className="landing-card min-w-0">
                 <span className="landing-icon">
                   <Icon size={20} />
                 </span>
@@ -289,7 +286,7 @@ export default function Home() {
           <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-teal/60">Privacidade</p>
           <h2 className="mt-3 text-[clamp(1.7rem,1.15rem+2.2vw,3rem)] leading-[1.18]">Dados do consultório ficam no consultório</h2>
           <p className="mt-4 leading-relaxed text-muted">
-            O cadastro pede nome, e-mail e senha. O nome do consultório fica para quando você quiser configurar o espaço. Dados de pacientes e evoluções ficam na conta de quem atende. O fim da avaliação não apaga esse material. O texto completo está nos termos e na política de privacidade — e ainda precisa de revisão jurídica antes de uma oferta comercial fechada.
+            O cadastro pede nome, e-mail e senha. Dados de pacientes e registros clínicos ficam na conta de quem atende; a plataforma não abre o prontuário para operação ou suporte. A comunicação com o sistema usa criptografia em trânsito (HTTPS). Os registros do atendimento são guardados conforme a Resolução CFP nº 001/2009 (prazo mínimo de cinco anos). Atendimentos por tecnologias da informação seguem a Resolução CFP nº 9/2024. O texto completo está nos termos e na política de privacidade.
           </p>
           <div className="mt-6 flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link href="/termos" className="inline-flex min-h-11 items-center font-semibold text-teal">Termos de uso</Link>

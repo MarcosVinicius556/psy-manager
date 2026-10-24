@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -13,7 +14,8 @@ import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import StackedRow from "@/components/admin/mobile/StackedRow";
-import { Card, DataTable, Empty, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, isUnpaid, paymentReceipts, remainingAmount } from "@/lib/admin/finance";
@@ -115,13 +117,15 @@ export default function PatientDetailPage() {
   const [pendingCancel, setPendingCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [savingContract, setSavingContract] = useState(false);
-  const [tab, setTab] = useState<"dados" | "finalizados" | "futuros" | "pagamentos" | "feedbacks">("dados");
+  const [tab, setTab] = useState<"prontuario" | "agenda" | "financeiro">("prontuario");
   const [receiving, setReceiving] = useState<Payment | null>(null);
   const patient = patients.find((item) => item.id === params.id);
   const history = appointments
     .filter((item) => item.patientId === params.id)
     .sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
-  const finished = history.filter((item) => item.status === "concluido" || item.status === "faltou");
+  const finished = history
+    .filter((item) => item.status === "concluido" || item.status === "faltou")
+    .sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
   const upcoming = history
     .filter((item) => item.status === "agendado" || item.status === "em_andamento")
     .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`));
@@ -186,20 +190,17 @@ export default function PatientDetailPage() {
       <div className="mb-4">
         <SegmentedControl
           ariaLabel="Seções da ficha"
-          layout="equal"
           value={tab}
           onChange={setTab}
           options={[
-            { value: "dados", label: "Dados" },
-            { value: "finalizados", label: "Finalizados" },
-            { value: "futuros", label: "Futuros" },
-            { value: "pagamentos", label: "Pagamentos" },
-            { value: "feedbacks", label: "Feedbacks" },
+            { value: "prontuario", label: "Prontuário" },
+            { value: "agenda", label: "Agenda" },
+            { value: "financeiro", label: "Financeiro" },
           ]}
         />
       </div>
 
-      {tab === "dados" && <Card className="mb-6">
+      {tab === "prontuario" && <Card className="mb-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-medium text-teal">Dados cadastrais</h2>
           <button type="button" className="btn-row" onClick={() => setEditing(true)}>
@@ -215,8 +216,8 @@ export default function PatientDetailPage() {
               <dt className="text-muted">Foto</dt>
               <dd className="mt-2">
                 {patient.foto ? (
-                  <a href={patient.foto} target="_blank" rel="noreferrer">
-                    <img src={patient.foto} alt={`Foto de ${patient.nome}`} className="h-24 w-24 rounded-md object-cover" />
+                  <a href={patient.foto} target="_blank" rel="noreferrer" className="relative block h-24 w-24 overflow-hidden rounded-md">
+                    <Image src={patient.foto} alt={`Foto de ${patient.nome}`} fill className="object-cover" sizes="96px" unoptimized />
                   </a>
                 ) : (
                   "—"
@@ -227,7 +228,7 @@ export default function PatientDetailPage() {
           </dl>
       </Card>}
 
-      {tab === "dados" && (
+      {tab === "prontuario" && (
         <Card className="mb-6">
           <h2 className="mb-2 text-2xl font-medium text-teal">Contrato</h2>
           <p className="mb-4 text-sm leading-relaxed text-muted">
@@ -249,112 +250,174 @@ export default function PatientDetailPage() {
         </Card>
       )}
 
-      {tab === "finalizados" && (
+      {tab === "prontuario" && (
         <Card className="mb-6">
-          <h2 className="mb-4 text-2xl font-medium text-teal">Atendimentos finalizados</h2>
+          <h2 className="mb-2 text-2xl font-medium text-teal">Linha do tempo</h2>
+          <p className="mb-4 text-sm text-muted">Sessões concluídas ou com falta, da mais recente para a mais antiga.</p>
           {finished.length === 0 ? (
             <Empty>Nenhum atendimento realizado para este paciente.</Empty>
           ) : (
-            <DataTable>
-              <thead>
-                <tr>
-                  <Th>Data</Th>
-                  <Th>Horário</Th>
-                  <Th>Modalidade</Th>
-                  <Th>Sessão</Th>
-                  <Th>Status</Th>
-                  <Th className="text-right">Ações</Th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              <ol className="admin-mobile-only space-y-3" data-mobile-list>
                 {finished.map((item) => (
-                  <tr key={item.id} className="hover:bg-paper">
-                    <Td>{formatDate(item.date)}</Td>
-                    <Td>
-                      {item.startTime}–{item.endTime}
-                    </Td>
-                    <Td>{labelModality(item.modality)}</Td>
-                    <Td>{labelSessionType(item.sessionType)}</Td>
-                    <Td>
-                      <Pill>{labelAppointmentStatus(item.status)}</Pill>
-                    </Td>
-                    <Td className="text-right">
-                      <Link href={`/admin/atendimentos/${item.id}`} className="btn-row">
-                        Visualizar
-                      </Link>
-                    </Td>
-                  </tr>
+                  <li key={item.id} className="min-w-0">
+                    <ListCard
+                      href={`/admin/atendimentos/${item.id}`}
+                      title={formatDate(item.date)}
+                      subtitle={`${item.startTime}–${item.endTime} · ${labelModality(item.modality)} · ${labelSessionType(item.sessionType)}`}
+                      meta={<Pill>{labelAppointmentStatus(item.status)}</Pill>}
+                    />
+                  </li>
                 ))}
-              </tbody>
-            </DataTable>
+              </ol>
+              <ResponsiveTableWrap>
+                <DataTable>
+                  <thead>
+                    <tr>
+                      <Th>Data</Th>
+                      <Th>Horário</Th>
+                      <Th>Modalidade</Th>
+                      <Th>Sessão</Th>
+                      <Th>Status</Th>
+                      <Th className="text-right">Ações</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {finished.map((item) => (
+                      <tr key={item.id} className="hover:bg-paper">
+                        <Td>{formatDate(item.date)}</Td>
+                        <Td>
+                          {item.startTime}–{item.endTime}
+                        </Td>
+                        <Td>{labelModality(item.modality)}</Td>
+                        <Td>{labelSessionType(item.sessionType)}</Td>
+                        <Td>
+                          <Pill>{labelAppointmentStatus(item.status)}</Pill>
+                        </Td>
+                        <Td className="text-right">
+                          <Link href={`/admin/atendimentos/${item.id}`} className="btn-row">
+                            Visualizar
+                          </Link>
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              </ResponsiveTableWrap>
+            </>
           )}
         </Card>
       )}
 
-      {tab === "futuros" && (
+      {tab === "agenda" && (
         <div className="grid gap-6">
           <Card>
             <h2 className="mb-4 text-2xl font-medium text-teal">Atendimentos futuros</h2>
             {upcoming.length === 0 ? (
               <Empty>Nenhum agendamento futuro para este paciente.</Empty>
             ) : (
-              <DataTable>
-                <thead>
-                  <tr>
-                    <Th>Data</Th>
-                    <Th>Horário</Th>
-                    <Th>Modalidade</Th>
-                    <Th>Sessão</Th>
-                    <Th>Status</Th>
-                    <Th>Pacote</Th>
-                    <Th className="text-right">Ações</Th>
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                <MobileListGrid>
                   {upcoming.map((item) => {
                     const pack = packages.find((entry) => entry.id === item.packageId);
+                    const modalityLine = `${labelModality(item.modality)}${item.locationId ? ` · ${locationName(item.locationId)}` : ""}${item.recurring ? " · recorrente" : ""}`;
                     return (
-                      <tr key={item.id} className="hover:bg-paper">
-                        <Td>{formatDate(item.date)}</Td>
-                        <Td>
-                          {item.startTime}–{item.endTime}
-                        </Td>
-                        <Td>
-                          {labelModality(item.modality)}
-                          {item.locationId ? ` · ${locationName(item.locationId)}` : ""}
-                          {item.recurring ? " · recorrente" : ""}
-                        </Td>
-                        <Td>{labelSessionType(item.sessionType)}</Td>
-                        <Td>
+                      <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 shadow-[0_8px_24px_rgba(61,82,64,0.06)]">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-ink">{formatDate(item.date)}</p>
+                            <p className="mt-1 text-sm text-muted">
+                              {item.startTime}–{item.endTime} · {modalityLine}
+                            </p>
+                            <p className="mt-1 text-sm text-muted">{labelSessionType(item.sessionType)} · {pack ? pack.nome : "Avulso"}</p>
+                          </div>
                           <Pill>{labelAppointmentStatus(item.status)}</Pill>
-                        </Td>
-                        <Td>{pack ? pack.nome : "Avulso"}</Td>
-                        <Td className="text-right">
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {pendingCancel === item.id ? (
-                            <div className="flex flex-wrap justify-end gap-2">
+                            <>
                               <button type="button" className="btn-danger" disabled={cancelling} onClick={() => confirmCancel(item)}>
-                                {item.packageId ? "Cancelar e deixar em haver" : "Confirmar cancelamento"}
+                                {item.packageId ? "Cancelar e deixar em haver" : "Confirmar"}
                               </button>
                               <button type="button" className="btn-text" disabled={cancelling} onClick={() => setPendingCancel(null)}>
                                 Voltar
                               </button>
-                            </div>
+                            </>
                           ) : (
-                            <div className="flex flex-wrap justify-end gap-2">
+                            <>
                               <button type="button" className="btn-row" onClick={() => setRescheduling(item)}>
                                 Alterar data
                               </button>
                               <button type="button" className="btn-text" onClick={() => setPendingCancel(item.id)}>
                                 Cancelar
                               </button>
-                            </div>
+                            </>
                           )}
-                        </Td>
-                      </tr>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </DataTable>
+                </MobileListGrid>
+                <ResponsiveTableWrap>
+                  <DataTable>
+                    <thead>
+                      <tr>
+                        <Th>Data</Th>
+                        <Th>Horário</Th>
+                        <Th>Modalidade</Th>
+                        <Th>Sessão</Th>
+                        <Th>Status</Th>
+                        <Th>Pacote</Th>
+                        <Th className="text-right">Ações</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcoming.map((item) => {
+                        const pack = packages.find((entry) => entry.id === item.packageId);
+                        return (
+                          <tr key={item.id} className="hover:bg-paper">
+                            <Td>{formatDate(item.date)}</Td>
+                            <Td>
+                              {item.startTime}–{item.endTime}
+                            </Td>
+                            <Td>
+                              {labelModality(item.modality)}
+                              {item.locationId ? ` · ${locationName(item.locationId)}` : ""}
+                              {item.recurring ? " · recorrente" : ""}
+                            </Td>
+                            <Td>{labelSessionType(item.sessionType)}</Td>
+                            <Td>
+                              <Pill>{labelAppointmentStatus(item.status)}</Pill>
+                            </Td>
+                            <Td>{pack ? pack.nome : "Avulso"}</Td>
+                            <Td className="text-right">
+                              {pendingCancel === item.id ? (
+                                <div className="flex flex-wrap justify-end gap-2">
+                                  <button type="button" className="btn-danger" disabled={cancelling} onClick={() => confirmCancel(item)}>
+                                    {item.packageId ? "Cancelar e deixar em haver" : "Confirmar cancelamento"}
+                                  </button>
+                                  <button type="button" className="btn-text" disabled={cancelling} onClick={() => setPendingCancel(null)}>
+                                    Voltar
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap justify-end gap-2">
+                                  <button type="button" className="btn-row" onClick={() => setRescheduling(item)}>
+                                    Alterar data
+                                  </button>
+                                  <button type="button" className="btn-text" onClick={() => setPendingCancel(item.id)}>
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
+                            </Td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </DataTable>
+                </ResponsiveTableWrap>
+              </>
             )}
           </Card>
           <Card>
@@ -365,35 +428,112 @@ export default function PatientDetailPage() {
             {credits.length === 0 ? (
               <Empty>Nenhuma sessão de pacote em haver.</Empty>
             ) : (
-              <DataTable>
-                <thead>
-                  <tr>
-                    <Th>Pacote</Th>
-                    <Th>Sessão cancelada</Th>
-                    <Th>Versão</Th>
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                <MobileListGrid>
                   {credits.map((item) => {
                     const pack = packages.find((entry) => entry.id === item.packageId);
                     return (
-                      <tr key={item.id}>
-                        <Td>{pack?.nome || "Pacote"}</Td>
-                        <Td>
+                      <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 text-sm">
+                        <p className="font-medium text-ink">{pack?.nome || "Pacote"}</p>
+                        <p className="mt-1 text-muted">
                           {formatDate(item.date)} · {item.startTime}
-                        </Td>
-                        <Td>{item.packageVersao ? `v${item.packageVersao}` : "—"}</Td>
-                      </tr>
+                        </p>
+                        <p className="mt-1 text-muted">Versão {item.packageVersao ? `v${item.packageVersao}` : "—"}</p>
+                      </div>
                     );
                   })}
-                </tbody>
-              </DataTable>
+                </MobileListGrid>
+                <ResponsiveTableWrap>
+                  <DataTable>
+                    <thead>
+                      <tr>
+                        <Th>Pacote</Th>
+                        <Th>Sessão cancelada</Th>
+                        <Th>Versão</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {credits.map((item) => {
+                        const pack = packages.find((entry) => entry.id === item.packageId);
+                        return (
+                          <tr key={item.id}>
+                            <Td>{pack?.nome || "Pacote"}</Td>
+                            <Td>
+                              {formatDate(item.date)} · {item.startTime}
+                            </Td>
+                            <Td>{item.packageVersao ? `v${item.packageVersao}` : "—"}</Td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </DataTable>
+                </ResponsiveTableWrap>
+              </>
+            )}
+          </Card>
+          <Card>
+            <h2 className="mb-4 text-2xl font-medium text-teal">Feedbacks do paciente</h2>
+            {feedbacks.length === 0 ? (
+              <Empty>Nenhum feedback ainda. O link é gerado ao finalizar um atendimento.</Empty>
+            ) : (
+              <>
+                <MobileListGrid>
+                  {feedbacks.map((item) => {
+                    const availability = feedbackAvailability(item);
+                    return (
+                      <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 text-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-ink">
+                            {formatDate(item.sessionDate)} · {item.startTime}
+                          </p>
+                          <Pill tone={availability === "respondido" ? "teal" : availability === "expirado" ? "accent" : "sage"}>
+                            {availability === "respondido" ? "Respondido" : availability === "expirado" ? "Expirado" : "Aguardando"}
+                          </Pill>
+                        </div>
+                        <p className="mt-2 text-muted">{item.stars ? `${item.stars} de 5` : "Sem nota"}</p>
+                        <p className="mt-1 break-words text-muted">{item.comment || "—"}</p>
+                      </div>
+                    );
+                  })}
+                </MobileListGrid>
+                <ResponsiveTableWrap>
+                  <DataTable>
+                    <thead>
+                      <tr>
+                        <Th>Sessão</Th>
+                        <Th>Estrelas</Th>
+                        <Th>Comentário</Th>
+                        <Th>Situação</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {feedbacks.map((item) => {
+                        const availability = feedbackAvailability(item);
+                        return (
+                          <tr key={item.id} className="hover:bg-paper">
+                            <Td>
+                              {formatDate(item.sessionDate)} · {item.startTime}
+                            </Td>
+                            <Td>{item.stars ? `${item.stars} de 5` : "—"}</Td>
+                            <Td>{item.comment || "—"}</Td>
+                            <Td>
+                              <Pill tone={availability === "respondido" ? "teal" : availability === "expirado" ? "accent" : "sage"}>
+                                {availability === "respondido" ? "Respondido" : availability === "expirado" ? "Expirado" : "Aguardando"}
+                              </Pill>
+                            </Td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </DataTable>
+                </ResponsiveTableWrap>
+              </>
             )}
           </Card>
         </div>
       )}
 
-      {tab === "pagamentos" && (
+      {tab === "financeiro" && (
         <div className="grid gap-6">
           <Card>
             <h2 className="mb-4 text-2xl font-medium text-teal">Pagamentos efetuados</h2>
@@ -423,44 +563,6 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      {tab === "feedbacks" && (
-        <Card>
-          <h2 className="mb-4 text-2xl font-medium text-teal">Feedbacks do paciente</h2>
-          {feedbacks.length === 0 ? (
-            <Empty>Nenhum feedback ainda. O link é gerado ao finalizar um atendimento.</Empty>
-          ) : (
-            <DataTable>
-              <thead>
-                <tr>
-                  <Th>Sessão</Th>
-                  <Th>Estrelas</Th>
-                  <Th>Comentário</Th>
-                  <Th>Situação</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {feedbacks.map((item) => {
-                  const availability = feedbackAvailability(item);
-                  return (
-                    <tr key={item.id} className="hover:bg-paper">
-                      <Td>
-                        {formatDate(item.sessionDate)} · {item.startTime}
-                      </Td>
-                      <Td>{item.stars ? `${item.stars} de 5` : "—"}</Td>
-                      <Td>{item.comment || "—"}</Td>
-                      <Td>
-                        <Pill tone={availability === "respondido" ? "teal" : availability === "expirado" ? "accent" : "sage"}>
-                          {availability === "respondido" ? "Respondido" : availability === "expirado" ? "Expirado" : "Aguardando"}
-                        </Pill>
-                      </Td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </DataTable>
-          )}
-        </Card>
-      )}
       {receiving && <ReceivePayment payment={receiving} onClose={() => setReceiving(null)} />}
       <Drawer open={editing} title="Editar paciente" onClose={() => setEditing(false)}>
         {editing && <PatientForm patient={patient} onSaved={() => setEditing(false)} />}

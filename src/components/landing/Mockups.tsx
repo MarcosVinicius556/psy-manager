@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import {
   HiOutlineBell,
   HiOutlineBriefcase,
@@ -70,7 +71,7 @@ function Shell({ current, children }: { current: Screen; children: ReactNode }) 
     <div className="flex min-h-[420px] bg-paper">
       <aside className="hidden w-[200px] shrink-0 flex-col bg-teal px-3 pt-5 pb-4 text-white sm:flex">
         <div className="flex items-start justify-between px-1">
-          <img src="/images/logo/mark.png" alt="" className="h-8 w-auto" />
+          <Image src="/images/logo/mark.png" alt="" width={32} height={38} className="h-8 w-auto" />
           <span className="grid h-7 w-7 place-items-center rounded-md text-white/80">
             <HiOutlineChevronLeft size={16} />
           </span>
