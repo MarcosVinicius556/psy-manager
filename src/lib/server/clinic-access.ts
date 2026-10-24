@@ -22,6 +22,15 @@ export async function appointmentAccessibleByUid(appointmentId: string, uid: str
   return strings(data.accessUids).includes(uid);
 }
 
+/** Só o titular da conta — usado para anexos clínicos (não compartilhados via sala). */
+export async function appointmentOwnedByUid(appointmentId: string, uid: string) {
+  const db = getAdminDb();
+  if (!db) return false;
+  const snap = await db.collection("appointments").doc(appointmentId).get();
+  if (!snap.exists) return false;
+  return snap.data()?.ownerUid === uid;
+}
+
 export async function paymentOwnedByUid(paymentId: string, uid: string) {
   const db = getAdminDb();
   if (!db) return false;

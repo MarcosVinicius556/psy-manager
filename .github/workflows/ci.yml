@@ -62,6 +62,9 @@ jobs:
       - name: Testes
         run: npm test
 
+      - name: Regras Firestore (emulador)
+        run: npm run test:rules
+
       - name: Build
         run: npm run build
 

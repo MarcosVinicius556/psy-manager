@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { maskCpf, maskPhone } from "@/lib/masks";
 import type { Patient, PatientInput } from "@/lib/admin/types";
+import SecureMediaImage from "@/components/admin/SecureMediaImage";
 import DateField from "./DateField";
 import Select from "./Select";
 import { Field, fieldClass } from "./ui";
@@ -28,6 +29,8 @@ export default function PatientForm({
   const [form, setForm] = useState<PatientInput>({
     nome: patient?.nome ?? "",
     cpf: maskCpf(patient?.cpf ?? ""),
+    cpfPagador: maskCpf(patient?.cpfPagador ?? ""),
+    cpfBeneficiario: maskCpf(patient?.cpfBeneficiario ?? ""),
     nascimento: patient?.nascimento ?? "",
     telefone: maskPhone(patient?.telefone ?? ""),
     email: patient?.email ?? "",
@@ -35,6 +38,7 @@ export default function PatientForm({
     contatoEmergencia: patient?.contatoEmergencia ?? "",
     observacoes: patient?.observacoes ?? "",
     foto: patient?.foto ?? "",
+    fotoAsset: patient?.fotoAsset ?? null,
     status: patient?.status ?? "ativo",
   });
   const [saving, setSaving] = useState(false);
@@ -55,7 +59,13 @@ export default function PatientForm({
     setUploadingPhoto(true);
     try {
       const uploaded = await uploadClinicFile(file, { kind: "patient-photo" }, "foto");
-      set("foto", uploaded.url);
+      if (uploaded.asset) {
+        set("fotoAsset", uploaded.asset);
+        set("foto", "");
+      } else {
+        set("foto", uploaded.url || "");
+        set("fotoAsset", null);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível enviar a foto.");
     } finally {
@@ -111,7 +121,7 @@ export default function PatientForm({
       <Field label="Nome">
         <input className={fieldClass} value={form.nome} onChange={(event) => set("nome", event.target.value)} required />
       </Field>
-      <Field label="CPF">
+      <Field label="CPF do paciente (beneficiário padrão)">
         <input
           className={fieldClass}
           inputMode="numeric"
@@ -120,6 +130,28 @@ export default function PatientForm({
           value={form.cpf}
           onChange={(event) => set("cpf", maskCpf(event.target.value))}
         />
+      </Field>
+      <Field label="CPF do pagador (opcional)">
+        <input
+          className={fieldClass}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Quem paga a sessão"
+          value={form.cpfPagador}
+          onChange={(event) => set("cpfPagador", maskCpf(event.target.value))}
+        />
+        <p className="mt-1 text-xs text-muted">Deixe vazio se o pagador é o próprio paciente.</p>
+      </Field>
+      <Field label="CPF do beneficiário do serviço (opcional)">
+        <input
+          className={fieldClass}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Quem recebe o atendimento"
+          value={form.cpfBeneficiario}
+          onChange={(event) => set("cpfBeneficiario", maskCpf(event.target.value))}
+        />
+        <p className="mt-1 text-xs text-muted">Use quando for diferente do CPF do paciente (ex.: menor de idade).</p>
       </Field>
       <Field label="Nascimento">
         <DateField value={form.nascimento} onChange={(nascimento) => set("nascimento", nascimento)} />
@@ -167,7 +199,9 @@ export default function PatientForm({
       <div className="md:col-span-2">
         <Field label="Foto do paciente">
           <div className="flex flex-wrap items-center gap-4">
-            {form.foto ? (
+            {form.fotoAsset ? (
+              <SecureMediaImage asset={form.fotoAsset} alt="" className="h-24 w-24 rounded-md object-cover" />
+            ) : form.foto ? (
               <img src={form.foto} alt="" className="h-24 w-24 rounded-md object-cover" />
             ) : (
               <span className="grid h-24 w-24 place-items-center rounded-md bg-paper text-sm text-muted">Sem foto</span>
@@ -175,10 +209,18 @@ export default function PatientForm({
             <div className="flex flex-wrap gap-3">
               <input ref={photoRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onPhoto} />
               <button type="button" className="btn-text" disabled={uploadingPhoto} onClick={() => photoRef.current?.click()}>
-                {uploadingPhoto ? "Enviando..." : form.foto ? "Trocar foto" : "Enviar foto"}
+                {uploadingPhoto ? "Enviando..." : form.foto || form.fotoAsset ? "Trocar foto" : "Enviar foto"}
               </button>
-              {form.foto && (
-                <button type="button" className="btn-text" disabled={uploadingPhoto} onClick={() => set("foto", "")}>
+              {(form.foto || form.fotoAsset) && (
+                <button
+                  type="button"
+                  className="btn-text"
+                  disabled={uploadingPhoto}
+                  onClick={() => {
+                    set("foto", "");
+                    set("fotoAsset", null);
+                  }}
+                >
                   Remover
                 </button>
               )}

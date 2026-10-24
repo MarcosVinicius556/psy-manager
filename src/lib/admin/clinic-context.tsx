@@ -19,6 +19,7 @@ import {
   createPayments,
   findDirectoryUser,
   grantAccess,
+  listClinicalRecordsForOwner,
   listAppointments,
   listExpenses,
   listLocationInvites,
@@ -32,10 +33,12 @@ import {
   patchExpense,
   removeExpense,
   removeLocation,
+  saveClinicalRecord,
   updateAppointment,
   updateExpense,
   updateLocation,
   publishDirectory,
+  saveMemberPrivateProfile,
   setLocationInviteStatus,
   updateMember,
   updateNotification,
@@ -48,6 +51,18 @@ import {
 } from "./collections";
 import { authorizedHeaders } from "./api-auth";
 import { updateAuthProfile } from "./account";
+import { assertValidCpfOptional, isValidCpf } from "./cpf";
+import { receivedAmount } from "./finance";
+import { uploadClinicFile } from "./attachments";
+import {
+  canIssueFiscalReceipt,
+  createFiscalReceiptPdf,
+  fiscalReceiptFilename,
+  nextReceiptNumber,
+  paymentReceiptDate,
+  stripCpfFields,
+} from "./receipt-fiscal";
+import { professionalFiscalReady } from "./receita-saude-report";
 import { getFirebaseAuth } from "./firebase";
 import { formatDate, formatMoney, monthlyDates, shiftDate, todayISO } from "./format";
 import { roundMoney } from "./finance";
@@ -156,10 +171,18 @@ type ClinicContextValue = {
     nome: string;
     telefone: string;
     foto: string;
+    cpf: string;
+    crpNumero: string;
+    crpRegiao: string;
+    enderecoLogradouro: string;
+    enderecoCidade: string;
+    enderecoUf: string;
+    enderecoCep: string;
     valorBase: number;
     valorSocial: number;
     workHours: { weekday: number; startTime: string; endTime: string }[];
   }) => Promise<void>;
+  issueFiscalReceipt: (paymentId: string, options?: { replace?: boolean }) => Promise<void>;
   saveContractTemplate: (template: string) => Promise<void>;
   saveSignedContract: (patientId: string, file: ClinicAttachment | null) => Promise<void>;
   setMemberActive: (id: string, ativo: boolean) => Promise<void>;
@@ -230,7 +253,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const synced = useRef(false);
 
   const refresh = useCallback(async () => {
-    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks] =
+    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks, clinicalRecords] =
       await Promise.all([
         listPatients(),
         listAppointments(),
@@ -242,7 +265,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         listPackages(),
         listLocationInvites(),
         listSessionFeedbacks(),
+        listClinicalRecordsForOwner(),
       ]);
+    const clinicalByAppointment = new Map(clinicalRecords.map((item) => [item.appointmentId, item.clinical]));
+    const mergedAppointments = nextAppointments.map((appointment) => ({
+      ...appointment,
+      clinical: clinicalByAppointment.get(appointment.id) ?? emptyClinical(),
+    }));
     const uid = getFirebaseAuth().currentUser?.uid;
     let listedExpenses = nextExpenses;
     if (uid) {
@@ -254,14 +283,14 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       }
     }
     nextPatients.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-    nextAppointments.sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
+    mergedAppointments.sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
     nextPayments.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     nextMembers.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     nextLocations.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     listedExpenses.sort((a, b) => b.competencia.localeCompare(a.competencia) || a.descricao.localeCompare(b.descricao, "pt-BR"));
     nextPackages.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     setPatients(nextPatients);
-    setAppointments(nextAppointments);
+    setAppointments(mergedAppointments);
     setPayments(nextPayments);
     setNotifications(nextNotifications);
     setMembers(dedupeMembers(nextMembers));
@@ -456,7 +485,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       locationName,
       async savePatient(input, id) {
         if (!input.nome.trim()) throw new Error("Informe o nome do paciente.");
-        const payload = { ...input, nome: input.nome.trim() };
+        const cpf = assertValidCpfOptional(input.cpf, "CPF do paciente");
+        const cpfPagador = assertValidCpfOptional(input.cpfPagador, "CPF do pagador");
+        const cpfBeneficiario = assertValidCpfOptional(input.cpfBeneficiario, "CPF do beneficiário");
+        const payload = stripCpfFields({
+          ...input,
+          nome: input.nome.trim(),
+          cpf,
+          cpfPagador,
+          cpfBeneficiario,
+        });
         if (id) {
           await updatePatient(id, payload);
           toast.success("Paciente atualizado.");
@@ -742,9 +780,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         return due.length;
       },
       async setAppointmentStatus(id, status, clinical, faltaJustificativa) {
+        const appointment = appointments.find((item) => item.id === id);
+        if (clinical && appointment) {
+          await saveClinicalRecord(id, appointment.patientId, clinical);
+        }
         await updateAppointment(id, {
           status,
-          ...(clinical ? { clinical } : {}),
           ...(status === "faltou" ? { faltaJustificativa: (faltaJustificativa || "").trim() } : {}),
         });
         if (status === "concluido") {
@@ -905,7 +946,9 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await refresh();
       },
       async saveClinical(id, clinical) {
-        await updateAppointment(id, { clinical });
+        const appointment = appointments.find((item) => item.id === id);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        await saveClinicalRecord(id, appointment.patientId, clinical);
         toast.success("Ficha salva.");
         await refresh();
       },
@@ -1021,6 +1064,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           if (!shift.startTime || !shift.endTime) throw new Error("Informe início e fim de cada horário de atendimento.");
           if (shift.endTime <= shift.startTime) throw new Error("O horário final precisa ser depois do início.");
         }
+        const cpf = assertValidCpfOptional(input.cpf, "CPF");
+        if (input.cpf.trim() && !isValidCpf(input.cpf)) throw new Error("CPF inválido.");
+        await saveMemberPrivateProfile(uid, {
+          cpf,
+          crpNumero: input.crpNumero.replace(/\D/g, "").trim(),
+          crpRegiao: input.crpRegiao.replace(/\D/g, "").padStart(2, "0").slice(0, 2),
+          enderecoLogradouro: input.enderecoLogradouro.trim(),
+          enderecoCidade: input.enderecoCidade.trim(),
+          enderecoUf: input.enderecoUf.trim().toUpperCase().slice(0, 2),
+          enderecoCep: input.enderecoCep.replace(/\D/g, "").slice(0, 8),
+        });
         await updateMember(mine.id, {
           nome,
           telefone: input.telefone.trim(),
@@ -1032,6 +1086,60 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await updateAuthProfile({ displayName: nome, ...(foto ? { photoURL: foto } : {}) });
         if (mine.email) await publishDirectory({ uid, email: mine.email, nome, foto });
         toast.success("Cadastro atualizado.");
+        await refresh();
+      },
+      async issueFiscalReceipt(paymentId, options) {
+        const uid = currentUid();
+        const mine = members.find((member) => member.uid === uid);
+        const ready = professionalFiscalReady(mine);
+        if (!ready.ok) {
+          throw new Error(`Complete em Configurações: ${ready.missing.join(", ")}.`);
+        }
+        if (!mine || !isValidCpf(mine.cpf)) throw new Error("Informe um CPF válido em Configurações.");
+        const payment = payments.find((item) => item.id === paymentId);
+        if (!payment) throw new Error("Lançamento não encontrado.");
+        if (!canIssueFiscalReceipt(payment)) throw new Error("Só é possível emitir recibo para pagamentos quitados.");
+        if (payment.reciboFiscal && !options?.replace) {
+          throw new Error("Este lançamento já tem recibo. Gere de novo se precisar substituir.");
+        }
+        const patient = payment.patientId ? patients.find((item) => item.id === payment.patientId) ?? null : null;
+        if (patient) {
+          const beneficiary = assertValidCpfOptional(patient.cpfBeneficiario || patient.cpf, "CPF do beneficiário");
+          const payer = assertValidCpfOptional(patient.cpfPagador || beneficiary, "CPF do pagador");
+          if (!beneficiary || !payer) {
+            throw new Error("Informe CPF do pagador e do beneficiário na ficha do paciente (Receita Saúde).");
+          }
+        }
+        const numero = payment.reciboFiscal?.numero || nextReceiptNumber(mine, payments);
+        const paymentDate = paymentReceiptDate(payment);
+        const blob = await createFiscalReceiptPdf({
+          payment,
+          patient,
+          professional: mine,
+          receiptNumber: numero,
+          paymentDate,
+        });
+        const filename = fiscalReceiptFilename({
+          payment,
+          patient,
+          professional: mine,
+          receiptNumber: numero,
+          paymentDate,
+        });
+        const file = new File([blob], filename, { type: "application/pdf" });
+        const uploaded = await uploadClinicFile(file, { kind: "payment-receipt", paymentId }, "documento");
+        const reciboFiscal = {
+          numero,
+          arquivo: uploaded,
+          emitidoEm: new Date().toISOString(),
+          dataPagamento: paymentDate,
+          valor: receivedAmount(payment),
+        };
+        await updatePayment(paymentId, { reciboFiscal });
+        if (numero > (mine.reciboSequencia || 0)) {
+          await updateMember(mine.id, { reciboSequencia: numero });
+        }
+        toast.success(`Recibo nº ${numero} gerado.`);
         await refresh();
       },
       async saveContractTemplate(template) {
@@ -1125,7 +1233,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (status === "aceito") {
           await addLocationMemberUid(invite.locationId, uid);
           for (const appointmentId of invite.appointmentIds) {
-            await grantAccess("appointments", appointmentId, [uid]);
+            const appointment = appointments.find((item) => item.id === appointmentId);
+            if (appointment && isBookableStart(appointment.date, appointment.startTime)) {
+              await grantAccess("appointments", appointmentId, [uid]);
+            }
           }
           for (const expenseId of invite.expenseIds) {
             await grantAccess("expenses", expenseId, [uid]);

@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, paymentHistory, receivedAmount, remainingAmount } from "@/lib/admin/finance";
 import { formatDate, formatMoney, labelPaymentMethod, moneyInput, parseMoney, PAYMENT_METHOD_OPTIONS, todayISO } from "@/lib/admin/format";
+import { attachmentHasMedia } from "@/lib/cloudinary/asset";
+import { openAttachment } from "@/lib/cloudinary/client-media";
 import type { ClinicAttachment, Payment, PaymentMethod } from "@/lib/admin/types";
 import DateField from "./DateField";
 import FileAttachments from "./FileAttachments";
@@ -153,10 +155,14 @@ export default function ReceivePayment({ payment, onClose }: { payment: Payment;
                 {event.formaPagamento ? ` · ${labelPaymentMethod(event.formaPagamento)}` : ""}
                 {event.tipo !== "situacao" && event.observacao ? ` · ${event.observacao}` : ""}
               </p>
-              {event.comprovante?.url && (
-                <a href={event.comprovante.url} target="_blank" rel="noreferrer" className="btn-text mt-2">
+              {event.comprovante && attachmentHasMedia(event.comprovante) && (
+                <button
+                  type="button"
+                  className="btn-text mt-2"
+                  onClick={() => openAttachment(event.comprovante!).catch(() => undefined)}
+                >
                   Abrir comprovante
-                </a>
+                </button>
               )}
             </div>
           ))}

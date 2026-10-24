@@ -14,6 +14,14 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { isPaymentMethod } from "./format";
+import { sessionStartMillis } from "./schedule";
+import {
+  emptyMemberPrivateFields,
+  mapMemberPrivateData,
+  MEMBER_PRIVATE_FIELD_KEYS,
+  pickMemberPrivateFields,
+  stripMemberPrivateFields,
+} from "./member-private";
 import { buildLegacyAccount, buildReplayDeniedAccount, buildTrialAccount, expirePatch } from "../saas/model";
 import { reserveTrial } from "../saas/account-store";
 import { assertClinicWrite } from "../saas/guard";
@@ -74,14 +82,27 @@ function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+function mapCloudinaryAsset(value: unknown): ClinicAttachment["asset"] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const data = value as { publicId?: unknown; resourceType?: unknown; format?: unknown };
+  const publicId = text(data.publicId);
+  const resourceType = text(data.resourceType);
+  if (!publicId) return undefined;
+  if (resourceType !== "image" && resourceType !== "raw" && resourceType !== "video") return undefined;
+  const format = text(data.format);
+  return { publicId, resourceType, format: format || undefined };
+}
+
 function mapAttachment(value: unknown): ClinicAttachment | null {
   const data = (value ?? {}) as Partial<ClinicAttachment>;
   const url = text(data.url);
-  if (!url) return null;
+  const asset = mapCloudinaryAsset(data.asset);
+  if (!url && !asset) return null;
   return {
-    id: text(data.id) || url,
+    id: text(data.id) || url || asset?.publicId || crypto.randomUUID(),
     nome: text(data.nome) || "Arquivo",
-    url,
+    url: url || undefined,
+    asset,
     mime: text(data.mime),
   };
 }
@@ -107,11 +128,27 @@ function mapClinical(value: unknown): ClinicalRecord {
   };
 }
 
+function mapFiscalReceipt(value: unknown): Payment["reciboFiscal"] {
+  const data = (value ?? {}) as Partial<Payment["reciboFiscal"]> & { arquivo?: unknown };
+  if (!data || typeof data !== "object" || !data.arquivo) return null;
+  const arquivo = mapAttachment(data.arquivo);
+  if (!arquivo?.url) return null;
+  return {
+    numero: Number(data.numero) || 0,
+    arquivo,
+    emitidoEm: text(data.emitidoEm),
+    dataPagamento: text(data.dataPagamento),
+    valor: Number(data.valor) || 0,
+  };
+}
+
 function mapPatient(id: string, data: DocumentData): Patient {
   return {
     id,
     nome: text(data.nome),
     cpf: text(data.cpf),
+    cpfPagador: text(data.cpfPagador),
+    cpfBeneficiario: text(data.cpfBeneficiario),
     nascimento: text(data.nascimento),
     telefone: text(data.telefone),
     email: text(data.email),
@@ -119,6 +156,7 @@ function mapPatient(id: string, data: DocumentData): Patient {
     contatoEmergencia: text(data.contatoEmergencia),
     observacoes: text(data.observacoes),
     foto: text(data.foto),
+    fotoAsset: mapCloudinaryAsset(data.fotoAsset) ?? null,
     contratoAssinado: mapAttachment(data.contratoAssinado),
     status: data.status === "inativo" ? "inativo" : "ativo",
     createdAt: text(data.createdAt),
@@ -151,7 +189,7 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
     status: ["agendado", "em_andamento", "concluido", "cancelado", "faltou"].includes(status)
       ? status
       : "agendado",
-    clinical: mapClinical(data.clinical),
+    clinical: emptyClinical(),
     accessUids: strings(data.accessUids),
     googleEventId: data.googleEventId ? text(data.googleEventId) : null,
     googleLocationEventId: data.googleLocationEventId ? text(data.googleLocationEventId) : null,
@@ -218,6 +256,7 @@ function mapPayment(id: string, data: DocumentData): Payment {
     historico: Array.isArray(data.historico)
       ? data.historico.map(mapPaymentEvent).filter((event): event is PaymentEvent => Boolean(event))
       : [],
+    reciboFiscal: mapFiscalReceipt(data.reciboFiscal),
     createdAt: text(data.createdAt),
   };
 }
@@ -237,6 +276,17 @@ function mapNotification(id: string, data: DocumentData): PaymentNotification {
 }
 
 const ownedCollections = ["patients", "appointments", "payments", "packages", "notifications", "members", "locations", "expenses"] as const;
+
+function stripClinicalFromAppointmentInput<T extends { clinical?: ClinicalRecord; date?: string; startTime?: string }>(
+  input: T
+): Omit<T, "clinical"> & { sessionStartMillis?: number } {
+  const { clinical: _clinical, ...rest } = input;
+  const millis =
+    typeof rest.date === "string" && typeof rest.startTime === "string"
+      ? sessionStartMillis(rest.date, rest.startTime)
+      : undefined;
+  return millis ? { ...rest, sessionStartMillis: millis } : rest;
+}
 
 function currentOwnerUid() {
   const uid = getFirebaseAuth().currentUser?.uid;
@@ -417,7 +467,9 @@ function mapWorkShift(value: unknown): WorkShift | null {
   return { weekday, startTime, endTime };
 }
 
-function mapMember(id: string, data: DocumentData): ClinicMember {
+function mapMember(id: string, data: DocumentData, privateFields = emptyMemberPrivateFields()): ClinicMember {
+  const legacyPrivate = mapMemberPrivateData(data as Record<string, unknown>);
+  const priv = MEMBER_PRIVATE_FIELD_KEYS.some((key) => legacyPrivate[key]) ? legacyPrivate : privateFields;
   return {
     id,
     uid: data.uid ? text(data.uid) : null,
@@ -425,6 +477,8 @@ function mapMember(id: string, data: DocumentData): ClinicMember {
     email: text(data.email),
     telefone: text(data.telefone),
     foto: text(data.foto),
+    ...priv,
+    reciboSequencia: Number(data.reciboSequencia) || 0,
     valorBase: Number(data.valorBase) || 0,
     valorSocial: Number(data.valorSocial) || 0,
     workHours: Array.isArray(data.workHours)
@@ -465,8 +519,36 @@ function mapExpense(id: string, data: DocumentData): Expense {
   };
 }
 
-export function listMembers() {
-  return listCollection("members", mapMember);
+async function loadMemberPrivateForUid(uid: string) {
+  const snapshot = await getDoc(doc(getFirebaseDb(), "memberPrivate", uid));
+  if (!snapshot.exists()) return emptyMemberPrivateFields();
+  return mapMemberPrivateData(snapshot.data() as Record<string, unknown>);
+}
+
+export async function listMembers(): Promise<ClinicMember[]> {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const privateForSelf = await loadMemberPrivateForUid(uid);
+  const snapshot = await getDocs(query(collection(getFirebaseDb(), "members"), where("ownerUid", "==", uid)));
+  return snapshot.docs.map((item) => {
+    const memberUid = text(item.data().uid);
+    const priv = memberUid === uid ? privateForSelf : emptyMemberPrivateFields();
+    return mapMember(item.id, item.data(), priv);
+  });
+}
+
+export async function saveMemberPrivateProfile(uid: string, fields: ReturnType<typeof pickMemberPrivateFields>) {
+  assertClinicWrite();
+  if (uid !== currentOwnerUid()) throw new Error("Sem permissão para alterar estes dados.");
+  await setDoc(
+    doc(getFirebaseDb(), "memberPrivate", uid),
+    {
+      ownerUid: uid,
+      ...fields,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }
 
 export function listExpenses() {
@@ -528,6 +610,7 @@ export async function createMember(input: MemberInput) {
     uid: null,
     telefone: "",
     foto: "",
+    reciboSequencia: 0,
     valorBase: 0,
     valorSocial: 0,
     workHours: [],
@@ -540,7 +623,7 @@ export async function createMember(input: MemberInput) {
 export async function updateMember(id: string, patch: Partial<ClinicMember>) {
   assertClinicWrite();
   const { id: _id, ...rest } = patch;
-  const data = { ...rest } as Record<string, unknown>;
+  const data = stripMemberPrivateFields({ ...rest } as Record<string, unknown>);
   delete data.ownerUid;
   await updateDoc(doc(getFirebaseDb(), "members", id), data);
 }
@@ -603,8 +686,9 @@ export async function createAppointment(input: AppointmentInput, accessUids: str
   assertClinicWrite();
   const now = new Date().toISOString();
   const ownerUid = currentOwnerUid();
+  const payload = stripClinicalFromAppointmentInput(input);
   const ref = await addDoc(collection(getFirebaseDb(), "appointments"), {
-    ...input,
+    ...payload,
     ownerUid,
     accessUids: Array.from(new Set([ownerUid, ...accessUids])),
     createdAt: now,
@@ -621,7 +705,8 @@ export async function createAppointmentSeries(inputs: AppointmentInput[], access
   const viewers = Array.from(new Set([ownerUid, ...accessUids]));
   const refs = inputs.map(() => doc(collection(getFirebaseDb(), "appointments")));
   refs.forEach((ref, index) => {
-    batch.set(ref, { ...inputs[index], ownerUid, accessUids: viewers, createdAt: now, updatedAt: now });
+    const payload = stripClinicalFromAppointmentInput(inputs[index]);
+    batch.set(ref, { ...payload, ownerUid, accessUids: viewers, createdAt: now, updatedAt: now });
   });
   await batch.commit();
   return refs.map((ref) => ref.id);
@@ -629,10 +714,41 @@ export async function createAppointmentSeries(inputs: AppointmentInput[], access
 
 export async function updateAppointment(id: string, patch: Partial<AppointmentInput> & { status?: AppointmentStatus; creditoEmHaver?: boolean }) {
   assertClinicWrite();
+  const { clinical: _clinical, ...rest } = patch;
+  const payload = stripClinicalFromAppointmentInput(rest as AppointmentInput);
   await updateDoc(doc(getFirebaseDb(), "appointments", id), {
-    ...patch,
+    ...payload,
     updatedAt: new Date().toISOString(),
   });
+}
+
+export async function listClinicalRecordsForOwner() {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const snapshot = await getDocs(
+    query(collection(getFirebaseDb(), "clinicalRecords"), where("ownerUid", "==", uid))
+  );
+  return snapshot.docs.map((item) => ({
+    appointmentId: text(item.data().appointmentId) || item.id,
+    clinical: mapClinical(item.data().clinical),
+  }));
+}
+
+export async function saveClinicalRecord(appointmentId: string, patientId: string, clinical: ClinicalRecord) {
+  assertClinicWrite();
+  const ownerUid = currentOwnerUid();
+  const now = new Date().toISOString();
+  await setDoc(
+    doc(getFirebaseDb(), "clinicalRecords", appointmentId),
+    {
+      ownerUid,
+      patientId,
+      appointmentId,
+      clinical,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
 }
 
 function paymentRecord(input: PaymentInput, createdAt: string) {
@@ -649,6 +765,7 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
     historico: [launchEvent(input, createdAt)],
     status: input.status ?? "agendado",
     paidAt: null,
+    reciboFiscal: null,
     ownerUid: currentOwnerUid(),
     createdAt,
   };
@@ -953,14 +1070,9 @@ export async function getSessionFeedback(token: string) {
   return mapFeedback(snapshot.id, snapshot.data());
 }
 
-export async function submitSessionFeedback(token: string, stars: number, comment: string) {
-  const now = new Date();
-  await updateDoc(doc(getFirebaseDb(), "sessionFeedbacks", token), {
-    stars,
-    comment: comment.trim(),
-    answeredAt: now.toISOString(),
-    answeredAtMillis: now.getTime(),
-  });
+/** Respostas públicas usam `/api/public/feedback` (Admin SDK). Não grave pelo cliente. */
+export async function submitSessionFeedback(_token: string, _stars: number, _comment: string) {
+  throw new Error("Use o link público de feedback para responder.");
 }
 
 function mapReportTemplate(id: string, data: DocumentData): ReportTemplate | null {

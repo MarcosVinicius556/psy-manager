@@ -3,6 +3,7 @@ import { POST as uploadPost } from "./image/upload/route";
 import { POST as sessionFeedbackPost } from "./session-feedback/route";
 import { POST as locationInvitePost } from "./location-invite/route";
 import { GET as pdfGet } from "./pdf/route";
+import { GET as mediaGet } from "./media/route";
 
 describe("API routes exigem autenticação", () => {
   it("POST /api/image/upload retorna 401 sem token", async () => {
@@ -38,6 +39,13 @@ describe("API routes exigem autenticação", () => {
   it("GET /api/pdf retorna 401 sem token", async () => {
     const response = await pdfGet(
       new Request("http://localhost/api/pdf?url=https://res.cloudinary.com/demo/raw/upload/sample.pdf&name=test.pdf")
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("GET /api/media retorna 401 sem token", async () => {
+    const response = await mediaGet(
+      new Request("http://localhost/api/media?publicId=clinic/u1/reports/x&resourceType=raw")
     );
     expect(response.status).toBe(401);
   });

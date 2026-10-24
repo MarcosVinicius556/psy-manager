@@ -52,8 +52,21 @@ export async function uploadClinicFile(file: File, target: ClinicUploadTarget, k
     headers,
     body: form,
   });
-  const data = (await response.json()) as { url?: string; error?: string };
-  if (!response.ok || !data.url) throw new Error(data.error || "Não foi possível enviar o arquivo.");
+  const data = (await response.json()) as {
+    url?: string;
+    asset?: ClinicAttachment["asset"];
+    error?: string;
+  };
+  if (!response.ok) throw new Error(data.error || "Não foi possível enviar o arquivo.");
+  if (data.asset?.publicId) {
+    return {
+      id: crypto.randomUUID(),
+      nome: file.name || (kind === "foto" ? "Foto" : "Arquivo"),
+      asset: data.asset,
+      mime: isPdfFile(file) ? "application/pdf" : file.type || "application/octet-stream",
+    };
+  }
+  if (!data.url) throw new Error(data.error || "Não foi possível enviar o arquivo.");
   return {
     id: crypto.randomUUID(),
     nome: file.name || (kind === "foto" ? "Foto" : "Arquivo"),

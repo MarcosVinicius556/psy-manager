@@ -350,6 +350,8 @@ export default function AppointmentForm({
         telefone: newPatient.telefone,
         email: newPatient.email,
         cpf: "",
+        cpfPagador: "",
+        cpfBeneficiario: "",
         nascimento: "",
         endereco: "",
         contatoEmergencia: "",

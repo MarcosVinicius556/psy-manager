@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import AppointmentForm from "@/components/admin/AppointmentForm";
 import Drawer from "@/components/admin/Drawer";
 import FileAttachments, { ReceiptLinks } from "@/components/admin/FileAttachments";
+import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
 import PatientForm from "@/components/admin/PatientForm";
 import ReceivePayment from "@/components/admin/ReceivePayment";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
@@ -30,6 +30,8 @@ import {
 } from "@/lib/admin/format";
 import { maskCpf, maskPhone } from "@/lib/masks";
 import { feedbackAvailability } from "@/components/admin/FeedbackShare";
+import SecureMediaImage from "@/components/admin/SecureMediaImage";
+import { fetchSignedMediaUrl, patientPhotoAsset } from "@/lib/cloudinary/client-media";
 import type { Appointment, ClinicAttachment, Payment } from "@/lib/admin/types";
 
 function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payment: Payment) => void }) {
@@ -52,9 +54,12 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
               }
               hint={remaining > 0 ? `Faltam ${formatMoney(remaining)}` : null}
               actions={
-                <button type="button" className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => onOpen(payment)}>
-                  {canReceive ? "Receber" : "Histórico"}
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  <button type="button" className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => onOpen(payment)}>
+                    {canReceive ? "Receber" : "Histórico"}
+                  </button>
+                  <PaymentFiscalReceipt payment={payment} compact />
+                </div>
               }
             />
           );
@@ -96,6 +101,7 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
                         {canReceive ? "Receber" : "Histórico"}
                       </button>
                       <ReceiptLinks files={paymentReceipts(payment)} />
+                      <PaymentFiscalReceipt payment={payment} />
                     </div>
                   </Td>
                 </tr>
@@ -208,16 +214,37 @@ export default function PatientDetailPage() {
           </button>
         </div>
         <dl className="grid gap-3 text-sm md:grid-cols-2">
-            <div><dt className="text-muted">CPF</dt><dd>{patient.cpf ? maskCpf(patient.cpf) : "—"}</dd></div>
+            <div><dt className="text-muted">CPF do paciente</dt><dd>{patient.cpf ? maskCpf(patient.cpf) : "—"}</dd></div>
+            <div><dt className="text-muted">CPF do pagador</dt><dd>{patient.cpfPagador ? maskCpf(patient.cpfPagador) : "—"}</dd></div>
+            <div><dt className="text-muted">CPF do beneficiário</dt><dd>{patient.cpfBeneficiario ? maskCpf(patient.cpfBeneficiario) : patient.cpf ? maskCpf(patient.cpf) : "—"}</dd></div>
             <div><dt className="text-muted">Nascimento</dt><dd>{formatDate(patient.nascimento)}</dd></div>
             <div><dt className="text-muted">Endereço</dt><dd>{patient.endereco || "—"}</dd></div>
             <div><dt className="text-muted">Emergência</dt><dd>{patient.contatoEmergencia || "—"}</dd></div>
             <div className="md:col-span-2">
               <dt className="text-muted">Foto</dt>
               <dd className="mt-2">
-                {patient.foto ? (
-                  <a href={patient.foto} target="_blank" rel="noreferrer" className="relative block h-24 w-24 overflow-hidden rounded-md">
-                    <Image src={patient.foto} alt={`Foto de ${patient.nome}`} fill className="object-cover" sizes="96px" unoptimized />
+                {patientPhotoAsset(patient) ? (
+                  <button
+                    type="button"
+                    className="btn-text p-0"
+                    onClick={() => {
+                      const asset = patientPhotoAsset(patient);
+                      if (asset) {
+                        fetchSignedMediaUrl(asset)
+                          .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
+                          .catch(() => toast.error("Não foi possível abrir a foto."));
+                      }
+                    }}
+                  >
+                    <SecureMediaImage
+                      asset={patientPhotoAsset(patient)!}
+                      alt={`Foto de ${patient.nome}`}
+                      className="h-24 w-24 rounded-md object-cover"
+                    />
+                  </button>
+                ) : patient.foto ? (
+                  <a href={patient.foto} target="_blank" rel="noreferrer">
+                    <img src={patient.foto} alt={`Foto de ${patient.nome}`} className="h-24 w-24 rounded-md object-cover" />
                   </a>
                 ) : (
                   "—"

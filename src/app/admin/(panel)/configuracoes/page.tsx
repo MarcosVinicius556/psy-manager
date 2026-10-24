@@ -10,7 +10,9 @@ import { accountError, changePassword, uploadAvatar } from "@/lib/admin/account"
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { moneyInput, parseMoney, WEEKDAY_OPTIONS } from "@/lib/admin/format";
-import { maskPhone } from "@/lib/masks";
+import Select from "@/components/admin/Select";
+import { CRP_REGIONS, formatCrp } from "@/lib/admin/crp";
+import { maskCep, maskCpf, maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
 import GoogleCalendarIntegration from "@/components/admin/GoogleCalendarIntegration";
 
@@ -24,6 +26,13 @@ export default function SettingsPage() {
   const me = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [crpNumero, setCrpNumero] = useState("");
+  const [crpRegiao, setCrpRegiao] = useState("");
+  const [enderecoLogradouro, setEnderecoLogradouro] = useState("");
+  const [enderecoCidade, setEnderecoCidade] = useState("");
+  const [enderecoUf, setEnderecoUf] = useState("");
+  const [enderecoCep, setEnderecoCep] = useState("");
   const [foto, setFoto] = useState("");
   const [valorBase, setValorBase] = useState("");
   const [valorSocial, setValorSocial] = useState("");
@@ -47,6 +56,13 @@ export default function SettingsPage() {
     if (!me && !user) return;
     setNome(me?.nome || user?.displayName || "");
     setTelefone(maskPhone(me?.telefone || ""));
+    setCpf(maskCpf(me?.cpf || ""));
+    setCrpNumero(me?.crpNumero || "");
+    setCrpRegiao(me?.crpRegiao || "");
+    setEnderecoLogradouro(me?.enderecoLogradouro || "");
+    setEnderecoCidade(me?.enderecoCidade || "");
+    setEnderecoUf(me?.enderecoUf || "");
+    setEnderecoCep(maskCep(me?.enderecoCep || ""));
     setFoto(me?.foto || user?.photoURL || "");
     setValorBase(moneyInput(me?.valorBase || 0));
     setValorSocial(moneyInput(me?.valorSocial || 0));
@@ -60,6 +76,13 @@ export default function SettingsPage() {
     return {
       nome: nome || me?.nome || "Profissional",
       telefone,
+      cpf,
+      crpNumero,
+      crpRegiao,
+      enderecoLogradouro,
+      enderecoCidade,
+      enderecoUf,
+      enderecoCep,
       foto: nextFoto,
       valorBase: parseMoney(valorBase),
       valorSocial: parseMoney(valorSocial),
@@ -253,6 +276,78 @@ export default function SettingsPage() {
           <p className="text-sm text-muted sm:col-span-2">PNG, JPG ou WebP, até 5 MB. A foto aparece no menu do painel.</p>
           <button className="btn-primary justify-self-start" disabled={savingProfile}>
             {savingProfile ? "Salvando..." : "Salvar cadastro"}
+          </button>
+        </form>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="text-2xl font-medium text-teal">Dados para recibo e Receita Saúde</h2>
+        <p className="mt-2 text-sm text-muted">
+          CPF, CRP e endereço entram no recibo em PDF e no relatório mensal. O recibo oficial continua sendo emitido no app Receita Federal ou no Carnê-Leão Web.
+        </p>
+        <form onSubmit={onProfile} className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label="CPF do profissional">
+            <input
+              className={fieldClass}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="000.000.000-00"
+              value={cpf}
+              onChange={(event) => setCpf(maskCpf(event.target.value))}
+            />
+          </Field>
+          <Field label="CRP (região)">
+            <Select
+              value={crpRegiao}
+              onChange={setCrpRegiao}
+              placeholder="Selecione a região"
+              options={CRP_REGIONS.map((item) => ({ value: item.value, label: item.label }))}
+            />
+          </Field>
+          <Field label="CRP (número)">
+            <input
+              className={fieldClass}
+              inputMode="numeric"
+              placeholder="Ex.: 12345"
+              value={crpNumero}
+              onChange={(event) => setCrpNumero(event.target.value.replace(/\D/g, "").slice(0, 10))}
+            />
+          </Field>
+          <div className="flex items-end text-sm text-muted sm:col-span-2">
+            {formatCrp(crpNumero, crpRegiao) ? `Exibição: ${formatCrp(crpNumero, crpRegiao)}` : "Informe região e número do CRP."}
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Endereço profissional">
+              <input
+                className={fieldClass}
+                value={enderecoLogradouro}
+                onChange={(event) => setEnderecoLogradouro(event.target.value)}
+                placeholder="Rua, número, complemento"
+              />
+            </Field>
+          </div>
+          <Field label="Cidade">
+            <input className={fieldClass} value={enderecoCidade} onChange={(event) => setEnderecoCidade(event.target.value)} />
+          </Field>
+          <Field label="UF">
+            <input
+              className={fieldClass}
+              value={enderecoUf}
+              maxLength={2}
+              onChange={(event) => setEnderecoUf(event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))}
+            />
+          </Field>
+          <Field label="CEP">
+            <input
+              className={fieldClass}
+              inputMode="numeric"
+              value={enderecoCep}
+              onChange={(event) => setEnderecoCep(maskCep(event.target.value))}
+              placeholder="00000-000"
+            />
+          </Field>
+          <button className="btn-primary justify-self-start sm:col-span-2" disabled={savingProfile}>
+            {savingProfile ? "Salvando..." : "Salvar dados fiscais"}
           </button>
         </form>
       </Card>

@@ -17,6 +17,7 @@ import ListCard from "@/components/admin/mobile/ListCard";
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
+import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
 import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -97,13 +98,18 @@ function FinanceContent() {
         title="Contas a receber"
         subtitle="Pagamentos previstos, recebidos e em aberto."
         action={
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => router.replace(`${pathname}?novo=1`, { scroll: false })}
-          >
-            Novo lançamento
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/financeiro/receita-saude" className="btn-text">
+              Receita Saúde
+            </Link>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => router.replace(`${pathname}?novo=1`, { scroll: false })}
+            >
+              Novo lançamento
+            </button>
+          </div>
         }
       />
       <FloatingActionButton label="Novo lançamento" onClick={() => router.replace(`${pathname}?novo=1`, { scroll: false })} />
@@ -209,13 +215,16 @@ function FinanceContent() {
                       ) : null
                     }
                     actions={
-                      <button
-                        type="button"
-                        className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`}
-                        onClick={() => setReceiving(payment)}
-                      >
-                        {canReceive ? "Receber" : "Histórico"}
-                      </button>
+                      <div className="flex flex-col items-end gap-2">
+                        <button
+                          type="button"
+                          className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`}
+                          onClick={() => setReceiving(payment)}
+                        >
+                          {canReceive ? "Receber" : "Histórico"}
+                        </button>
+                        <PaymentFiscalReceipt payment={payment} compact />
+                      </div>
                     }
                   />
                 );
@@ -277,6 +286,7 @@ function FinanceContent() {
                             {canReceive ? "Receber" : "Histórico"}
                           </button>
                           <ReceiptLinks files={paymentReceipts(payment)} />
+                          <PaymentFiscalReceipt payment={payment} />
                         </div>
                       </Td>
                     </tr>

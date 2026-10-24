@@ -25,6 +25,15 @@ export function isBookableStart(date: string, startTime: string, now = new Date(
   return toMinutes(startTime) > now.getHours() * 60 + now.getMinutes();
 }
 
+/** Horário local de início da sessão (ms), usado em regras de compartilhamento. */
+export function sessionStartMillis(date: string, startTime: string) {
+  if (!date || !startTime) return 0;
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = startTime.split(":").map(Number);
+  if ([year, month, day, hours, minutes].some((n) => Number.isNaN(n))) return 0;
+  return new Date(year, month - 1, day, hours, minutes, 0, 0).getTime();
+}
+
 export function addMinutes(time: string, minutes: number) {
   return fromMinutes(toMinutes(time) + minutes);
 }
