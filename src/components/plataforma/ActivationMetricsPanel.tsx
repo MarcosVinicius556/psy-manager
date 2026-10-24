@@ -2,7 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Card, Empty } from "@/components/admin/ui";
+import AnimatedMetric from "@/components/admin/motion/AnimatedMetric";
+import { AdminStaggerItem } from "@/components/admin/motion/AdminPageMotion";
+import { Card, CardMetric, CardTitle, Empty } from "@/components/admin/ui";
 import type { ActivationEventRecord } from "@/lib/saas/activation-events";
 import { summarizeActivationMetrics } from "@/lib/saas/activation-metrics";
 import type { AccountRecord } from "@/lib/saas/model";
@@ -27,27 +29,35 @@ export function ActivationMetricsPanel({ events, accounts }: Props) {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card>
-          <p className="text-sm text-muted">Conversão trial → paga</p>
-          <p className="mt-2 font-num text-3xl text-teal">
-            {summary.trialToPaid.rate == null ? "—" : `${summary.trialToPaid.rate}%`}
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            {summary.trialToPaid.paid} pagas de {summary.trialToPaid.trials} que passaram por avaliação
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-muted">Mediana até 1ª sessão concluída</p>
-          <p className="mt-2 font-num text-3xl text-teal">
-            {summary.medianDaysToFirstSession == null ? "—" : `${summary.medianDaysToFirstSession.toFixed(1)} d`}
-          </p>
-          <p className="mt-1 text-xs text-muted">Entre cadastro e evento de sessão concluída</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-muted">Contas em risco (trial ≤ 7 dias)</p>
-          <p className="mt-2 font-num text-3xl text-teal">{summary.atRisk.length}</p>
-          <p className="mt-1 text-xs text-muted">Baixa ativação ou trial perto do fim</p>
-        </Card>
+        <AdminStaggerItem>
+          <Card>
+            <CardTitle>Conversão trial → paga</CardTitle>
+            <CardMetric className="mt-2 text-3xl sm:text-4xl">
+              {summary.trialToPaid.rate == null ? "—" : `${summary.trialToPaid.rate}%`}
+            </CardMetric>
+            <p className="mt-1 text-xs text-muted">
+              {summary.trialToPaid.paid} pagas de {summary.trialToPaid.trials} que passaram por avaliação
+            </p>
+          </Card>
+        </AdminStaggerItem>
+        <AdminStaggerItem>
+          <Card>
+            <CardTitle>Mediana até 1ª sessão concluída</CardTitle>
+            <CardMetric className="mt-2 text-3xl sm:text-4xl">
+              {summary.medianDaysToFirstSession == null ? "—" : `${summary.medianDaysToFirstSession.toFixed(1)} d`}
+            </CardMetric>
+            <p className="mt-1 text-xs text-muted">Entre cadastro e evento de sessão concluída</p>
+          </Card>
+        </AdminStaggerItem>
+        <AdminStaggerItem>
+          <Card>
+            <CardTitle>Contas em risco (trial ≤ 7 dias)</CardTitle>
+            <CardMetric className="mt-2 text-3xl sm:text-4xl">
+              <AnimatedMetric value={summary.atRisk.length} />
+            </CardMetric>
+            <p className="mt-1 text-xs text-muted">Baixa ativação ou trial perto do fim</p>
+          </Card>
+        </AdminStaggerItem>
       </div>
 
       <Card>

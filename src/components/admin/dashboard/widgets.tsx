@@ -7,7 +7,9 @@ import MonthTotalCard from "@/components/admin/MonthTotalCard";
 import Select from "@/components/admin/Select";
 import ListCard from "@/components/admin/mobile/ListCard";
 import StackedRow from "@/components/admin/mobile/StackedRow";
-import { Card, DataTable, Empty, MobileListGrid, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
+import AnimatedMetric from "@/components/admin/motion/AnimatedMetric";
+import { RingProgress } from "@/components/admin/motion/ChartMotion";
+import { Card, CardMetric, CardTitle, DataTable, Empty, MobileListGrid, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import type { WidgetId } from "@/lib/admin/dashboard-layout";
@@ -94,18 +96,26 @@ function ActivePatientsWidget() {
   const activeCount = patients.filter((patient) => patient.status === "ativo").length;
   return (
     <Card>
-      <p className="text-sm text-muted">Pacientes ativos</p>
-      <p className="font-num text-5xl font-semibold text-teal">{activeCount}</p>
+      <div className="flex items-start justify-between gap-3">
+        <CardTitle>Pacientes ativos</CardTitle>
+        <RingProgress value={activeCount} max={Math.max(activeCount, 20, 1)} size={52} />
+      </div>
+      <CardMetric className="mt-3">
+        <AnimatedMetric value={activeCount} />
+      </CardMetric>
     </Card>
   );
 }
 
 function FutureCountWidget() {
   const clinicPayments = useClinicPayments();
+  const count = clinicPayments.filter((payment) => isFutureLaunch(payment)).length;
   return (
     <Card>
-      <p className="text-sm text-muted">Lançamentos futuros</p>
-      <p className="font-num text-5xl font-semibold text-teal">{clinicPayments.filter((payment) => isFutureLaunch(payment)).length}</p>
+      <CardTitle>Lançamentos futuros</CardTitle>
+      <CardMetric className="mt-3">
+        <AnimatedMetric value={count} />
+      </CardMetric>
     </Card>
   );
 }
@@ -114,8 +124,10 @@ function DebtorsCountWidget() {
   const debtors = useDebtors();
   return (
     <Card>
-      <p className="text-sm text-muted">Pacientes em Atraso</p>
-      <p className="font-num text-5xl font-semibold text-accent">{debtors.length}</p>
+      <CardTitle>Pacientes em atraso</CardTitle>
+      <CardMetric className="mt-3 text-accent">
+        <AnimatedMetric value={debtors.length} />
+      </CardMetric>
     </Card>
   );
 }

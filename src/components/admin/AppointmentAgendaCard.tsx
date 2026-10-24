@@ -23,7 +23,7 @@ export default function AppointmentAgendaCard({
   const meetLink = appointment.modality === "online" ? appointment.googleMeetLink : null;
 
   return (
-    <div className="min-h-11 rounded-md bg-sky-soft px-3 py-2.5 text-sm">
+    <div className="motion-press min-h-11 rounded-xl border border-[#e7eee8] bg-sky-soft px-3 py-2.5 text-sm shadow-[0_8px_24px_rgba(61,82,64,0.05)]">
       <Link href={`/admin/atendimentos/${appointment.id}`} className="block text-ink">
         <strong>
           {appointment.startTime}–{appointment.endTime}

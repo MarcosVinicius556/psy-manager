@@ -1,7 +1,8 @@
 "use client";
 
 import { HiArrowDown, HiArrowUp, HiOutlineChevronLeft, HiOutlineChevronRight } from "react-icons/hi";
-import { Card } from "@/components/admin/ui";
+import { SparkBars } from "@/components/admin/motion/ChartMotion";
+import { Card, CardMetric, CardTitle } from "@/components/admin/ui";
 import { addMonths, formatMoney, monthLabel } from "@/lib/admin/format";
 
 export function titledMonth(isoMonth: string) {
@@ -46,7 +47,12 @@ export default function MonthTotalCard({
   const tone = change.direction === "up" ? upGood : change.direction === "down" ? downGood : "text-ink";
   return (
     <Card>
-      <p className="text-sm text-muted">{title}</p>
+      <div className="flex items-start justify-between gap-3">
+        <CardTitle>{title}</CardTitle>
+        <div className="flex h-12 w-14 items-end justify-end">
+          <SparkBars values={[previous, value]} className="h-10 w-full" />
+        </div>
+      </div>
       {onMonth && minMonth && maxMonth ? (
         <div className="mt-3 flex items-center justify-between gap-2">
           <button
@@ -72,7 +78,7 @@ export default function MonthTotalCard({
       ) : (
         <p className="mt-3 text-sm font-medium text-ink">{titledMonth(month)}</p>
       )}
-      <p className={`mt-3 font-num text-4xl font-semibold ${tone}`}>{formatMoney(value)}</p>
+      <CardMetric className={`mt-3 ${tone}`}>{formatMoney(value)}</CardMetric>
       {change.direction === "same" ? (
         <p className="mt-2 text-sm text-ink">Mesmo valor do mês anterior</p>
       ) : (

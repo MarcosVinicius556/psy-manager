@@ -4,9 +4,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineMenu, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers, HiOutlineX } from "react-icons/hi";
+import { LayoutGroup } from "motion/react";
+import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers, HiOutlineX } from "react-icons/hi";
 import BrandLogo from "@/components/BrandLogo";
+import { AdminPageMotion } from "@/components/admin/motion/AdminPageMotion";
+import { SidebarActivePill } from "@/components/admin/motion/NavPill";
 import MobileHeader from "@/components/admin/mobile/MobileHeader";
+import MobileTabBar from "@/components/admin/mobile/MobileTabBar";
 import { AdminPageMetaProvider, useAdminPageMeta } from "@/lib/admin/page-meta-context";
 import Avatar from "./Avatar";
 import { isExpenseAlert } from "@/lib/admin/expenses";
@@ -134,14 +138,14 @@ function groupForPath(menu: NavEntry[], pathname: string) {
   return match && isGroup(match) ? match.label : null;
 }
 
-function linkClass(current: boolean, collapsed: boolean, nested = false) {
-  return `flex items-center overflow-hidden rounded-md border text-sm font-medium transition-[background-color,border-color,color,padding,gap] duration-300 ${
+function navShellClass(collapsed: boolean, nested = false) {
+  return `relative flex items-center overflow-hidden rounded-xl border border-transparent text-sm font-medium transition-[color,background-color] duration-200 ${
     collapsed ? "justify-center px-0 py-3" : nested ? "gap-3 py-2.5 pl-9 pr-3" : "gap-3 px-3 py-3"
-  } ${
-    current
-      ? "border-white bg-white text-teal hover:bg-transparent hover:text-white"
-      : "border-transparent text-white/80 hover:border-white hover:bg-transparent hover:text-white"
   }`;
+}
+
+function navToneClass(current: boolean) {
+  return current ? "text-teal" : "text-white/85 hover:bg-white/10 hover:text-white";
 }
 
 function FadeLabel({ show, className, children }: { show: boolean; className?: string; children: ReactNode }) {
@@ -160,22 +164,29 @@ function NavAnchor({ item, collapsed, pathname, unread }: { item: NavLinkItem; c
   const Icon = item.icon;
   const current = isCurrent(item.href, pathname);
   return (
-    <Link href={item.href} title={collapsed ? item.label : undefined} className={linkClass(current, collapsed)}>
-      <span className="relative shrink-0">
-        <Icon size={20} />
-        {item.href === "/admin/notificacoes" && unread > 0 && (
-          <span
-            className={`absolute -right-1 -top-1 h-2 w-2 bg-accent transition-opacity duration-300 ${collapsed ? "opacity-100" : "opacity-0"}`}
-            style={{ borderRadius: "50%" }}
-          />
-        )}
+    <Link
+      href={item.href}
+      title={collapsed ? item.label : undefined}
+      className={`motion-press ${navShellClass(collapsed)} ${navToneClass(current)}`}
+    >
+      {current ? <SidebarActivePill /> : null}
+      <span className="relative z-10 flex min-w-0 flex-1 items-center gap-3">
+        <span className="relative shrink-0">
+          <Icon size={20} />
+          {item.href === "/admin/notificacoes" && unread > 0 && (
+            <span
+              className={`absolute -right-1 -top-1 h-2 w-2 bg-accent transition-opacity duration-300 ${collapsed ? "opacity-100" : "opacity-0"}`}
+              style={{ borderRadius: "50%" }}
+            />
+          )}
+        </span>
+        <FadeLabel show={!collapsed} className="flex-1">
+          {item.label}
+        </FadeLabel>
+        <FadeLabel show={!collapsed && item.href === "/admin/notificacoes" && unread > 0}>
+          <span className="rounded-md bg-accent px-2 py-0.5 text-xs text-white">{unread}</span>
+        </FadeLabel>
       </span>
-      <FadeLabel show={!collapsed} className="flex-1">
-        {item.label}
-      </FadeLabel>
-      <FadeLabel show={!collapsed && item.href === "/admin/notificacoes" && unread > 0}>
-        <span className="rounded-md bg-accent px-2 py-0.5 text-xs text-white">{unread}</span>
-      </FadeLabel>
     </Link>
   );
 }
@@ -251,19 +262,20 @@ function NavGroup({
         aria-expanded={open}
         aria-label={item.label}
         title={collapsed ? item.label : undefined}
-        className={`w-full ${linkClass(highlighted, collapsed)}`}
+        className={`motion-press w-full ${navShellClass(collapsed)} ${navToneClass(highlighted)}`}
         onClick={() => {
           if (collapsed) placeFlyout();
           onToggle();
         }}
       >
-        <Icon size={20} className="shrink-0" />
-        <FadeLabel show={!collapsed} className="flex-1 text-left">
+        {highlighted ? <SidebarActivePill /> : null}
+        <Icon size={20} className="relative z-10 shrink-0" />
+        <FadeLabel show={!collapsed} className="relative z-10 flex-1 text-left">
           {item.label}
         </FadeLabel>
         <HiOutlineChevronDown
           size={16}
-          className={`shrink-0 transition-[transform,opacity,width] duration-300 ${
+          className={`relative z-10 shrink-0 transition-[transform,opacity,width] duration-300 ${
             collapsed ? "w-0 opacity-0" : "opacity-100"
           } ${open && !collapsed ? "rotate-180" : ""}`}
         />
@@ -282,18 +294,24 @@ function NavGroup({
                   <button
                     key={child.label}
                     type="button"
-                    className={linkClass(false, false, true)}
+                    className={`motion-press ${navShellClass(false, true)} ${navToneClass(false)}`}
                     onClick={() => onCookiePreferences?.()}
                   >
-                    <ChildIcon size={18} />
-                    <span className="flex-1 text-left">{child.label}</span>
+                    <ChildIcon size={18} className="relative z-10" />
+                    <span className="relative z-10 flex-1 text-left">{child.label}</span>
                   </button>
                 );
               }
+              const childCurrent = isCurrent(child.href, pathname);
               return (
-                <Link key={child.href} href={child.href} className={linkClass(isCurrent(child.href, pathname), false, true)}>
-                  <ChildIcon size={18} />
-                  <span className="flex-1">{child.label}</span>
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={`motion-press ${navShellClass(false, true)} ${navToneClass(childCurrent)}`}
+                >
+                  {childCurrent ? <SidebarActivePill /> : null}
+                  <ChildIcon size={18} className="relative z-10" />
+                  <span className="relative z-10 flex-1">{child.label}</span>
                 </Link>
               );
             })}
@@ -318,21 +336,27 @@ function NavGroup({
                   <button
                     key={child.label}
                     type="button"
-                    className={linkClass(false, false)}
+                    className={`motion-press ${navShellClass(false)} ${navToneClass(false)}`}
                     onClick={() => {
                       onToggle();
                       onCookiePreferences?.();
                     }}
                   >
-                    <ChildIcon size={18} />
-                    <span className="flex-1 text-left">{child.label}</span>
+                    <ChildIcon size={18} className="relative z-10" />
+                    <span className="relative z-10 flex-1 text-left">{child.label}</span>
                   </button>
                 );
               }
+              const childCurrent = isCurrent(child.href, pathname);
               return (
-                <Link key={child.href} href={child.href} className={linkClass(isCurrent(child.href, pathname), false)}>
-                  <ChildIcon size={18} />
-                  <span className="flex-1">{child.label}</span>
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={`motion-press ${navShellClass(false)} ${navToneClass(childCurrent)}`}
+                >
+                  {childCurrent ? <SidebarActivePill /> : null}
+                  <ChildIcon size={18} className="relative z-10" />
+                  <span className="relative z-10 flex-1">{child.label}</span>
                 </Link>
               );
             })}
@@ -456,23 +480,25 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
             {collapsed ? <HiOutlineChevronRight size={20} /> : <HiOutlineChevronLeft size={20} />}
           </button>
         </div>
-        <nav className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden">
-          {menu.map((entry) =>
-            isGroup(entry) ? (
-              <NavGroup
-                key={entry.label}
-                item={entry}
-                collapsed={collapsed}
-                pathname={pathname}
-                open={openGroup === entry.label}
-                onToggle={() => toggleGroup(entry.label)}
-                onCookiePreferences={openPreferences}
-              />
-            ) : (
-              <NavAnchor key={entry.href} item={entry} collapsed={collapsed} pathname={pathname} unread={unread} />
-            )
-          )}
-        </nav>
+        <LayoutGroup id="admin-sidebar">
+          <nav className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden">
+            {menu.map((entry) =>
+              isGroup(entry) ? (
+                <NavGroup
+                  key={entry.label}
+                  item={entry}
+                  collapsed={collapsed}
+                  pathname={pathname}
+                  open={openGroup === entry.label}
+                  onToggle={() => toggleGroup(entry.label)}
+                  onCookiePreferences={openPreferences}
+                />
+              ) : (
+                <NavAnchor key={entry.href} item={entry} collapsed={collapsed} pathname={pathname} unread={unread} />
+              )
+            )}
+          </nav>
+        </LayoutGroup>
         <div className="shrink-0 border-t border-white/15 pt-4">
           <Link
             href="/admin/configuracoes"
@@ -579,57 +605,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <nav
-        className={`admin-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-[#d7e0d8] bg-white/95 backdrop-blur-md transition-transform duration-300 ease-out md:hidden ${
-          tabbarHidden ? "translate-y-full" : "translate-y-0"
-        }`}
-        aria-label="Atalhos"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="grid grid-cols-5">
-          {(
-            [
-              { href: "/admin", label: "Início", icon: HiOutlineHome },
-              { href: "/admin/agenda", label: "Agenda", icon: HiOutlineCalendar },
-              { href: "/admin/pacientes", label: "Pacientes", icon: HiOutlineUsers },
-              { href: "/admin/financeiro", label: "Financeiro", icon: HiOutlineCash },
-            ] as const
-          ).map((item) => {
-            const Icon = item.icon;
-            const current = isCurrent(item.href, pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={current ? "page" : undefined}
-                className={`relative flex min-h-[3.65rem] min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[0.65rem] font-semibold leading-tight ${
-                  current ? "text-accent" : "text-teal/80"
-                }`}
-              >
-                {current ? (
-                  <span className="absolute inset-x-2 top-1 h-0.5 rounded-full bg-accent" aria-hidden="true" />
-                ) : null}
-                <Icon size={22} className={current ? "text-accent" : undefined} />
-                <span className="max-w-full">{item.label}</span>
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            className={`flex min-h-[3.65rem] flex-col items-center justify-center gap-0.5 px-1 text-[0.65rem] font-semibold ${mobileOpen ? "text-accent" : "text-teal/80"}`}
-            aria-expanded={mobileOpen}
-            aria-controls="admin-mobile-nav"
-            onClick={() => setMobileOpen(true)}
-          >
-            <HiOutlineMenu size={22} />
-            Menu
-          </button>
-        </div>
-      </nav>
+      <MobileTabBar pathname={pathname} hidden={tabbarHidden} menuOpen={mobileOpen} onOpenMenu={() => setMobileOpen(true)} />
 
-      <div className={`pb-[calc(4.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
+      <div className={`pb-[calc(6.25rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
         <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 md:py-10">
-          {children}
+          <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>
       </div>
     </div>
