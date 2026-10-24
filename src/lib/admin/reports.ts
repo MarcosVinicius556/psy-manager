@@ -1,3 +1,4 @@
+import { authorizedHeaders } from "./api-auth";
 import { expenseTypeLabel, intervalLabel } from "./expenses";
 import {
   formatDate,
@@ -693,6 +694,17 @@ export function downloadPdfBlob(blob: Blob, nome: string) {
 export function clinicPdfHref(url: string, nome = "relatorio.pdf") {
   const filename = nome.toLowerCase().endsWith(".pdf") ? nome : `${nome}.pdf`;
   return `/api/pdf?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
+}
+
+export async function openClinicPdf(url: string, nome = "relatorio.pdf") {
+  const href = clinicPdfHref(url, nome);
+  const headers = await authorizedHeaders();
+  const response = await fetch(href, { headers });
+  if (!response.ok) throw new Error("Não foi possível abrir o PDF.");
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
 }
 
 export async function createReportPdf(input: {

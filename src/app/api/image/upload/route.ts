@@ -1,6 +1,9 @@
 import { v2 as cloudinary } from "cloudinary";
 import { NextResponse } from "next/server";
 import streamifier from "streamifier";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { requireAuthUser } from "@/lib/server/require-auth";
+import { parseUploadAccept, parseUploadKind, resolveUploadFolder } from "@/lib/server/upload-policy";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -10,6 +13,12 @@ cloudinary.config({
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireAuthUser(req);
+    if ("error" in auth) return auth.error;
+    if (!getAdminDb()) {
+      return NextResponse.json({ error: "Serviço indisponível." }, { status: 503 });
+    }
+
     if (
       !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
       !process.env.CLOUDINARY_API_KEY ||
@@ -18,11 +27,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cloudinary não está configurado." }, { status: 500 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const kind = parseUploadKind(searchParams.get("kind"));
+    if (!kind) {
+      return NextResponse.json({ error: "Tipo de envio inválido." }, { status: 400 });
+    }
+
+    const folderResult = await resolveUploadFolder(kind, auth.uid, {
+      patientId: searchParams.get("patientId") || undefined,
+      appointmentId: searchParams.get("appointmentId") || undefined,
+      paymentId: searchParams.get("paymentId") || undefined,
+    });
+    if ("error" in folderResult) {
+      return NextResponse.json({ error: folderResult.error }, { status: folderResult.status });
+    }
+    const folder = folderResult.folder;
+
     const formData = await req.formData();
     const file = formData.get("file");
-    const { searchParams } = new URL(req.url);
-    const folder = (searchParams.get("folder") ?? "avatars").replace(/[^a-zA-Z0-9/_-]/g, "") || "avatars";
-    const accept = searchParams.get("accept") === "documento" ? "documento" : searchParams.get("accept") === "foto" ? "foto" : "imagem";
+    const accept = parseUploadAccept(searchParams);
     const isPdf = file instanceof File && (file.type === "application/pdf" || file.type === "application/x-pdf" || file.name.toLowerCase().endsWith(".pdf"));
 
     if (!(file instanceof File)) {

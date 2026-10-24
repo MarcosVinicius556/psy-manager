@@ -241,7 +241,7 @@ export default function PatientDetailPage() {
             description="Anexe o PDF ou a imagem depois que o paciente assinar. PNG, JPG, WebP ou PDF, até 10 MB. O envio usa o armazenamento já configurado; sem as variáveis do Cloudinary, o arquivo não sobe."
             files={patient.contratoAssinado ? [patient.contratoAssinado] : []}
             onChange={(files) => void onSignedContract(files)}
-            folder={`clinica/contratos/${patient.id}`}
+            uploadTarget={{ kind: "patient-contract", patientId: patient.id }}
             kind="documento"
             multiple={false}
             disabled={savingContract}

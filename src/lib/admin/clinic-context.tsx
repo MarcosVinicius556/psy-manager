@@ -46,6 +46,7 @@ import {
   updatePayment,
   upsertPsychologist,
 } from "./collections";
+import { authorizedHeaders } from "./api-auth";
 import { updateAuthProfile } from "./account";
 import { getFirebaseAuth } from "./firebase";
 import { formatDate, formatMoney, monthlyDates, shiftDate, todayISO } from "./format";
@@ -1093,7 +1094,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         const viewers = Array.from(new Set([uid, ...location.memberUids]));
         for (const appointmentId of appointmentIds) await grantAccess("appointments", appointmentId, viewers);
         for (const expenseId of expenseIds) await grantAccess("expenses", expenseId, viewers);
-        await createLocationInvite({
+        const inviteId = await createLocationInvite({
           locationId,
           locationNome: location.nome,
           ownerUid: uid,
@@ -1106,13 +1107,8 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         });
         const response = await fetch("/api/location-invite", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: email,
-            nome: person.nome || email,
-            local: location.nome,
-            inviter: mine?.nome || "Um profissional",
-          }),
+          headers: await authorizedHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ inviteId }),
         });
         await refresh();
         if (!response.ok) {

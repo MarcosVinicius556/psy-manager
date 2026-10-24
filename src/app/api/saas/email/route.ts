@@ -1,9 +1,8 @@
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
+import { requireAuthUser } from "@/lib/server/require-auth";
 
 export const runtime = "nodejs";
-
-type LookupUser = { localId?: string; email?: string; emailVerified?: boolean };
 
 function escapeHtml(value: string) {
   return value
@@ -11,21 +10,6 @@ function escapeHtml(value: string) {
     .replace(/</g, "&" + "lt;")
     .replace(/>/g, "&" + "gt;")
     .replace(/"/g, "&" + "quot;");
-}
-
-async function lookupToken(idToken: string) {
-  const key = process.env.NEXT_PUBLIC_API_KEY;
-  if (!key) return null;
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${key}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  });
-  if (!response.ok) return null;
-  const data = (await response.json()) as { users?: LookupUser[] };
-  const user = data.users?.[0];
-  if (!user?.localId || !user.email) return null;
-  return { uid: user.localId, email: user.email.toLowerCase() };
 }
 
 async function readRole(projectId: string, uid: string, idToken: string) {
@@ -47,10 +31,10 @@ function mailer() {
 
 export async function POST(request: Request) {
   try {
-    const header = request.headers.get("authorization") || "";
-    const idToken = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-    const identity = idToken ? await lookupToken(idToken) : null;
-    if (!identity) return NextResponse.json({ delivered: false, reason: "nao_autorizado" }, { status: 401 });
+    const auth = await requireAuthUser(request);
+    if ("error" in auth) return auth.error;
+    const identity = { uid: auth.uid, email: auth.email };
+    const idToken = auth.idToken;
 
     const body = (await request.json()) as {
       kind?: string;

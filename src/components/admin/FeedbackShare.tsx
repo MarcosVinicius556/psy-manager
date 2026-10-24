@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { authorizedHeaders } from "@/lib/admin/api-auth";
 import type { SessionFeedback } from "@/lib/admin/types";
 
 export function feedbackLink(token: string) {
@@ -16,12 +17,10 @@ export function feedbackAvailability(feedback: SessionFeedback) {
 
 export default function FeedbackShare({
   feedback,
-  email,
-  patientNome,
+  patientEmail = "",
 }: {
   feedback: SessionFeedback;
-  email: string;
-  patientNome: string;
+  patientEmail?: string;
 }) {
   const availability = feedbackAvailability(feedback);
   const [sending, setSending] = useState(false);
@@ -39,15 +38,11 @@ export default function FeedbackShare({
   async function sendEmail() {
     setSending(true);
     try {
+      const headers = await authorizedHeaders({ "Content-Type": "application/json" });
       const response = await fetch("/api/session-feedback", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: email,
-          nome: patientNome,
-          professional: feedback.professionalNome,
-          link,
-        }),
+        headers,
+        body: JSON.stringify({ feedbackId: feedback.id }),
       });
       if (!response.ok) throw new Error("Falha no envio");
       toast.success("E-mail enviado ao paciente.");
@@ -85,11 +80,11 @@ export default function FeedbackShare({
         <button type="button" className="btn-primary" onClick={copy}>
           Copiar link
         </button>
-        <button type="button" className="btn-row" disabled={sending || !email.trim()} onClick={sendEmail}>
+        <button type="button" className="btn-row" disabled={sending || !patientEmail.trim()} onClick={sendEmail}>
           {sending ? "Enviando..." : "Enviar por e-mail"}
         </button>
       </div>
-      {!email.trim() && <p className="text-sm text-muted">Este paciente não tem e-mail no cadastro. Copie o link e encaminhe manualmente.</p>}
+      {!patientEmail.trim() && <p className="text-sm text-muted">Este paciente não tem e-mail no cadastro. Copie o link e encaminhe manualmente.</p>}
     </div>
   );
 }

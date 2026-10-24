@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuthUser } from "@/lib/server/require-auth";
 
 function allowed(url: string) {
   try {
@@ -10,6 +11,9 @@ function allowed(url: string) {
 }
 
 export async function GET(req: Request) {
+  const auth = await requireAuthUser(req);
+  if ("error" in auth) return auth.error;
+
   const url = new URL(req.url).searchParams.get("url") || "";
   const name = new URL(req.url).searchParams.get("name") || "relatorio.pdf";
   if (!allowed(url)) {

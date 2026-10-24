@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { googleCalendarIntegrationAvailable } from "./config";
-import { bearerToken, verifyFirebaseIdToken } from "@/lib/server/verify-id-token";
+import { requireAuthUser } from "@/lib/server/require-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 
 export async function requireGoogleUser(request: Request) {
@@ -10,13 +10,7 @@ export async function requireGoogleUser(request: Request) {
   if (!getAdminDb()) {
     return { error: NextResponse.json({ available: false, reason: "firebase_admin" }, { status: 503 }) };
   }
-  const idToken = bearerToken(request);
-  if (!idToken) {
-    return { error: NextResponse.json({ reason: "nao_autorizado" }, { status: 401 }) };
-  }
-  const identity = await verifyFirebaseIdToken(idToken);
-  if (!identity) {
-    return { error: NextResponse.json({ reason: "nao_autorizado" }, { status: 401 }) };
-  }
-  return { uid: identity.uid, email: identity.email };
+  const auth = await requireAuthUser(request);
+  if ("error" in auth) return auth;
+  return { uid: auth.uid, email: auth.email };
 }

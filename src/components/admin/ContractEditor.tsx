@@ -354,7 +354,7 @@ function ContractEditor({ value, onChange }: { value: string; onChange: (value: 
     if (!file) return;
     setUploading(true);
     try {
-      const uploaded = await uploadClinicFile(file, "contratos/modelos", "foto");
+      const uploaded = await uploadClinicFile(file, { kind: "contract-template" }, "foto");
       const alt = uploaded.nome.replace(/\.[^.]+$/, "") || "imagem";
       insertToken(`![${alt}](${uploaded.url})`);
     } catch (error) {
