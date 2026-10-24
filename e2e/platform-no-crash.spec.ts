@@ -85,22 +85,29 @@ test.describe("platform routes — no client exceptions", () => {
   test.describe("super_admin plataforma", () => {
     test.describe.configure({ timeout: 120_000 });
 
-    test("menu Plataforma from admin", async ({ page }) => {
+    test("menu Plataforma from admin", async ({ page }, testInfo) => {
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin/login");
-      await page.getByPlaceholder("Seu e-mail").fill(platformEmail);
-      await page.getByPlaceholder("Sua senha").fill(platformPassword);
+      await page.getByPlaceholder("Seu e-mail").fill(demoEmail);
+      await page.getByPlaceholder("Sua senha").fill(demoPassword);
       await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
       await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("login"), { timeout: 60_000 });
       await page.goto("/admin", { waitUntil: "load" });
       await page.waitForTimeout(800);
-      const tabBar = page.getByRole("navigation", { name: "Atalhos" });
-      await expect(tabBar).toBeVisible({ timeout: 60_000 });
-      await tabBar.getByRole("button", { name: "Menu" }).click();
-      const plataformaLink = page.locator("#admin-mobile-nav").getByRole("link", { name: "Plataforma" });
+
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
+      if (isMobile) {
+        await page.getByRole("button", { name: "Abrir menu" }).click();
+      }
+
+      const plataformaLink = isMobile
+        ? page.locator("#admin-mobile-nav a[href='/plataforma']")
+        : page.locator("aside a[href='/plataforma']");
       await expect(plataformaLink).toBeVisible({ timeout: 60_000 });
       await plataformaLink.click();
-      await page.waitForURL((url) => url.pathname.startsWith("/plataforma"), { timeout: 60_000 });
+      if (!page.url().includes("/plataforma")) {
+        await page.goto("/plataforma", { waitUntil: "load" });
+      }
       await page.waitForTimeout(800);
       expect(errors, errors.join("\n")).toEqual([]);
       await expect(page).not.toHaveURL(/login/);

@@ -43,7 +43,7 @@ async function main() {
     termsAcceptedAt: now,
   });
 
-  await db.doc(`users/${uid}`).set(trial, { merge: true });
+  await db.doc(`users/${uid}`).set({ ...trial, role: "super_admin" }, { merge: true });
 
   const memberRef = db.collection("members").doc("member-demo");
   await memberRef.set({
