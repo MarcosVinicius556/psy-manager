@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Empty, PageTitle } from "@/components/admin/ui";
+import { Card, Empty, PageTitle, fieldClass } from "@/components/admin/ui";
 import { getFirebaseAuth } from "@/lib/admin/firebase";
 import { deliverAdminEmail } from "@/lib/saas/email-client";
 import { matchesAccountFilter, type AccountRecord } from "@/lib/saas/model";
@@ -94,22 +94,22 @@ export default function NotificationsPage() {
       <Card>
         <div className="grid gap-3">
           <label className="text-sm">Público
-            <select className="mt-1 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={audience} onChange={(event) => setAudience(event.target.value as typeof audience)}>
+            <select className={`${fieldClass} mt-1.5`} value={audience} onChange={(event) => setAudience(event.target.value as typeof audience)}>
               {audiences.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
             </select>
           </label>
           <p className="text-sm text-muted">{targets.length} conta(s) neste recorte.</p>
           <label className="text-sm">Tipo
-            <select className="mt-1 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={categoria} onChange={(event) => setCategoria(event.target.value as typeof categoria)}>
+            <select className={`${fieldClass} mt-1.5`} value={categoria} onChange={(event) => setCategoria(event.target.value as typeof categoria)}>
               <option value="operacional">Operacional</option>
               <option value="produto">Produto</option>
             </select>
           </label>
           <label className="text-sm">Título
-            <input className="mt-1 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={titulo} onChange={(event) => setTitulo(event.target.value)} maxLength={140} />
+            <input className={`${fieldClass} mt-1.5`} value={titulo} onChange={(event) => setTitulo(event.target.value)} maxLength={140} placeholder="título do aviso" />
           </label>
           <label className="text-sm">Mensagem
-            <textarea className="mt-1 min-h-32 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={corpo} onChange={(event) => setCorpo(event.target.value)} maxLength={4000} />
+            <textarea className={`${fieldClass} mt-1.5 min-h-32`} value={corpo} onChange={(event) => setCorpo(event.target.value)} maxLength={4000} placeholder="mensagem para as contas selecionadas" />
           </label>
           <div className="rounded-md bg-paper p-4 text-sm">
             <p className="font-semibold">Prévia</p>

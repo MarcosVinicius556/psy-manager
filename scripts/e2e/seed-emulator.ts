@@ -10,6 +10,8 @@ import { buildTrialAccount } from "../../src/lib/saas/model";
 const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_PROJECT_ID || "demo-psy-manager";
 const DEMO_EMAIL = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
 const DEMO_PASSWORD = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
+const PLATFORM_EMAIL = process.env.E2E_PLATFORM_EMAIL || "platform@psy.test";
+const PLATFORM_PASSWORD = process.env.E2E_PLATFORM_PASSWORD || "Platform123456!";
 
 initializeApp({ projectId });
 
@@ -187,7 +189,39 @@ async function main() {
     ownerUid: uid,
   });
 
-  console.log(JSON.stringify({ ok: true, uid, email: DEMO_EMAIL, password: DEMO_PASSWORD }, null, 2));
+  let platformUser;
+  try {
+    platformUser = await auth.getUserByEmail(PLATFORM_EMAIL);
+  } catch {
+    platformUser = await auth.createUser({ email: PLATFORM_EMAIL, password: PLATFORM_PASSWORD, displayName: "Proprietário Plataforma" });
+  }
+
+  const platformUid = platformUser.uid;
+  const platformAccount = buildTrialAccount({
+    uid: platformUid,
+    email: PLATFORM_EMAIL,
+    nome: "Proprietário Plataforma",
+    clinicName: "Psy Manager",
+    now: Date.now(),
+    termsAcceptedAt: now,
+  });
+  await db.doc(`users/${platformUid}`).set({ ...platformAccount, role: "super_admin" }, { merge: true });
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        uid,
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+        platformUid,
+        platformEmail: PLATFORM_EMAIL,
+        platformPassword: PLATFORM_PASSWORD,
+      },
+      null,
+      2
+    )
+  );
 }
 
 main().catch((error) => {

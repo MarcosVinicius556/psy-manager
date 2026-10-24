@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Card, Empty, PageTitle } from "@/components/admin/ui";
+import { Card, Empty, PageTitle, fieldClass } from "@/components/admin/ui";
 import { readAccount } from "@/lib/saas/account-store";
 import { ACCOUNT_LABEL, applyAdminAction, STATUS_LABEL, type AccountRecord, type AdminAction } from "@/lib/saas/model";
 import { commitAdminAction, listAccountInbox, listAudit, listBillingEvents, type AuditEntry, type BillingEntry } from "@/lib/saas/platform-store";
@@ -88,7 +88,7 @@ export default function AccountDetailPage() {
             <p className="text-sm">{chosen?.consequence}</p>
             {(pending === "alterar_plano" || pending === "conceder_cortesia") && (
               <label className="text-sm">Plano
-                <select className="mt-1 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={planId} onChange={(event) => setPlanId(event.target.value)}>
+                <select className={`${fieldClass} mt-1.5`} value={planId} onChange={(event) => setPlanId(event.target.value)}>
                   <option value="avaliacao">Avaliação</option>
                   <option value="consultorio">Consultório</option>
                 </select>
@@ -96,7 +96,7 @@ export default function AccountDetailPage() {
             )}
             {pending === "estender_trial" && (
               <label className="text-sm">Dias
-                <input type="number" min={1} max={90} className="mt-1 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={days} onChange={(event) => setDays(Number(event.target.value))} />
+                <input type="number" min={1} max={90} className={`${fieldClass} mt-1.5`} value={days} onChange={(event) => setDays(Number(event.target.value))} />
               </label>
             )}
             <div className="flex gap-2">

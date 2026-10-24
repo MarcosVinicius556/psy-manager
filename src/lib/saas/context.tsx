@@ -180,8 +180,12 @@ function emptyAccessAccount(): AccountRecord {
   };
 }
 
+export function useOptionalSaas() {
+  return useContext(SaasContext) ?? null;
+}
+
 export function useSaas() {
-  const context = useContext(SaasContext);
+  const context = useOptionalSaas();
   if (!context) throw new Error("useSaas deve ser usado dentro de SaasProvider");
   return context;
 }

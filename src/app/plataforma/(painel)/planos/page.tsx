@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, Empty, PageTitle } from "@/components/admin/ui";
+import { Card, Empty, PageTitle, fieldClass } from "@/components/admin/ui";
 import { DEFAULT_PLANS, formatPrice, type PlanDefinition } from "@/lib/saas/model";
 import { loadRemotePlans, publishDefaultPlans, savePlan } from "@/lib/saas/platform-store";
 
@@ -73,12 +73,12 @@ function PlanEditor({ plan, onSave }: { plan: PlanDefinition; onSave: (plan: Pla
     <Card>
       <p className="text-sm text-muted">Hoje: {formatPrice(plan.precoCentavos)}</p>
       <div className="mt-3 grid gap-3">
-        <input className="rounded-md border border-[#e2e8ea] px-3 py-2" value={nome} onChange={(event) => setNome(event.target.value)} aria-label="Nome do plano" />
-        <textarea className="rounded-md border border-[#e2e8ea] px-3 py-2" value={descricao} onChange={(event) => setDescricao(event.target.value)} aria-label="Descrição" />
-        <label className="text-sm">Preço em reais, vazio se ainda não definido
-          <input className="mt-1 w-full rounded-md border border-[#e2e8ea] px-3 py-2" value={price} onChange={(event) => setPrice(event.target.value)} inputMode="decimal" />
+        <input className={fieldClass} value={nome} onChange={(event) => setNome(event.target.value)} aria-label="Nome do plano" />
+        <textarea className={`${fieldClass} min-h-28`} value={descricao} onChange={(event) => setDescricao(event.target.value)} aria-label="Descrição" />
+        <label className="text-sm font-medium text-ink">Preço em reais, vazio se ainda não definido
+          <input className={`${fieldClass} mt-1.5`} value={price} onChange={(event) => setPrice(event.target.value)} inputMode="decimal" placeholder="ex.: 149,90" />
         </label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={disponivel} onChange={(event) => setDisponivel(event.target.checked)} /> Disponível para contratação</label>
+        <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={disponivel} onChange={(event) => setDisponivel(event.target.checked)} /> Disponível para contratação</label>
         <button type="button" className="btn-primary justify-self-start" onClick={() => void onSave({ ...plan, nome, descricao, disponivel }, price)}>Salvar plano</button>
       </div>
     </Card>
