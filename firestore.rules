@@ -1,0 +1,398 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsExisting() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    function ownsNew() {
+      return signedIn() && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    function isSuperAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "super_admin";
+    }
+
+    function isTenantData(collection) {
+      return collection != "users"
+        && collection != "trialClaims"
+        && collection != "plans"
+        && collection != "platformAudit"
+        && collection != "platformMessages";
+    }
+
+    function accountData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function clinicWritesOpen() {
+      let user = accountData();
+      return !("billingAccess" in user)
+        || (
+          (!("accountStatus" in user) || (user.accountStatus != "suspensa" && user.accountStatus != "desativada"))
+          && (
+            user.billingAccess == "legado"
+            || user.billingAccess == "integral"
+            || (
+              user.billingAccess == "trial"
+              && user.subscriptionStatus == "trial_ativo"
+              && user.trialEndsAtMillis > request.time.toMillis()
+            )
+          )
+        );
+    }
+
+    function roleStable() {
+      return request.resource.data.role == resource.data.role
+        || (!("role" in resource.data) && request.resource.data.role == "psicologo");
+    }
+
+    function billingAccessSame() {
+      return ("billingAccess" in resource.data)
+        ? request.resource.data.billingAccess == resource.data.billingAccess
+        : !("billingAccess" in request.resource.data);
+    }
+
+    function subscriptionSame() {
+      return ("subscriptionStatus" in resource.data)
+        ? request.resource.data.subscriptionStatus == resource.data.subscriptionStatus
+        : !("subscriptionStatus" in request.resource.data);
+    }
+
+    function planSame() {
+      return ("planId" in resource.data)
+        ? request.resource.data.planId == resource.data.planId
+        : !("planId" in request.resource.data);
+    }
+
+    function accountStatusSame() {
+      return ("accountStatus" in resource.data)
+        ? request.resource.data.accountStatus == resource.data.accountStatus
+        : !("accountStatus" in request.resource.data);
+    }
+
+    function trialEndSame() {
+      return ("trialEndsAtMillis" in resource.data)
+        ? request.resource.data.trialEndsAtMillis == resource.data.trialEndsAtMillis
+        : !("trialEndsAtMillis" in request.resource.data);
+    }
+
+    function trialStartSame() {
+      return ("trialStartedAtMillis" in resource.data)
+        ? request.resource.data.trialStartedAtMillis == resource.data.trialStartedAtMillis
+        : !("trialStartedAtMillis" in request.resource.data);
+    }
+
+    function checkoutSame() {
+      return (
+        ("checkoutStatus" in resource.data)
+          ? request.resource.data.checkoutStatus == resource.data.checkoutStatus
+          : !("checkoutStatus" in request.resource.data)
+      ) && (
+        ("checkoutPlanId" in resource.data)
+          ? request.resource.data.checkoutPlanId == resource.data.checkoutPlanId
+          : !("checkoutPlanId" in request.resource.data)
+      );
+    }
+
+    function billingUntouched() {
+      return billingAccessSame() && subscriptionSame() && planSame() && accountStatusSame() && trialEndSame() && trialStartSame() && checkoutSame();
+    }
+
+    function selfExpireTrial() {
+      return resource.data.subscriptionStatus == "trial_ativo"
+        && resource.data.trialEndsAtMillis <= request.time.toMillis()
+        && request.resource.data.subscriptionStatus == "trial_expirado"
+        && request.resource.data.billingAccess == "restrito"
+        && planSame()
+        && accountStatusSame()
+        && trialEndSame()
+        && trialStartSame()
+        && roleStable()
+        && checkoutSame();
+    }
+
+    function selfAdoptLegacy() {
+      return !("billingAccess" in resource.data)
+        && request.resource.data.billingAccess == "legado"
+        && request.resource.data.subscriptionStatus == "legado"
+        && request.resource.data.accountStatus == "ativa"
+        && request.resource.data.planId == "legado"
+        && roleStable();
+    }
+
+    function selfCancel() {
+      return resource.data.subscriptionStatus in ["trial_ativo", "cortesia"]
+        && request.resource.data.subscriptionStatus == "cancelada"
+        && request.resource.data.billingAccess == "restrito"
+        && planSame()
+        && accountStatusSame()
+        && trialEndSame()
+        && roleStable()
+        && checkoutSame();
+    }
+
+    function selfCheckout() {
+      return request.resource.data.checkoutStatus == "aguardando_provedor"
+        && request.resource.data.checkoutPlanId is string
+        && request.resource.data.checkoutPlanId.size() > 0
+        && request.resource.data.checkoutPlanId != "avaliacao"
+        && subscriptionSame()
+        && billingAccessSame()
+        && planSame()
+        && accountStatusSame()
+        && trialEndSame()
+        && roleStable();
+    }
+
+    function emailMatches() {
+      return request.auth.token.email is string
+        && request.resource.data.email == request.auth.token.email.lower();
+    }
+
+    function trialClaim() {
+      return get(/databases/$(database)/documents/trialClaims/$(request.resource.data.email)).data;
+    }
+
+    function ownsTrialClaim() {
+      return exists(/databases/$(database)/documents/trialClaims/$(request.resource.data.email))
+        && trialClaim().uid == request.auth.uid;
+    }
+
+    function foreignTrialClaim() {
+      return exists(/databases/$(database)/documents/trialClaims/$(request.resource.data.email))
+        && trialClaim().uid != request.auth.uid;
+    }
+
+    function validSelfTrial() {
+      return request.resource.data.role == "psicologo"
+        && request.resource.data.billingAccess == "trial"
+        && request.resource.data.subscriptionStatus == "trial_ativo"
+        && request.resource.data.accountStatus == "ativa"
+        && request.resource.data.planId == "avaliacao"
+        && request.resource.data.trialEndsAtMillis is int
+        && request.resource.data.trialStartedAtMillis is int
+        && request.resource.data.trialEndsAtMillis > request.time.toMillis() + 2505600000
+        && request.resource.data.trialEndsAtMillis < request.time.toMillis() + 2678400000
+        && request.resource.data.trialStartedAtMillis > request.time.toMillis() - 86400000
+        && request.resource.data.trialStartedAtMillis < request.time.toMillis() + 86400000
+        && request.resource.data.termsAcceptedAt is string
+        && emailMatches()
+        && ownsTrialClaim();
+    }
+
+    function replayDenied() {
+      return request.resource.data.role == "psicologo"
+        && request.resource.data.billingAccess == "restrito"
+        && request.resource.data.subscriptionStatus == "trial_expirado"
+        && request.resource.data.accountStatus == "ativa"
+        && request.resource.data.planId == "avaliacao"
+        && request.resource.data.trialEndsAtMillis <= request.time.toMillis()
+        && emailMatches()
+        && foreignTrialClaim();
+    }
+
+    function shareMoneyLocked(index) {
+      return resource.data.shares.size() <= index
+        || (
+          request.resource.data.shares[index].memberId == resource.data.shares[index].memberId
+          && request.resource.data.shares[index].valor == resource.data.shares[index].valor
+        );
+    }
+
+    function adminDoesNotFabricatePayment() {
+      return !(request.resource.data.subscriptionStatus in ["ativa", "pagamento_pendente", "pagamento_atrasado"])
+        || (("subscriptionStatus" in resource.data) && request.resource.data.subscriptionStatus == resource.data.subscriptionStatus);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow create: if signedIn()
+        && request.resource.data.uid == userId
+        && request.resource.data.role == "psicologo"
+        && (
+          (request.auth.uid == userId && (validSelfTrial() || replayDenied()))
+          || (
+            isSuperAdmin()
+            && request.resource.data.billingAccess == "legado"
+            && request.resource.data.subscriptionStatus == "legado"
+            && request.resource.data.accountStatus == "ativa"
+          )
+        );
+      allow update: if signedIn() && request.auth.uid == userId && roleStable() && (
+        billingUntouched() || selfExpireTrial() || selfAdoptLegacy() || selfCancel() || selfCheckout()
+      );
+      allow update: if isSuperAdmin()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && adminDoesNotFabricatePayment();
+      allow delete: if false;
+
+      match /inbox/{messageId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && messageId in ["boas_vindas", "trial_7", "trial_3", "trial_1", "trial_expirado"]
+          && request.resource.data.kind == messageId
+          && request.resource.data.categoria == "operacional"
+          && request.resource.data.titulo is string
+          && request.resource.data.titulo.size() < 200
+          && request.resource.data.corpo is string
+          && request.resource.data.corpo.size() < 4000;
+        allow create: if isSuperAdmin()
+          && request.resource.data.titulo is string
+          && request.resource.data.titulo.size() < 200
+          && request.resource.data.corpo is string
+          && request.resource.data.corpo.size() < 4000;
+        allow update: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["lida", "lidaEm", "emailResult"]);
+        allow update: if isSuperAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["emailResult"]);
+        allow delete: if false;
+      }
+
+      match /billingEvents/{eventId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.tipo in ["checkout_solicitado", "cancelamento_solicitado"]
+          && request.resource.data.resultado == "registrado";
+        allow create: if isSuperAdmin()
+          && request.resource.data.tipo in ["alteracao_plano", "extensao_trial", "encerramento_trial", "cortesia", "encerramento_cortesia", "suspensao", "reativacao", "desativacao", "ajuste"]
+          && request.resource.data.resultado == "registrado";
+        allow update, delete: if false;
+      }
+    }
+
+    match /trialClaims/{emailId} {
+      allow get: if signedIn() && request.auth.token.email is string && request.auth.token.email.lower() == emailId;
+      allow list: if isSuperAdmin();
+      allow create: if signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == emailId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == emailId;
+      allow update, delete: if false;
+    }
+
+    match /plans/{planId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin();
+      allow delete: if false;
+    }
+
+    match /platformAudit/{eventId} {
+      allow read, create: if isSuperAdmin();
+      allow update, delete: if false;
+    }
+
+    match /platformMessages/{messageId} {
+      allow read, create: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "enviados", "falhas", "concluidoEm"]);
+      allow delete: if false;
+    }
+
+    match /members/{memberId} {
+      allow create: if isSuperAdmin()
+        && request.resource.data.uid is string
+        && request.resource.data.ownerUid == request.resource.data.uid
+        && request.resource.data.email is string;
+    }
+
+    match /directory/{emailId} {
+      allow get: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == emailId
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if isSuperAdmin()
+        && request.resource.data.email == emailId
+        && request.resource.data.uid is string
+        && request.resource.data.ownerUid == request.resource.data.uid;
+    }
+
+    match /locationInvites/{inviteId} {
+      allow read: if signedIn() && resource.data.inviteeUid == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.inviteeUid == request.auth.uid
+        && resource.data.status == "pendente"
+        && request.resource.data.inviteeUid == resource.data.inviteeUid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.locationId == resource.data.locationId
+        && request.resource.data.status in ["aceito", "recusado"];
+    }
+
+    match /locations/{locationId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      allow update: if signedIn()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["memberUids"])
+        && request.resource.data.memberUids.hasAll(resource.data.memberUids)
+        && request.resource.data.memberUids.hasOnly(resource.data.memberUids.concat([request.auth.uid]))
+        && exists(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid))
+        && get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.status == "aceito";
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.accessUids;
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
+        && request.resource.data.accessUids.hasAll(resource.data.accessUids)
+        && request.resource.data.accessUids.hasOnly(resource.data.accessUids.concat([request.auth.uid]))
+        && resource.data.locationId is string
+        && exists(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid))
+        && get(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid)).data.status == "aceito";
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.accessUids;
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
+        && request.resource.data.accessUids.hasAll(resource.data.accessUids)
+        && request.resource.data.accessUids.hasOnly(resource.data.accessUids.concat([request.auth.uid]))
+        && resource.data.locationId is string
+        && exists(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid))
+        && get(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid)).data.status == "aceito";
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.accessUids
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paga", "parcelasRestantes", "vencimento", "shares"])
+        && request.resource.data.shares.size() == resource.data.shares.size()
+        && shareMoneyLocked(0) && shareMoneyLocked(1) && shareMoneyLocked(2) && shareMoneyLocked(3)
+        && shareMoneyLocked(4) && shareMoneyLocked(5) && shareMoneyLocked(6) && shareMoneyLocked(7);
+    }
+
+    match /sessionFeedbacks/{token} {
+      allow get: if true;
+      allow update: if resource.data.answeredAtMillis == null
+        && resource.data.expiresAtMillis > request.time.toMillis()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stars", "comment", "answeredAt", "answeredAtMillis"])
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 2000
+        && request.resource.data.answeredAtMillis is int;
+    }
+
+    match /{collection}/{document} {
+      allow read: if isTenantData(collection) && signedIn() && (
+        resource.data.ownerUid == request.auth.uid
+        || !resource.data.keys().hasAny(["ownerUid"])
+      );
+      allow create: if isTenantData(collection) && ownsNew() && clinicWritesOpen();
+      allow update: if isTenantData(collection) && signedIn() && clinicWritesOpen() && request.resource.data.ownerUid == request.auth.uid && (
+        resource.data.ownerUid == request.auth.uid
+        || !resource.data.keys().hasAny(["ownerUid"])
+      );
+      allow delete: if isTenantData(collection) && ownsExisting() && clinicWritesOpen();
+    }
+  }
+}

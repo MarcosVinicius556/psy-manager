@@ -1,105 +1,50 @@
-import { FaInstagram, FaLinkedin, FaWhatsapp, FaFacebook } from "react-icons/fa";
-import "./footer.css";
-
-const socialLinks = [
-  {
-    href: "https://www.instagram.com/ellenmachado_psi",
-    icon: FaInstagram,
-    label: "Instagram",
-  },
-  {
-    href: "https://www.linkedin.com/in/ellen-santos-machado",
-    icon: FaLinkedin,
-    label: "LinkedIn",
-  },
-  {
-    href: "https://api.whatsapp.com/send?phone=5549988401516&text=Ol%C3%A1%2C%20gostaria%20de%20entender%20melhor%20como%20funciona%20suas%20sess%C3%B5es.%20Podemos%20marcar%20um%20hor%C3%A1rio%20para%20conversar%3F",
-    icon: FaWhatsapp,
-    label: "WhatsApp",
-  },
-  {
-    href: "https://www.facebook.com/ellenmachadopsicologa",
-    icon: FaFacebook,
-    label: "Facebook",
-  },
-];
+import BrandLogo from "@/components/BrandLogo";
+import { consultantWhatsAppUrl } from "@/lib/contact";
 
 export default function Footer() {
   return (
-    <footer className="footer">
-      <div className="container footer-grid">
-        <div className="footer-brand">
-          <span className="footer-logo">Ellen Machado</span>
-          <span className="footer-role">Psicóloga · CRP 12/27784</span>
-          <p className="footer-tagline">
-            Cuidar da mente também é um ato de coragem.
-          </p>
-          <div className="footer-social">
-            {socialLinks.map(({ href, icon: Icon, label }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="social-icon-link"
-              >
-                <Icon size={18} />
-              </a>
-            ))}
+    <footer className="mt-auto bg-footer pt-16 pb-10 text-white/70">
+      <div className="container">
+        <div className="grid gap-10 sm:grid-cols-3">
+          <div>
+            <BrandLogo variant="mark" height={44} />
+            <p className="mt-4 mb-5 max-w-[320px] leading-relaxed">
+              Agenda, pacientes, financeiro e documentos do consultório em um só painel — separado da página da clínica.
+            </p>
+          </div>
+          <div>
+            <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Produto</h4>
+            <a href="/#produto" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              O painel
+            </a>
+            <a href="/#planos" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              Planos
+            </a>
+            <a href="/#faq" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              Perguntas
+            </a>
+          </div>
+          <div>
+            <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Acesso</h4>
+            <a href="/cadastro" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              Começar gratuitamente
+            </a>
+            <a href={consultantWhatsAppUrl()} className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white" target="_blank" rel="noreferrer">
+              Falar no WhatsApp
+            </a>
+            <a href="/admin/login" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              Entrar
+            </a>
+            <a href="/termos" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              Termos de uso
+            </a>
+            <a href="/privacidade" className="mb-2 block text-[0.9rem] transition-colors duration-200 hover:text-white">
+              Privacidade
+            </a>
           </div>
         </div>
-
-        <div className="footer-col">
-          <h4>Contatos</h4>
-          <a
-            href="https://api.whatsapp.com/send?phone=5549988401516"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            WhatsApp
-          </a>
-          <a
-            href="https://www.instagram.com/ellenmachado_psi"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Instagram
-          </a>
-          <a
-            href="https://www.facebook.com/ellenmachadopsicologa"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Facebook
-          </a>
-          <a
-            href="https://www.linkedin.com/in/ellen-santos-machado"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            LinkedIn
-          </a>
-        </div>
-
-        <div className="footer-col">
-          <h4>Atendimento</h4>
-          <p>Online e Presencial</p>
-          <p>Seg. a sex. das 08h às 20h</p>
-          <p>Sáb. das 08h às 13h</p>
-        </div>
-
-        <div className="footer-col">
-          <h4>Consultório</h4>
-          <p>Clínica PsicoSaúde</p>
-          <p>R. Lídio Réis, 114 - Centro</p>
-          <p>Lages - SC, 88502-150</p>
-        </div>
-      </div>
-
-      <div className="footer-bottom">
-        <div className="container">
-          <p>© 2025 Marcos Vinicius Angeli Costa - Todos os direitos reservados.</p>
+        <div className="mt-10 border-t border-white/10 pt-5 text-center text-xs text-white/45">
+          <p>© {new Date().getFullYear()} Psy Manager. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>
