@@ -88,7 +88,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      await page.locator(".admin-tabbar").getByRole("button", { name: "Menu" }).click();
+      await page.getByRole("button", { name: "Abrir menu" }).click();
       const legal = page.locator("#admin-mobile-nav").getByRole("button", { name: "Legal" });
       await expect(legal).toHaveAttribute("aria-expanded", "false");
       await page.screenshot({ path: path.join(artifactRoot, "admin-menu-legal-collapsed-412.png"), fullPage: true });
@@ -108,7 +108,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      const menuBtn = page.locator(".admin-tabbar").getByRole("button", { name: "Menu" });
+      const menuBtn = page.getByRole("button", { name: "Abrir menu" });
       await expectReceivesPointerAtCenter(menuBtn);
       await menuBtn.click();
       await expect(page.locator("#admin-mobile-nav")).toHaveAttribute("aria-hidden", "false");
@@ -121,7 +121,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
     });
 
     test("desktop sidebar legal group expands", async ({ page }, testInfo) => {
-      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 768;
+      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 1024;
       if (!isDesktop) {
         test.skip();
         return;
@@ -137,7 +137,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
     });
 
     test("desktop header action is clickable", async ({ page }, testInfo) => {
-      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 768;
+      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 1024;
       if (!isDesktop) {
         test.skip();
         return;

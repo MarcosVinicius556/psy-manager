@@ -16,7 +16,7 @@ export default function MobileHeader({
 }) {
   return (
     <header
-      className="sticky top-0 z-30 border-b border-[#d7e0d8] bg-white/95 text-ink backdrop-blur-md md:hidden"
+      className="sticky top-0 z-30 border-b border-[#d7e0d8] bg-white/95 text-ink backdrop-blur-md lg:hidden"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex h-14 items-center gap-2 px-3">
@@ -40,7 +40,7 @@ export default function MobileHeader({
 export function MobileHeaderBrand({ onOpenMenu }: { onOpenMenu: () => void }) {
   return (
     <header
-      className="sticky top-0 z-30 border-b border-[#d7e0d8] bg-white text-ink md:hidden"
+      className="sticky top-0 z-30 border-b border-[#d7e0d8] bg-white text-ink lg:hidden"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex h-14 items-center justify-between gap-3 px-3">

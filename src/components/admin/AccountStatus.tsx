@@ -94,7 +94,7 @@ export function EmailBanner() {
 
 export function AdminAccountNotices() {
   return (
-    <div className="mb-4 grid gap-3">
+    <div className="mb-5 grid gap-3 sm:gap-3.5">
       <EmailBanner />
       <TrialBanner />
     </div>

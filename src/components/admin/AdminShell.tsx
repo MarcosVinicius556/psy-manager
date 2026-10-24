@@ -431,7 +431,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   }, [pathname, setMeta, actionRef]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches) return;
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023px)").matches) return;
     function onScroll() {
       const y = window.scrollY;
       const delta = y - lastScrollY.current;
@@ -458,7 +458,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
       <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden bg-teal pb-16 pt-6 text-white transition-[width,padding] duration-300 ease-out md:flex ${
+        className={`fixed bottom-4 left-4 top-4 z-30 hidden flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-footer pb-4 pt-5 text-white shadow-[0_28px_80px_rgba(23,47,51,0.22)] transition-[width,padding] duration-300 ease-out lg:flex ${
           collapsed ? "w-[4.75rem] px-2" : "w-72 px-4"
         }`}
       >
@@ -533,7 +533,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-ink/40 md:hidden"
+          className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
           aria-label="Fechar menu"
           onClick={() => setMobileOpen(false)}
         />
@@ -544,7 +544,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         aria-modal={mobileOpen}
         aria-label="Menu do painel"
         aria-hidden={!mobileOpen}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-teal px-4 text-white transition-transform duration-300 ease-out md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-teal px-4 text-white transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? "translate-x-0" : "pointer-events-none -translate-x-full"
         }`}
         style={{
@@ -605,10 +605,14 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <MobileTabBar pathname={pathname} hidden={tabbarHidden} menuOpen={mobileOpen} onOpenMenu={() => setMobileOpen(true)} />
+      <MobileTabBar pathname={pathname} hidden={tabbarHidden} />
 
-      <div className={`pb-[calc(6.25rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
-        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 md:py-10">
+      <div
+        className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out lg:pb-8 ${
+          collapsed ? "lg:pl-[calc(1rem+4.75rem+1rem)]" : "lg:pl-[calc(1rem+18rem+1rem)]"
+        }`}
+      >
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 lg:py-8">
           <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>
       </div>

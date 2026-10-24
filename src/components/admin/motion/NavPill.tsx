@@ -19,15 +19,16 @@ export function SidebarActivePill({ layoutId = "admin-sidebar-pill" }: { layoutI
   );
 }
 
+/** Compact bubble behind the tab icon only (stays inside the bottom bar). */
 export function TabActiveBubble({ layoutId = "admin-mobile-tab-bubble" }: { layoutId?: string }) {
   const reduced = useReducedMotion();
   if (reduced) {
-    return <span className="absolute inset-1 rounded-2xl bg-teal" aria-hidden />;
+    return <span className="absolute inset-0 rounded-full bg-teal" aria-hidden />;
   }
   return (
     <motion.span
       layoutId={layoutId}
-      className="absolute inset-1 rounded-2xl bg-teal"
+      className="absolute inset-0 rounded-full bg-teal"
       transition={springNav}
       aria-hidden
     />

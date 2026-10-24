@@ -80,14 +80,14 @@ test.describe("mobile UX screenshots (after)", () => {
       await page.screenshot({ path: path.join(dir, "admin-dashboard-debtors.png"), fullPage: false });
     });
 
-    test("auth mobile duplicate primary actions", async ({ page }, testInfo) => {
+    test("auth mobile single global add FAB", async ({ page }, testInfo) => {
       if (testInfo.project.name !== "mobile-412") return;
       await page.goto("/admin/pacientes", { waitUntil: "networkidle" });
       await expect(page.locator(".admin-desktop-only .btn-primary")).toBeHidden();
-      await expect(page.getByRole("button", { name: "Novo paciente", exact: true })).toHaveCount(1);
+      await expect(page.locator("[data-testid='mobile-tabbar-fab']")).toHaveCount(1);
       await page.goto("/admin/financeiro", { waitUntil: "networkidle" });
       await expect(page.locator(".admin-desktop-only .btn-primary")).toBeHidden();
-      await expect(page.getByRole("button", { name: "Novo lançamento", exact: true })).toHaveCount(1);
+      await expect(page.locator("[data-testid='mobile-tabbar-fab']")).toHaveCount(1);
     });
 
     test("auth paciente detalhe + axe financeiro", async ({ page }, testInfo) => {
