@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import AppointmentForm from "@/components/admin/AppointmentForm";
 import Drawer from "@/components/admin/Drawer";
 import FileAttachments, { ReceiptLinks } from "@/components/admin/FileAttachments";
+import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
 import PatientForm from "@/components/admin/PatientForm";
 import ReceivePayment from "@/components/admin/ReceivePayment";
 import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
@@ -50,9 +51,12 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
               }
               hint={remaining > 0 ? `Faltam ${formatMoney(remaining)}` : null}
               actions={
-                <button type="button" className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => onOpen(payment)}>
-                  {canReceive ? "Receber" : "Histórico"}
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  <button type="button" className={`admin-action-btn ${canReceive ? "btn-row" : "btn-text"}`} onClick={() => onOpen(payment)}>
+                    {canReceive ? "Receber" : "Histórico"}
+                  </button>
+                  <PaymentFiscalReceipt payment={payment} compact />
+                </div>
               }
             />
           );
@@ -94,6 +98,7 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
                         {canReceive ? "Receber" : "Histórico"}
                       </button>
                       <ReceiptLinks files={paymentReceipts(payment)} />
+                      <PaymentFiscalReceipt payment={payment} />
                     </div>
                   </Td>
                 </tr>
@@ -207,7 +212,9 @@ export default function PatientDetailPage() {
           </button>
         </div>
         <dl className="grid gap-3 text-sm md:grid-cols-2">
-            <div><dt className="text-muted">CPF</dt><dd>{patient.cpf ? maskCpf(patient.cpf) : "—"}</dd></div>
+            <div><dt className="text-muted">CPF do paciente</dt><dd>{patient.cpf ? maskCpf(patient.cpf) : "—"}</dd></div>
+            <div><dt className="text-muted">CPF do pagador</dt><dd>{patient.cpfPagador ? maskCpf(patient.cpfPagador) : "—"}</dd></div>
+            <div><dt className="text-muted">CPF do beneficiário</dt><dd>{patient.cpfBeneficiario ? maskCpf(patient.cpfBeneficiario) : patient.cpf ? maskCpf(patient.cpf) : "—"}</dd></div>
             <div><dt className="text-muted">Nascimento</dt><dd>{formatDate(patient.nascimento)}</dd></div>
             <div><dt className="text-muted">Endereço</dt><dd>{patient.endereco || "—"}</dd></div>
             <div><dt className="text-muted">Emergência</dt><dd>{patient.contatoEmergencia || "—"}</dd></div>
