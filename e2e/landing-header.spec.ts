@@ -19,12 +19,12 @@ test.describe("landing header mobile + desktop", () => {
 
     await page.screenshot({ path: path.join(dir, "menu-closed.png"), fullPage: false });
 
-    const entrarHero = page.getByRole("link", { name: "Já tem uma conta? Entrar" });
-    await expect(entrarHero).toBeVisible();
+    const verComo = page.getByRole("link", { name: "Ver como funciona →" });
+    await expect(verComo).toBeVisible();
 
-    await entrarHero.hover();
+    await verComo.hover();
     await page.screenshot({ path: path.join(dir, "hero-entrar-hover.png"), fullPage: false });
-    await entrarHero.focus();
+    await verComo.focus();
     await page.screenshot({ path: path.join(dir, "hero-entrar-focus.png"), fullPage: false });
 
     const isMobile = testInfo.project.name.startsWith("mobile-");
@@ -32,12 +32,12 @@ test.describe("landing header mobile + desktop", () => {
       await page.getByRole("button", { name: "Abrir menu" }).click();
       const menu = page.locator("#site-menu");
       await expect(menu).toBeVisible();
-      await expect(menu.getByRole("link", { name: "Produto" })).toBeVisible();
-      await expect(menu.getByRole("link", { name: "Recursos" })).toBeVisible();
-      await expect(menu.getByRole("link", { name: "Valores" })).toBeVisible();
-      await expect(menu.getByRole("link", { name: "Perguntas" })).toBeVisible();
+      await expect(menu.getByRole("link", { name: "Funcionalidades" })).toBeVisible();
+      await expect(menu.getByRole("link", { name: "Segurança" })).toBeVisible();
+      await expect(menu.getByRole("link", { name: "Preços/Planos" })).toBeVisible();
+      await expect(menu.getByRole("link", { name: "Dúvidas" })).toBeVisible();
       await expect(menu.getByRole("link", { name: "Entrar", exact: true })).toBeVisible();
-      await expect(menu.getByRole("link", { name: "Começar gratuitamente" })).toBeVisible();
+      await expect(menu.getByRole("link", { name: "Testar grátis" }).first()).toBeVisible();
 
       const menuBox = await menu.boundingBox();
       expect(menuBox?.height ?? 0).toBeGreaterThan(280);

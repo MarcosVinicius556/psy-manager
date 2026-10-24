@@ -16,8 +16,8 @@ export default function Footer() {
           </div>
           <div>
             <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Produto</h4>
-            <Link href="/#produto" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
-              O painel
+            <Link href="/#funcionalidades" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
+              Funcionalidades
             </Link>
             <Link href="/#planos" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
               Planos
