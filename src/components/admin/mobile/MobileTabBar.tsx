@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LayoutGroup, motion } from "motion/react";
-import { HiOutlineCalendar, HiOutlineCash, HiOutlineHome, HiOutlinePlus, HiOutlineUsers } from "react-icons/hi";
+import { HiOutlineCalendar, HiOutlineCash, HiOutlineHome, HiOutlineMenu, HiOutlinePlus, HiOutlineUsers } from "react-icons/hi";
 import { TabActiveBubble } from "@/components/admin/motion/NavPill";
 import QuickCreateSheet from "@/components/admin/mobile/QuickCreateSheet";
+import MobileMenuSheet, { type MobileMenuEntry } from "@/components/admin/mobile/MobileMenuSheet";
 import { springNav } from "@/lib/motion/presets";
 import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 
 type TabItem = {
-  href: string;
+  href?: string;
   label: string;
   icon: typeof HiOutlineHome;
+  onClick?: () => void;
+  current?: boolean;
+  expanded?: boolean;
 };
 
 function isCurrent(href: string, pathname: string) {
@@ -28,46 +32,102 @@ function primaryFabAction(pathname: string): string | null {
   return null;
 }
 
-export default function MobileTabBar({ pathname, hidden }: { pathname: string; hidden: boolean }) {
+export default function MobileTabBar({
+  pathname,
+  hidden,
+  menu,
+  onLogout,
+  onCookiePreferences,
+}: {
+  pathname: string;
+  hidden: boolean;
+  menu: MobileMenuEntry[];
+  onLogout: () => void | Promise<void>;
+  onCookiePreferences: () => void;
+}) {
   const [quickOpen, setQuickOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const reduced = useReducedMotion();
   const router = useRouter();
 
+  useEffect(() => {
+    setMenuOpen(false);
+    setQuickOpen(false);
+  }, [pathname]);
+
   const tabs: TabItem[] = [
-    { href: "/admin", label: "Início", icon: HiOutlineHome },
-    { href: "/admin/agenda", label: "Agenda", icon: HiOutlineCalendar },
-    { href: "/admin/pacientes", label: "Pacientes", icon: HiOutlineUsers },
-    { href: "/admin/financeiro", label: "Financeiro", icon: HiOutlineCash },
+    { href: "/admin", label: "Início", icon: HiOutlineHome, current: isCurrent("/admin", pathname) },
+    { href: "/admin/agenda", label: "Agenda", icon: HiOutlineCalendar, current: isCurrent("/admin/agenda", pathname) },
+    { href: "/admin/pacientes", label: "Pacientes", icon: HiOutlineUsers, current: isCurrent("/admin/pacientes", pathname) },
+    { href: "/admin/financeiro", label: "Financeiro", icon: HiOutlineCash, current: isCurrent("/admin/financeiro", pathname) },
+    {
+      label: "Menu",
+      icon: HiOutlineMenu,
+      onClick: () => {
+        setQuickOpen(false);
+        setMenuOpen((open) => !open);
+      },
+      current: menuOpen,
+      expanded: menuOpen,
+    },
   ];
 
   function renderTab(item: TabItem) {
     const Icon = item.icon;
-    const current = isCurrent(item.href, pathname);
-
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        aria-current={current ? "page" : undefined}
-        className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-0.5 px-0.5 pb-1 pt-2 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal"
-        onClick={() => setQuickOpen(false)}
-      >
-        <span className="relative grid h-10 w-11 place-items-center">
-          {current ? <TabActiveBubble /> : null}
-          <Icon size={22} className={`relative z-10 ${current ? "text-white" : "text-teal/85"}`} aria-hidden />
+    const current = item.current ?? false;
+    const content = (
+      <>
+        {current ? <TabActiveBubble /> : null}
+        <span className="relative z-10 grid h-10 w-9 place-items-center sm:w-10">
+          <Icon size={21} className={current ? "text-white" : "text-teal/85"} aria-hidden />
         </span>
         <span
-          className={`relative z-10 max-w-full truncate text-[0.62rem] font-semibold leading-tight ${
+          className={`relative z-10 max-w-full truncate px-0.5 text-center text-[0.58rem] font-semibold leading-tight sm:text-[0.62rem] ${
             current ? "text-teal" : "text-teal/65"
           }`}
         >
           {item.label}
         </span>
-      </Link>
+      </>
+    );
+
+    const className =
+      "relative flex min-w-0 flex-1 flex-col items-center justify-end gap-0.5 px-0.5 pb-1 pt-2 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal";
+
+    if (item.href) {
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          aria-current={current ? "page" : undefined}
+          className={className}
+          onClick={() => {
+            setQuickOpen(false);
+            setMenuOpen(false);
+          }}
+        >
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button
+        key={item.label}
+        type="button"
+        className={className}
+        aria-expanded={item.expanded}
+        aria-controls="admin-mobile-menu-sheet"
+        data-testid="mobile-tabbar-menu"
+        onClick={item.onClick}
+      >
+        {content}
+      </button>
     );
   }
 
   function onFabClick() {
+    setMenuOpen(false);
     const direct = primaryFabAction(pathname);
     if (direct) {
       setQuickOpen(false);
@@ -80,6 +140,14 @@ export default function MobileTabBar({ pathname, hidden }: { pathname: string; h
   return (
     <>
       <QuickCreateSheet open={quickOpen} onClose={() => setQuickOpen(false)} pathname={pathname} />
+      <MobileMenuSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        menu={menu}
+        pathname={pathname}
+        onLogout={onLogout}
+        onCookiePreferences={onCookiePreferences}
+      />
       <nav
         className={`admin-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-30 transition-transform duration-300 ease-out lg:hidden ${
           hidden ? "translate-y-[120%]" : "translate-y-0"
@@ -87,10 +155,10 @@ export default function MobileTabBar({ pathname, hidden }: { pathname: string; h
         aria-label="Atalhos"
         style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="pointer-events-auto mx-3">
+        <div className="pointer-events-auto mx-2 sm:mx-3">
           <LayoutGroup id="mobile-tabbar">
             <div
-              className="grid grid-cols-5 items-end gap-0 rounded-full border border-[#e3ebe4] bg-white/95 px-1 pb-1.5 pt-2 shadow-[0_16px_48px_rgba(36,48,40,0.14)] backdrop-blur-md"
+              className="grid grid-cols-6 items-end gap-0 rounded-full border border-[#e3ebe4] bg-white/95 px-0.5 pb-1.5 pt-2 shadow-[0_16px_48px_rgba(36,48,40,0.14)] backdrop-blur-md sm:px-1"
               data-testid="mobile-tabbar-shell"
             >
               {tabs.slice(0, 2).map(renderTab)}

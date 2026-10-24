@@ -88,33 +88,30 @@ test.describe("interactive buttons — mobile and desktop", () => {
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      await page.getByRole("button", { name: "Abrir menu" }).click();
-      const legal = page.locator("#admin-mobile-nav").getByRole("button", { name: "Legal" });
-      await expect(legal).toHaveAttribute("aria-expanded", "false");
-      await page.screenshot({ path: path.join(artifactRoot, "admin-menu-legal-collapsed-412.png"), fullPage: true });
-      await legal.click();
-      await expect(legal).toHaveAttribute("aria-expanded", "true");
-      await expect(page.locator("#admin-mobile-nav").getByRole("link", { name: "Termos de uso" })).toBeVisible();
-      await expect(page.locator("#admin-mobile-nav").getByRole("button", { name: "Preferências de cookies" })).toBeVisible();
-      await page.screenshot({ path: path.join(artifactRoot, "admin-menu-legal-expanded-412.png"), fullPage: true });
+      await page.getByTestId("mobile-tabbar-menu").click();
+      const sheet = page.getByTestId("admin-mobile-menu-sheet");
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByRole("link", { name: "Termos de uso" })).toBeVisible();
+      await expect(sheet.getByRole("button", { name: "Preferências de cookies" })).toBeVisible();
+      await page.screenshot({ path: path.join(artifactRoot, "admin-menu-sheet-412.png"), fullPage: true });
       expect(errors, errors.join("\n")).toEqual([]);
     });
 
-    test("mobile menu drawer opens and closes", async ({ page }, testInfo) => {
-      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 768;
+    test("mobile menu sheet opens and closes", async ({ page }, testInfo) => {
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 1024;
       if (!isMobile) {
         test.skip();
         return;
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      const menuBtn = page.getByRole("button", { name: "Abrir menu" });
+      const menuBtn = page.getByTestId("mobile-tabbar-menu");
       await expectReceivesPointerAtCenter(menuBtn);
       await menuBtn.click();
-      await expect(page.locator("#admin-mobile-nav")).toHaveAttribute("aria-hidden", "false");
-      const close = page.locator("#admin-mobile-nav").getByRole("button", { name: "Fechar menu" });
-      await close.click();
-      await expect(page.locator("#admin-mobile-nav")).toHaveAttribute("aria-hidden", "true");
+      const sheet = page.getByTestId("admin-mobile-menu-sheet");
+      await expect(sheet).toBeVisible();
+      await page.getByRole("button", { name: "Fechar menu", exact: true }).click();
+      await expect(sheet).toBeHidden();
       const dashLink = page.locator(".admin-tabbar a[href='/admin']");
       await expectReceivesPointerAtCenter(dashLink);
       expect(errors, errors.join("\n")).toEqual([]);

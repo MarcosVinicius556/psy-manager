@@ -19,7 +19,7 @@ test.describe("mobile bottom navigation", () => {
         await page.goto(route, { waitUntil: "networkidle" });
         const tabbar = page.locator("[data-testid='mobile-tabbar-shell']");
         await expect(tabbar).toBeVisible();
-        for (const label of ["Início", "Agenda", "Pacientes", "Financeiro"]) {
+        for (const label of ["Início", "Agenda", "Pacientes", "Financeiro", "Menu"]) {
           const text = tabbar.getByText(label, { exact: true });
           await expect(text).toBeVisible();
           const box = await text.boundingBox();
@@ -45,6 +45,20 @@ test.describe("mobile bottom navigation", () => {
     await page.waitForURL("**/admin");
   });
 
+  test("Menu tab opens bottom sheet not side drawer", async ({ page }, testInfo) => {
+    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 1024, "mobile only");
+    await page.goto("/admin", { waitUntil: "networkidle" });
+    await expect(page.locator("#admin-mobile-nav")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveCount(0);
+    await page.getByTestId("mobile-tabbar-menu").click();
+    const sheet = page.getByTestId("admin-mobile-menu-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("link", { name: "Configurações" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Preferências de cookies" })).toBeVisible();
+    await page.getByRole("button", { name: "Fechar menu", exact: true }).click();
+    await expect(sheet).toBeHidden();
+  });
+
   test("capture mobile and desktop verification shots", async ({ page }, testInfo) => {
     const width = testInfo.project.use.viewport?.width ?? 0;
     const dir = path.join(artifactRoot, "nav-fix", testInfo.project.name);
@@ -60,6 +74,10 @@ test.describe("mobile bottom navigation", () => {
         await page.goto(route, { waitUntil: "networkidle" });
         await page.screenshot({ path: path.join(dir, `${name}-412.png`), fullPage: false });
       }
+      await page.goto("/admin", { waitUntil: "networkidle" });
+      await page.getByTestId("mobile-tabbar-menu").click();
+      await expect(page.getByTestId("admin-mobile-menu-sheet")).toBeVisible();
+      await page.screenshot({ path: path.join(dir, "menu-sheet-412.png"), fullPage: false });
     }
 
     if (width === 1440) {
