@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:rules": "firebase emulators:exec --project psy-rules-test --only firestore \"vitest run --config vitest.rules.config.ts\"",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run test:rules && npm run build",
     "e2e:mobile": "node scripts/e2e/run-mobile.mjs",
     "e2e:seed": "tsx scripts/e2e/seed-emulator.ts"
   },
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
     "@eslint/eslintrc": "^3.3.7",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20",

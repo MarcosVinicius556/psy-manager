@@ -18,15 +18,6 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "super_admin";
     }
 
-    function isTenantData(collection) {
-      return collection != "users"
-        && collection != "trialClaims"
-        && collection != "plans"
-        && collection != "platformAudit"
-        && collection != "platformMessages"
-        && collection != "legalAcceptances";
-    }
-
     function accountData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -211,6 +202,52 @@ service cloud.firestore {
         || (("subscriptionStatus" in resource.data) && request.resource.data.subscriptionStatus == resource.data.subscriptionStatus);
     }
 
+    function tenantRead() {
+      return signedIn() && (
+        resource.data.ownerUid == request.auth.uid
+        || !resource.data.keys().hasAny(["ownerUid"])
+      );
+    }
+
+    function tenantCreate() {
+      return ownsNew() && clinicWritesOpen();
+    }
+
+    function tenantUpdate() {
+      return signedIn()
+        && clinicWritesOpen()
+        && request.resource.data.ownerUid == request.auth.uid
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || !resource.data.keys().hasAny(["ownerUid"])
+        );
+    }
+
+    function tenantDelete() {
+      return ownsExisting() && clinicWritesOpen();
+    }
+
+    function noClinicalOnAppointment() {
+      return !request.resource.data.keys().hasAny(["clinical"]);
+    }
+
+    function appointmentFuture() {
+      return resource.data.sessionStartMillis is int
+        && resource.data.sessionStartMillis > request.time.toMillis();
+    }
+
+    function locationInviteAccepted(locationId) {
+      return exists(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid))
+        && get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.status == "aceito";
+    }
+
+    function feedbackAnswerFieldsUnset() {
+      return request.resource.data.stars == null
+        && request.resource.data.comment == ""
+        && request.resource.data.answeredAt == null
+        && request.resource.data.answeredAtMillis == null;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
       allow create: if signedIn()
@@ -301,10 +338,20 @@ service cloud.firestore {
     }
 
     match /members/{memberId} {
-      allow create: if isSuperAdmin()
-        && request.resource.data.uid is string
-        && request.resource.data.ownerUid == request.resource.data.uid
-        && request.resource.data.email is string;
+      allow read: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid
+        || resource.data.uid == request.auth.uid
+        || !resource.data.keys().hasAny(["ownerUid"])
+      );
+      allow create: if tenantCreate()
+        || (
+          isSuperAdmin()
+          && request.resource.data.uid is string
+          && request.resource.data.ownerUid == request.resource.data.uid
+          && request.resource.data.email is string
+        );
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
     }
 
     match /directory/{emailId} {
@@ -313,10 +360,11 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == emailId
         && request.resource.data.ownerUid == request.auth.uid;
-      allow create: if isSuperAdmin()
+      allow create, update: if isSuperAdmin()
         && request.resource.data.email == emailId
         && request.resource.data.uid is string
         && request.resource.data.ownerUid == request.resource.data.uid;
+      allow delete: if false;
     }
 
     match /locationInvites/{inviteId} {
@@ -332,42 +380,119 @@ service cloud.firestore {
 
     match /locations/{locationId} {
       allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      allow create: if tenantCreate();
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && clinicWritesOpen()
+        && request.resource.data.ownerUid == resource.data.ownerUid;
       allow update: if signedIn()
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["memberUids"])
         && request.resource.data.memberUids.hasAll(resource.data.memberUids)
         && request.resource.data.memberUids.hasOnly(resource.data.memberUids.concat([request.auth.uid]))
-        && exists(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid))
-        && get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.status == "aceito";
+        && locationInviteAccepted(locationId);
+      allow delete: if ownsExisting() && clinicWritesOpen();
+    }
+
+    match /clinicalRecords/{recordId} {
+      allow read: if ownsExisting();
+      allow create: if tenantCreate()
+        && request.resource.data.appointmentId is string
+        && request.resource.data.patientId is string
+        && request.resource.data.appointmentId == recordId;
+      allow update: if tenantUpdate()
+        && request.resource.data.appointmentId == resource.data.appointmentId
+        && request.resource.data.patientId == resource.data.patientId;
+      allow delete: if tenantDelete();
     }
 
     match /appointments/{appointmentId} {
       allow read: if signedIn() && request.auth.uid in resource.data.accessUids;
+      allow create: if tenantCreate()
+        && noClinicalOnAppointment()
+        && request.auth.uid in request.resource.data.accessUids;
+      allow update: if ownsExisting()
+        && clinicWritesOpen()
+        && noClinicalOnAppointment()
+        && request.resource.data.ownerUid == resource.data.ownerUid;
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
         && request.resource.data.accessUids.hasAll(resource.data.accessUids)
         && request.resource.data.accessUids.hasOnly(resource.data.accessUids.concat([request.auth.uid]))
         && resource.data.locationId is string
-        && exists(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid))
-        && get(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid)).data.status == "aceito";
+        && appointmentFuture()
+        && locationInviteAccepted(resource.data.locationId);
+      allow delete: if tenantDelete();
     }
 
     match /expenses/{expenseId} {
       allow read: if signedIn() && request.auth.uid in resource.data.accessUids;
+      allow create: if tenantCreate() && request.auth.uid in request.resource.data.accessUids;
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
         && request.resource.data.accessUids.hasAll(resource.data.accessUids)
         && request.resource.data.accessUids.hasOnly(resource.data.accessUids.concat([request.auth.uid]))
         && resource.data.locationId is string
-        && exists(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid))
-        && get(/databases/$(database)/documents/locationInvites/$(resource.data.locationId + "_" + request.auth.uid)).data.status == "aceito";
+        && locationInviteAccepted(resource.data.locationId);
       allow update: if signedIn()
         && request.auth.uid in resource.data.accessUids
         && request.resource.data.ownerUid == resource.data.ownerUid
+        && clinicWritesOpen()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paga", "parcelasRestantes", "vencimento", "shares"])
         && request.resource.data.shares.size() == resource.data.shares.size()
         && shareMoneyLocked(0) && shareMoneyLocked(1) && shareMoneyLocked(2) && shareMoneyLocked(3)
         && shareMoneyLocked(4) && shareMoneyLocked(5) && shareMoneyLocked(6) && shareMoneyLocked(7);
+      allow update: if ownsExisting() && clinicWritesOpen();
+      allow delete: if tenantDelete();
+    }
+
+    match /patients/{patientId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /packages/{packageId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /reportTemplates/{templateId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /reportRuns/{runId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /contractTemplates/{templateId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
     }
 
     match /integrations/{uid} {
@@ -381,22 +506,16 @@ service cloud.firestore {
 
     match /sessionFeedbacks/{token} {
       allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
-      allow create: if signedIn() && ownsNew() && clinicWritesOpen();
-      allow update: if signedIn() && ownsExisting() && clinicWritesOpen();
-      allow delete: if false;
+      allow create: if signedIn() && ownsNew() && clinicWritesOpen() && feedbackAnswerFieldsUnset();
+      allow update, delete: if false;
     }
 
-    match /{collection}/{document} {
-      allow read: if isTenantData(collection) && signedIn() && (
-        resource.data.ownerUid == request.auth.uid
-        || !resource.data.keys().hasAny(["ownerUid"])
-      );
-      allow create: if isTenantData(collection) && ownsNew() && clinicWritesOpen();
-      allow update: if isTenantData(collection) && signedIn() && clinicWritesOpen() && request.resource.data.ownerUid == request.auth.uid && (
-        resource.data.ownerUid == request.auth.uid
-        || !resource.data.keys().hasAny(["ownerUid"])
-      );
-      allow delete: if isTenantData(collection) && ownsExisting() && clinicWritesOpen();
+    match /apiEmailRateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    match /apiPublicFeedbackRateLimits/{docId} {
+      allow read, write: if false;
     }
   }
 }

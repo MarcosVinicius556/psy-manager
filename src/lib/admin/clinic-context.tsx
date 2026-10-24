@@ -19,6 +19,7 @@ import {
   createPayments,
   findDirectoryUser,
   grantAccess,
+  listClinicalRecordsForOwner,
   listAppointments,
   listExpenses,
   listLocationInvites,
@@ -32,6 +33,7 @@ import {
   patchExpense,
   removeExpense,
   removeLocation,
+  saveClinicalRecord,
   updateAppointment,
   updateExpense,
   updateLocation,
@@ -230,7 +232,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const synced = useRef(false);
 
   const refresh = useCallback(async () => {
-    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks] =
+    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks, clinicalRecords] =
       await Promise.all([
         listPatients(),
         listAppointments(),
@@ -242,7 +244,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         listPackages(),
         listLocationInvites(),
         listSessionFeedbacks(),
+        listClinicalRecordsForOwner(),
       ]);
+    const clinicalByAppointment = new Map(clinicalRecords.map((item) => [item.appointmentId, item.clinical]));
+    const mergedAppointments = nextAppointments.map((appointment) => ({
+      ...appointment,
+      clinical: clinicalByAppointment.get(appointment.id) ?? emptyClinical(),
+    }));
     const uid = getFirebaseAuth().currentUser?.uid;
     let listedExpenses = nextExpenses;
     if (uid) {
@@ -254,14 +262,14 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       }
     }
     nextPatients.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-    nextAppointments.sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
+    mergedAppointments.sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
     nextPayments.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     nextMembers.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     nextLocations.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     listedExpenses.sort((a, b) => b.competencia.localeCompare(a.competencia) || a.descricao.localeCompare(b.descricao, "pt-BR"));
     nextPackages.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     setPatients(nextPatients);
-    setAppointments(nextAppointments);
+    setAppointments(mergedAppointments);
     setPayments(nextPayments);
     setNotifications(nextNotifications);
     setMembers(dedupeMembers(nextMembers));
@@ -742,9 +750,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         return due.length;
       },
       async setAppointmentStatus(id, status, clinical, faltaJustificativa) {
+        const appointment = appointments.find((item) => item.id === id);
+        if (clinical && appointment) {
+          await saveClinicalRecord(id, appointment.patientId, clinical);
+        }
         await updateAppointment(id, {
           status,
-          ...(clinical ? { clinical } : {}),
           ...(status === "faltou" ? { faltaJustificativa: (faltaJustificativa || "").trim() } : {}),
         });
         if (status === "concluido") {
@@ -905,7 +916,9 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await refresh();
       },
       async saveClinical(id, clinical) {
-        await updateAppointment(id, { clinical });
+        const appointment = appointments.find((item) => item.id === id);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        await saveClinicalRecord(id, appointment.patientId, clinical);
         toast.success("Ficha salva.");
         await refresh();
       },
@@ -1125,7 +1138,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (status === "aceito") {
           await addLocationMemberUid(invite.locationId, uid);
           for (const appointmentId of invite.appointmentIds) {
-            await grantAccess("appointments", appointmentId, [uid]);
+            const appointment = appointments.find((item) => item.id === appointmentId);
+            if (appointment && isBookableStart(appointment.date, appointment.startTime)) {
+              await grantAccess("appointments", appointmentId, [uid]);
+            }
           }
           for (const expenseId of invite.expenseIds) {
             await grantAccess("expenses", expenseId, [uid]);
