@@ -153,7 +153,7 @@ export default function DateField({
         onClick={() => setOpen((current) => !current)}
         className={`${fieldClass} flex items-center justify-between gap-3 text-left ${disabled ? "bg-paper text-muted" : ""}`}
       >
-        <span className={`capitalize ${value ? "text-ink" : "text-muted"}`}>{label}</span>
+        <span className={`normal-case ${value ? "text-ink" : "text-muted"}`}>{label}</span>
         <HiOutlineCalendar className="shrink-0 text-sage" size={18} />
       </button>
       {typeof document !== "undefined" && panel ? createPortal(panel, document.body) : null}

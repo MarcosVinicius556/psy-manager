@@ -58,7 +58,7 @@ function PatientsContent() {
   if (loading) return <ListSkeleton rows={6} />;
 
   return (
-    <div>
+    <div className="admin-fab-pad">
       <PageTitle
         title="Pacientes"
         subtitle="Cadastro e acompanhamento."
@@ -103,7 +103,7 @@ function PatientsContent() {
           <Empty>Nenhum paciente encontrado.</Empty>
         ) : (
           <>
-          <div className="grid gap-3 md:hidden">
+          <div className="grid min-w-0 gap-3 md:hidden">
             {filtered.map((patient) => (
               <ListCard
                 key={patient.id}

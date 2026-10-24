@@ -185,9 +185,25 @@
     color: #fff;
   }
 
-  .btn-row:hover:not(:disabled) {
-    background: transparent;
-    color: var(--color-teal);
+  @media (hover: hover) {
+    .btn-row:hover:not(:disabled) {
+      background: transparent;
+      color: var(--color-teal);
+    }
+  }
+
+  .admin-section-title {
+    scroll-margin-top: calc(3.75rem + env(safe-area-inset-top));
+  }
+
+  .admin-fab-pad {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 768px) {
+    .admin-fab-pad {
+      padding-bottom: 0;
+    }
   }
 
   .btn-danger {

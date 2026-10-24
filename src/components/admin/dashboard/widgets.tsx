@@ -5,7 +5,9 @@ import Link from "next/link";
 import MonthCalendar from "@/components/admin/MonthCalendar";
 import MonthTotalCard from "@/components/admin/MonthTotalCard";
 import Select from "@/components/admin/Select";
-import { Card, DataTable, Empty, Pill, Td, Th } from "@/components/admin/ui";
+import ListCard from "@/components/admin/mobile/ListCard";
+import StackedRow from "@/components/admin/mobile/StackedRow";
+import { Card, DataTable, Empty, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import type { WidgetId } from "@/lib/admin/dashboard-layout";
@@ -197,36 +199,54 @@ function CalendarWidget() {
         {dayItems.length === 0 ? (
           <Empty>{activeLocationName ? `Nenhum atendimento em ${activeLocationName} neste dia.` : "Nenhum atendimento neste dia."}</Empty>
         ) : (
-          <DataTable minWidth={640}>
-            <thead>
-              <tr>
-                <Th>Horário</Th>
-                <Th>Paciente</Th>
-                <Th>Profissional</Th>
-                <Th>Local</Th>
-                <Th>Status</Th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="md:hidden">
               {dayItems.map((item) => (
-                <tr key={item.id} className="hover:bg-paper">
-                  <Td>
-                    {item.startTime}–{item.endTime}
-                  </Td>
-                  <Td>
-                    <Link href={`/admin/atendimentos/${item.id}`} className="font-medium text-teal">
+                <StackedRow
+                  key={item.id}
+                  primary={
+                    <Link href={`/admin/atendimentos/${item.id}`} className="text-teal">
                       {namedPatient(item.patientId)}
                     </Link>
-                  </Td>
-                  <Td>{namedMember(item.professionalId)}</Td>
-                  <Td>{labelAppointmentPlace(item.modality, item.locationId ? locationName(item.locationId) : "")}</Td>
-                  <Td>
-                    <Pill>{labelAppointmentStatus(item.status)}</Pill>
-                  </Td>
-                </tr>
+                  }
+                  secondary={`${item.startTime}–${item.endTime} · ${namedMember(item.professionalId)} · ${labelAppointmentPlace(item.modality, item.locationId ? locationName(item.locationId) : "")}`}
+                  meta={<Pill tone="sage">{labelAppointmentStatus(item.status)}</Pill>}
+                />
               ))}
-            </tbody>
-          </DataTable>
+            </div>
+            <ResponsiveTableWrap>
+              <DataTable minWidth={640}>
+                <thead>
+                  <tr>
+                    <Th>Horário</Th>
+                    <Th>Paciente</Th>
+                    <Th>Profissional</Th>
+                    <Th>Local</Th>
+                    <Th>Status</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dayItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-paper">
+                      <Td>
+                        {item.startTime}–{item.endTime}
+                      </Td>
+                      <Td>
+                        <Link href={`/admin/atendimentos/${item.id}`} className="font-medium text-teal">
+                          {namedPatient(item.patientId)}
+                        </Link>
+                      </Td>
+                      <Td>{namedMember(item.professionalId)}</Td>
+                      <Td>{labelAppointmentPlace(item.modality, item.locationId ? locationName(item.locationId) : "")}</Td>
+                      <Td>
+                        <Pill tone="sage">{labelAppointmentStatus(item.status)}</Pill>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </ResponsiveTableWrap>
+          </>
         )}
       </div>
     </Card>
@@ -239,35 +259,52 @@ function FutureListWidget() {
   const future = clinicPayments.filter((payment) => isFutureLaunch(payment)).slice(0, 6);
   return (
     <Card>
-      <h2 className="mb-4 text-2xl font-medium text-teal">Lançamentos futuros</h2>
+      <WidgetSectionTitle title="Lançamentos futuros" />
       {future.length === 0 ? (
         <Empty>Nenhum pagamento agendado.</Empty>
       ) : (
-        <DataTable minWidth={480}>
-          <thead>
-            <tr>
-              <Th>Paciente</Th>
-              <Th>Descrição</Th>
-              <Th>Valor</Th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <div className="grid gap-3 md:hidden">
             {future.map((payment) => (
-              <tr key={payment.id}>
-                <Td>
-                  <p className="font-medium">{patientName(payment.patientId)}</p>
-                  <p className="text-xs text-muted">{formatDate(payment.dueDate)}</p>
-                </Td>
-                <Td>{payment.descricao}</Td>
-                <Td className="font-semibold">{formatMoney(remainingAmount(payment))}</Td>
-              </tr>
+              <ListCard
+                key={payment.id}
+                href="/admin/financeiro"
+                title={patientName(payment.patientId)}
+                subtitle={`${formatDate(payment.dueDate)} · ${payment.descricao}`}
+                trailing={<span className="font-num text-sm font-semibold text-ink">{formatMoney(remainingAmount(payment))}</span>}
+              />
             ))}
-          </tbody>
-        </DataTable>
+          </div>
+          <ResponsiveTableWrap>
+            <DataTable minWidth={480}>
+              <thead>
+                <tr>
+                  <Th>Paciente</Th>
+                  <Th>Descrição</Th>
+                  <Th>Valor</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {future.map((payment) => (
+                  <tr key={payment.id}>
+                    <Td>
+                      <p className="font-medium">{patientName(payment.patientId)}</p>
+                      <p className="text-xs text-muted">{formatDate(payment.dueDate)}</p>
+                    </Td>
+                    <Td>{payment.descricao}</Td>
+                    <Td className="font-semibold">{formatMoney(remainingAmount(payment))}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </ResponsiveTableWrap>
+        </>
       )}
-      <Link href="/admin/financeiro" className="btn-text mt-4">
-        Ver financeiro
-      </Link>
+      <WidgetSectionFooter>
+        <Link href="/admin/financeiro" className="btn-text min-h-11">
+          Ver financeiro
+        </Link>
+      </WidgetSectionFooter>
     </Card>
   );
 }
@@ -276,29 +313,43 @@ function DebtorsListWidget() {
   const debtors = useDebtors();
   return (
     <Card>
-      <h2 className="mb-4 text-2xl font-medium text-teal">Não pagaram</h2>
+      <WidgetSectionTitle title="Não pagaram" />
       {debtors.length === 0 ? (
         <Empty>Nenhum paciente inadimplente.</Empty>
       ) : (
-        <DataTable minWidth={280}>
-          <thead>
-            <tr>
-              <Th>Paciente</Th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <div className="grid gap-3 md:hidden">
             {debtors.map((patient) => (
-              <tr key={patient.id} className="hover:bg-paper">
-                <Td>
-                  <Link href={`/admin/pacientes/${patient.id}`} className="font-medium text-teal">
-                    {patient.nome}
-                  </Link>
-                </Td>
-              </tr>
+              <ListCard key={patient.id} href={`/admin/pacientes/${patient.id}`} title={patient.nome} subtitle="Pagamento em aberto" />
             ))}
-          </tbody>
-        </DataTable>
+          </div>
+          <ResponsiveTableWrap>
+            <DataTable minWidth={280}>
+              <thead>
+                <tr>
+                  <Th>Paciente</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {debtors.map((patient) => (
+                  <tr key={patient.id} className="hover:bg-paper">
+                    <Td>
+                      <Link href={`/admin/pacientes/${patient.id}`} className="font-medium text-teal">
+                        {patient.nome}
+                      </Link>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </ResponsiveTableWrap>
+        </>
       )}
+      <WidgetSectionFooter>
+        <Link href="/admin/financeiro?view=aberto" className="btn-text min-h-11">
+          Ver financeiro
+        </Link>
+      </WidgetSectionFooter>
     </Card>
   );
 }

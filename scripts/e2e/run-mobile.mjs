@@ -71,7 +71,7 @@ async function main() {
   children.push(next);
   await waitFor("http://127.0.0.1:3000/");
 
-  await run("npx", ["playwright", "test", "e2e/mobile-screenshots.spec.ts", "e2e/landing-header.spec.ts"]);
+  await run("npx", ["playwright", "test", "e2e/mobile-screenshots.spec.ts", "e2e/landing-header.spec.ts", "e2e/platform-no-crash.spec.ts"]);
   shutdown();
 }
 

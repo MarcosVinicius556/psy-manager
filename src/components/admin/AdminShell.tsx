@@ -5,9 +5,8 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineMenu, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers, HiOutlineX } from "react-icons/hi";
-import { EmailBanner, OnboardingCard, TrialBanner } from "./AccountStatus";
 import BrandLogo from "@/components/BrandLogo";
-import MobileHeader, { MobileHeaderBrand } from "@/components/admin/mobile/MobileHeader";
+import MobileHeader from "@/components/admin/mobile/MobileHeader";
 import { AdminPageMetaProvider, useAdminPageMeta } from "@/lib/admin/page-meta-context";
 import Avatar from "./Avatar";
 import { isExpenseAlert } from "@/lib/admin/expenses";
@@ -433,11 +432,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {pathname === "/admin" ? (
-        <MobileHeaderBrand onOpenMenu={() => setMobileOpen(true)} />
-      ) : (
-        <MobileHeader title={mobileTitle} action={meta.action} onOpenMenu={() => setMobileOpen(true)} />
-      )}
+      <MobileHeader title={mobileTitle} action={pathname === "/admin" ? undefined : meta.action} onOpenMenu={() => setMobileOpen(true)} />
 
       {mobileOpen && (
         <button
@@ -452,7 +447,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         role="dialog"
         aria-modal={mobileOpen}
         aria-label="Menu do painel"
-        inert={mobileOpen ? undefined : true}
+        aria-hidden={!mobileOpen}
         className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-teal px-4 text-white transition-transform duration-300 ease-out md:hidden ${
           mobileOpen ? "translate-x-0" : "pointer-events-none -translate-x-full"
         }`}
@@ -560,9 +555,6 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
 
       <div className={`pb-[calc(4.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
         <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 md:py-10">
-          <EmailBanner />
-          <TrialBanner />
-          <OnboardingCard />
           {children}
         </div>
       </div>

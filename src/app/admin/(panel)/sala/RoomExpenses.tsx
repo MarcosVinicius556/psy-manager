@@ -603,7 +603,7 @@ export default function RoomExpenses({ locationId }: { locationId?: string }) {
       )}
       <Card>
           <div className="mb-4 grid gap-3 md:grid-cols-[1fr_16rem] md:items-center">
-            <h2 className="text-2xl font-medium capitalize text-teal">{monthLabel(month)}</h2>
+            <h2 className="text-2xl font-medium text-teal">{monthLabel(month)}</h2>
             <DateField mode="month" value={month} onChange={setMonth} />
           </div>
           <div className="mb-4 flex flex-wrap gap-2">

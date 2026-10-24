@@ -13,6 +13,7 @@ import {
   HiOutlineSelector,
   HiOutlineX,
 } from "react-icons/hi";
+import { OnboardingCard } from "@/components/admin/AccountStatus";
 import { Card, Empty, PageTitle } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import {
@@ -159,6 +160,7 @@ export default function CustomizableDashboard() {
     return (
       <div>
         <PageTitle title="Início" subtitle="O dia da clínica em um só lugar." />
+        <OnboardingCard />
         <div className="grid grid-flow-row-dense grid-cols-12 gap-4 lg:gap-6">
           {visible.map((widget) => {
             const Widget = DASHBOARD_WIDGET_COMPONENTS[widget.id];
@@ -255,6 +257,7 @@ export default function CustomizableDashboard() {
   return (
     <div>
       <PageTitle title="Início" subtitle="O dia da clínica em um só lugar." action={actions} />
+      <OnboardingCard />
       {editing ? (
         <Card className="mb-6">
           <h2 className="text-xl font-medium text-teal">Personalizar dashboard</h2>
