@@ -11,7 +11,6 @@ import MonthCalendar from "@/components/admin/MonthCalendar";
 import SetupNeeded from "@/components/admin/SetupNeeded";
 import DayStrip from "@/components/admin/mobile/DayStrip";
 import DesktopOnly from "@/components/admin/mobile/DesktopOnly";
-import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
@@ -225,8 +224,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   );
 
   return (
-    <div className="relative admin-fab-pad">
-      <FloatingActionButton label="Novo atendimento" onClick={() => openNew()} />
+    <div className="relative">
       {locationId ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>

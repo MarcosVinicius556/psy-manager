@@ -39,10 +39,18 @@ function useDebtors() {
   return useMemo(() => unpaidPatients(patients, clinicPayments), [patients, clinicPayments]);
 }
 
+function monthSparkline(month: string, valueForMonth: (m: string) => number, points = 6) {
+  return Array.from({ length: points }, (_, index) => valueForMonth(addMonths(month, index - (points - 1))));
+}
+
 function ReceivableWidget() {
   const clinicPayments = useClinicPayments();
   const currentMonth = todayISO().slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
+  const sparkline = useMemo(
+    () => monthSparkline(month, (m) => receivableInMonth(clinicPayments, m)),
+    [clinicPayments, month]
+  );
   return (
     <MonthTotalCard
       title="Total a receber"
@@ -52,6 +60,7 @@ function ReceivableWidget() {
       value={receivableInMonth(clinicPayments, month)}
       previous={receivableInMonth(clinicPayments, addMonths(month, -1))}
       onMonth={setMonth}
+      sparkline={sparkline}
     />
   );
 }
@@ -61,6 +70,10 @@ function OverdueWidget() {
   const today = todayISO();
   const currentMonth = today.slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
+  const sparkline = useMemo(
+    () => monthSparkline(month, (m) => overdueInMonth(clinicPayments, m, today)),
+    [clinicPayments, month, today]
+  );
   return (
     <MonthTotalCard
       title="Total em atraso"
@@ -70,6 +83,7 @@ function OverdueWidget() {
       value={overdueInMonth(clinicPayments, month, today)}
       previous={overdueInMonth(clinicPayments, addMonths(month, -1), today)}
       onMonth={setMonth}
+      sparkline={sparkline}
     />
   );
 }
@@ -78,6 +92,10 @@ function ReceivedWidget() {
   const clinicPayments = useClinicPayments();
   const currentMonth = todayISO().slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
+  const sparkline = useMemo(
+    () => monthSparkline(month, (m) => receivedInMonth(clinicPayments, m)),
+    [clinicPayments, month]
+  );
   return (
     <MonthTotalCard
       title="Total recebido"
@@ -87,6 +105,7 @@ function ReceivedWidget() {
       value={receivedInMonth(clinicPayments, month)}
       previous={receivedInMonth(clinicPayments, addMonths(month, -1))}
       onMonth={setMonth}
+      sparkline={sparkline}
     />
   );
 }

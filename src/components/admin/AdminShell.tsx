@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -458,9 +458,9 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
       <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden bg-teal pb-16 pt-6 text-white transition-[width,padding] duration-300 ease-out md:flex ${
+        className={`fixed z-30 hidden flex-col overflow-hidden bg-teal text-white transition-[width,padding,top,left,height,border-radius,box-shadow] duration-300 ease-out md:flex ${
           collapsed ? "w-[4.75rem] px-2" : "w-72 px-4"
-        }`}
+        } inset-y-0 left-0 pb-16 pt-6 lg:inset-y-4 lg:left-4 lg:h-[calc(100dvh-2rem)] lg:rounded-3xl lg:border lg:border-white/12 lg:pb-16 lg:pt-6 lg:shadow-[0_28px_90px_rgba(36,48,40,0.32)]`}
       >
         <div className={`flex shrink-0 gap-2 transition-[justify-content] duration-300 ${collapsed ? "flex-col items-center" : "items-center justify-between"}`}>
           <Link
@@ -605,9 +605,15 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <MobileTabBar pathname={pathname} hidden={tabbarHidden} menuOpen={mobileOpen} onOpenMenu={() => setMobileOpen(true)} />
+      <Suspense fallback={null}>
+        <MobileTabBar pathname={pathname} hidden={tabbarHidden} />
+      </Suspense>
 
-      <div className={`pb-[calc(6.25rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${collapsed ? "md:pl-[4.75rem]" : "md:pl-72"}`}>
+      <div
+        className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out md:pb-0 ${
+          collapsed ? "md:pl-[4.75rem] lg:pl-[calc(4.75rem+1rem)]" : "md:pl-72 lg:pl-[calc(18rem+1rem)]"
+        }`}
+      >
         <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 md:py-10">
           <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>

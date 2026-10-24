@@ -62,13 +62,15 @@ export function SparkBars({
   const reduced = useReducedMotion();
   const max = Math.max(...values, 1);
 
+  const normalized = values.length > 0 ? values : [0];
+
   return (
-    <div className={`flex h-full items-end justify-end gap-1 ${className}`} aria-hidden>
-      {values.map((v, index) => (
+    <div className={`flex h-full items-end justify-end gap-[3px] ${className}`} aria-hidden>
+      {normalized.map((v, index) => (
         <motion.span
           key={index}
-          className="w-1.5 flex-1 max-w-[0.45rem] rounded-full bg-teal/25 [&:last-child]:bg-teal"
-          style={{ height: `${Math.max(20, (v / max) * 100)}%` }}
+          className={`w-[3px] flex-1 max-w-[4px] rounded-full ${index === normalized.length - 1 ? "bg-teal" : "bg-teal/30"}`}
+          style={{ height: `${Math.max(16, (v / max) * 100)}%` }}
           initial={reduced ? false : { scaleY: 0, opacity: 0 }}
           animate={{ scaleY: 1, opacity: 1 }}
           transition={{ delay: reduced ? 0 : index * 0.05, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}

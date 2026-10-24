@@ -12,7 +12,6 @@ import ReceivePayment from "@/components/admin/ReceivePayment";
 import { ReceiptLinks } from "@/components/admin/FileAttachments";
 import SetupNeeded from "@/components/admin/SetupNeeded";
 import FinanceFilterSheet from "@/components/admin/mobile/FinanceFilterSheet";
-import FloatingActionButton from "@/components/admin/mobile/FloatingActionButton";
 import ListCard from "@/components/admin/mobile/ListCard";
 import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
@@ -93,7 +92,7 @@ function FinanceContent() {
   }
 
   return (
-    <div className="admin-fab-pad">
+    <div>
       <PageTitle
         title="Contas a receber"
         subtitle="Pagamentos previstos, recebidos e em aberto."
@@ -112,7 +111,6 @@ function FinanceContent() {
           </div>
         }
       />
-      <FloatingActionButton label="Novo lançamento" onClick={() => router.replace(`${pathname}?novo=1`, { scroll: false })} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MonthTotalCard
           title="Total recebido"
