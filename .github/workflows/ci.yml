@@ -68,6 +68,32 @@ jobs:
       - name: Build
         run: npm run build
 
+  backup-verify:
+    name: backup-verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar age
+        run: |
+          AGE_VERSION="v1.2.1"
+          curl -fsSL "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-amd64.tar.gz" -o age.tgz
+          tar -xzf age.tgz
+          sudo mv "age/age" "age/age-keygen" /usr/local/bin/
+
+      - name: Verificar backup (emulador)
+        run: npm run backup:verify
+
   master-pr-source:
     name: master-pr-source
     runs-on: ubuntu-latest

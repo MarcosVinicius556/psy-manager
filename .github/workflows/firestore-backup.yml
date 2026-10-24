@@ -1,0 +1,79 @@
+name: Firestore backup
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firestore-backup-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: daily-firestore-backup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar secrets
+        id: secrets
+        env:
+          SA: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT }}
+          AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Backup ignorado: configure o secret FIREBASE_BACKUP_SERVICE_ACCOUNT no repositório."
+            exit 0
+          fi
+          if [ -z "$AGE_RECIPIENT" ] && [ -z "$PASSPHRASE" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Backup ignorado: configure BACKUP_AGE_RECIPIENT (recomendado) ou BACKUP_PASSPHRASE."
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Node.js
+        if: steps.secrets.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        if: steps.secrets.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Instalar age
+        if: steps.secrets.outputs.skip != 'true'
+        run: |
+          AGE_VERSION="v1.2.1"
+          curl -fsSL "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-amd64.tar.gz" -o age.tgz
+          tar -xzf age.tgz
+          sudo mv "age/age" "age/age-keygen" /usr/local/bin/
+
+      - name: Executar backup
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          FIREBASE_BACKUP_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          FIREBASE_PROJECT_ID: clinic-manager-ed887
+        run: npx tsx scripts/backup/run-backup.ts
+
+      - name: Publicar artefato criptografado
+        if: steps.secrets.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-${{ github.run_id }}
+          path: |
+            .backup-work/out/*.age
+            .backup-work/out/*.manifest.json
+          retention-days: 90
+          if-no-files-found: error
