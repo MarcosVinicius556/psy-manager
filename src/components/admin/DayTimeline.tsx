@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import AppointmentAgendaCard from "@/components/admin/AppointmentAgendaCard";
 import type { Appointment } from "@/lib/admin/types";
 import { isBookableStart, rangesOverlap, timelineSlots, toMinutes, SLOT_STEP, fromMinutes } from "@/lib/admin/schedule";
 
@@ -18,6 +18,7 @@ export default function DayTimeline({
   professionalId = null,
   onPick,
   onPickOnline,
+  onCompleteSession,
   ranges,
   externalBusy = [],
 }: {
@@ -31,6 +32,7 @@ export default function DayTimeline({
   professionalId?: string | null;
   onPick: (startTime: string) => void;
   onPickOnline?: (startTime: string) => void;
+  onCompleteSession?: (appointment: Appointment) => void;
   ranges?: { startTime: string; endTime: string }[];
   externalBusy?: { startTime: string; endTime: string; label?: string }[];
 }) {
@@ -111,23 +113,24 @@ export default function DayTimeline({
                 {startsHere.map((item) => {
                   const place = item.locationId && locationName ? locationName(item.locationId) : "";
                   const elsewhere = Boolean(viewLocationId && item.locationId !== viewLocationId);
+                  const metaLine = [
+                    memberName(item.professionalId),
+                    item.modality === "online" ? "Online" : "",
+                    showLocation && place ? place : "",
+                    elsewhere && item.modality !== "online" && !place ? "Outro local" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+                  const isOwn = Boolean(professionalId && item.professionalId === professionalId);
                   return (
-                    <Link
+                    <AppointmentAgendaCard
                       key={item.id}
-                      href={`/admin/atendimentos/${item.id}`}
-                      className="block min-h-11 rounded-md bg-sky-soft px-3 py-2.5 text-sm"
-                    >
-                      <strong>
-                        {item.startTime}–{item.endTime}
-                      </strong>{" "}
-                      {patientName(item.patientId)}
-                      <span className="mt-0.5 block text-muted">
-                        {memberName(item.professionalId)}
-                        {item.modality === "online" ? " · Online" : ""}
-                        {showLocation && place ? ` · ${place}` : ""}
-                        {elsewhere && item.modality !== "online" && !place ? " · Outro local" : ""}
-                      </span>
-                    </Link>
+                      appointment={item}
+                      patientLabel={patientName(item.patientId)}
+                      metaLine={metaLine}
+                      isOwn={isOwn}
+                      onCompleteSession={onCompleteSession}
+                    />
                   );
                 })}
                 {busyStartsHere.map((item, index) => (

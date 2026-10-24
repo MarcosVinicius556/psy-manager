@@ -529,6 +529,13 @@ service cloud.firestore {
       allow delete: if tenantDelete();
     }
 
+    match /clinicalNoteTemplates/{templateId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
     match /integrations/{uid} {
       allow read, write: if false;
     }
