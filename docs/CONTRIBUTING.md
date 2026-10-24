@@ -66,6 +66,17 @@ Em pull request e em push para `develop` e `master`:
 
 O build de CI não usa segredo real. Firebase, Cloudinary e e-mail de verdade ficam só na Vercel e no `.env.local`.
 
+## Feature toggles
+
+Funcionalidades experimentais ou opcionais podem ficar atrás de flags em [`src/lib/feature-flags.ts`](../src/lib/feature-flags.ts):
+
+1. Registre a flag em `FEATURE_FLAG_DEFAULTS` (default `false` salvo motivo forte).
+2. Documente a variável `NEXT_PUBLIC_FEATURE_*` em [`.env.example`](../.env.example) e na tabela do [README](../README.md).
+3. No código, leia `featureFlags.<nome>` em vez de acessar `process.env` direto.
+4. Só `true` e `1` (qualquer caixa) ligam a flag; vazio ou outro valor usa o default.
+
+Testes de parsing ficam em `src/lib/feature-flags.test.ts`. Comportamento que depende da flag pode ir em um módulo pequeno com teste unitário (como `dashboard-customization.ts`).
+
 ## Pacotes
 
 O gerenciador é o npm. Há um único lockfile, `package-lock.json`. Não adicione `yarn.lock` de volta.

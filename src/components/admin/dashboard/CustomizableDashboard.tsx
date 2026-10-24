@@ -37,8 +37,12 @@ import {
   type WidgetId,
   type WidgetLayout,
 } from "@/lib/admin/dashboard-layout";
+import { effectiveDashboardLayout, shouldPersistDashboardLayout } from "@/lib/admin/dashboard-customization";
 import { loadDashboardLayout, saveDashboardLayout } from "@/lib/admin/dashboard-store";
+import { featureFlags } from "@/lib/feature-flags";
 import { DASHBOARD_WIDGET_COMPONENTS } from "./widgets";
+
+const customizationEnabled = featureFlags.dashboardCustomization;
 
 const chip = "inline-flex min-h-11 min-w-11 items-center justify-center px-3 py-2 text-sm";
 
@@ -134,6 +138,10 @@ export default function CustomizableDashboard() {
   const editing = draft !== null;
 
   useEffect(() => {
+    if (!customizationEnabled) {
+      setSaved(defaultLayout());
+      return;
+    }
     let active = true;
     loadDashboardLayout(uid).then((layout) => {
       if (active) setSaved(layout);
@@ -144,6 +152,26 @@ export default function CustomizableDashboard() {
   }, [uid]);
 
   if (!saved) return <p className="text-muted">Carregando...</p>;
+
+  if (!customizationEnabled) {
+    const layout = effectiveDashboardLayout(false, saved);
+    const visible = visibleWidgets(layout);
+    return (
+      <div>
+        <PageTitle title="Início" subtitle="O dia da clínica em um só lugar." />
+        <div className="grid grid-flow-row-dense grid-cols-12 gap-4 lg:gap-6">
+          {visible.map((widget) => {
+            const Widget = DASHBOARD_WIDGET_COMPONENTS[widget.id];
+            return (
+              <div key={widget.id} className={`flex min-w-0 flex-col [&>section]:flex-1 ${widgetGridClass(widget)}`}>
+                <Widget />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   const layout = draft ?? saved;
   const visible = visibleWidgets(layout);
@@ -156,6 +184,10 @@ export default function CustomizableDashboard() {
   const finish = async () => {
     if (!draft) return;
     if (layoutsEqual(draft, saved)) {
+      setDraft(null);
+      return;
+    }
+    if (!shouldPersistDashboardLayout(customizationEnabled)) {
       setDraft(null);
       return;
     }

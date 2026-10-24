@@ -65,6 +65,16 @@ A lista completa está em [`.env.example`](.env.example).
 
 Não existe gateway de pagamento nestas variáveis. A contratação não confirma pagamento até um provedor real ser ligado.
 
+## Feature toggles
+
+Flags opcionais no cliente, definidas em [`src/lib/feature-flags.ts`](src/lib/feature-flags.ts). Cada flag tem um default no código e pode ser ligada com `NEXT_PUBLIC_FEATURE_<NOME>=true` ou `1` (veja o registro no arquivo para o nome exato da variável).
+
+| Flag | Variável | Default | Efeito |
+| --- | --- | --- | --- |
+| `dashboardCustomization` | `NEXT_PUBLIC_FEATURE_DASHBOARD_CUSTOMIZATION` | desligada | Com a flag desligada, o início do admin mostra o dashboard padrão fixo, sem personalizar nem ler/gravar layout salvo. Ligada, mantém o comportamento de personalização. |
+
+Na Vercel, defina a variável no ambiente desejado (Preview, Production) e faça um novo deploy para o valor entrar no build.
+
 ## Testes e CI
 
 ```bash
