@@ -60,7 +60,7 @@ export default function Caveman404Illustration() {
     >
       <svg
         className="cave-404-svg"
-        viewBox="0 -125 500 445"
+        viewBox="0 0 500 320"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-label={ILLUSTRATION_LABEL}

@@ -1,13 +1,15 @@
 .cave-404-interactive {
+  --cave-404-jump-room: 5.75rem;
   display: block;
   width: min(calc(100% - 2rem), 28.75rem);
   margin-inline: auto;
-  padding: 0;
+  padding: var(--cave-404-jump-room) 0 0;
   border: none;
   background: transparent;
   cursor: default;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  overflow: visible;
 }
 
 @media (min-width: 640px) {
@@ -30,6 +32,7 @@
   display: block;
   width: 100%;
   height: auto;
+  margin-top: calc(-1 * var(--cave-404-jump-room));
   overflow: visible;
 }
 
