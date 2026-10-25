@@ -29,7 +29,7 @@ export type MobileMenuGroup = {
 
 export type MobileMenuEntry = MobileMenuLink | MobileMenuGroup;
 
-const TAB_BAR_HREFS = new Set(["/admin", "/admin/agenda", "/admin/pacientes", "/admin/financeiro"]);
+const TAB_BAR_HREFS = new Set(["/admin", "/admin/agenda", "/admin/pacientes"]);
 
 function isGroup(entry: MobileMenuEntry): entry is MobileMenuGroup {
   return "children" in entry;

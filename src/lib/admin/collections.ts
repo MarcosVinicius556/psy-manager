@@ -13,7 +13,7 @@ import {
   writeBatch,
   type DocumentData,
 } from "firebase/firestore";
-import { isPaymentMethod } from "./format";
+import { isPaymentMethod, normalizePatientStatus } from "./format";
 import { sessionStartMillis } from "./schedule";
 import {
   emptyMemberPrivateFields,
@@ -192,7 +192,7 @@ function mapPatient(id: string, data: DocumentData): Patient {
     fotoAsset: mapCloudinaryAsset(data.fotoAsset) ?? null,
     contratoAssinado: mapAttachment(data.contratoAssinado),
     tcleAceite: mapTcleAcceptance(data.tcleAceite),
-    status: data.status === "inativo" ? "inativo" : "ativo",
+    status: normalizePatientStatus(data),
     createdAt: text(data.createdAt),
   };
 }

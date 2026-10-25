@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { animate } from "motion/react";
 import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 
@@ -14,20 +14,28 @@ export default function AnimatedMetric({
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  const [display, setDisplay] = useState(() => (reduced ? format(value) : format(0)));
+  const [display, setDisplay] = useState(() => format(reduced ? value : 0));
+  const animatedOnce = useRef(false);
+  const formatRef = useRef(format);
+  formatRef.current = format;
 
   useEffect(() => {
+    const formatValue = formatRef.current;
     if (reduced) {
-      setDisplay(format(value));
+      setDisplay(formatValue(value));
       return;
     }
-    const controls = animate(0, value, {
-      duration: 0.65,
-      ease: [0.22, 1, 0.36, 1],
-      onUpdate: (latest) => setDisplay(format(latest)),
-    });
-    return () => controls.stop();
-  }, [format, reduced, value]);
+    if (!animatedOnce.current) {
+      animatedOnce.current = true;
+      const controls = animate(0, value, {
+        duration: 0.65,
+        ease: [0.22, 1, 0.36, 1],
+        onUpdate: (latest) => setDisplay(formatValue(latest)),
+      });
+      return () => controls.stop();
+    }
+    setDisplay(formatValue(value));
+  }, [reduced, value]);
 
   return <span className={className}>{display}</span>;
 }

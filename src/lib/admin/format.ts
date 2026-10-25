@@ -106,6 +106,19 @@ const patientStatusLabel: Record<PatientStatus, string> = {
   inativo: "Inativo",
 };
 
+/** Normalizes legacy Firestore shapes (`ativo` boolean, English labels) into clinic status. */
+export function normalizePatientStatus(data: { status?: unknown; ativo?: unknown }): PatientStatus {
+  const raw = String(data.status ?? "").trim().toLowerCase();
+  if (raw === "inativo" || raw === "inactive" || raw === "disabled" || raw === "false") return "inativo";
+  if (raw === "ativo" || raw === "active") return "ativo";
+  if (data.ativo === false) return "inativo";
+  return "ativo";
+}
+
+export function isPatientActive(patient: { status: PatientStatus }): boolean {
+  return patient.status === "ativo";
+}
+
 const appointmentStatusLabel: Record<AppointmentStatus, string> = {
   agendado: "Agendado",
   em_andamento: "Em andamento",
