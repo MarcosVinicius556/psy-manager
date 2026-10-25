@@ -139,7 +139,9 @@ Não commitar valores reais (GitGuardian).
 
 ## Índices Firestore
 
-Ver `firestore.indexes.json` (consultas por `openedBy.uid`, `status`, `priority`, `classification` + `updatedAt`; collection group `messages.idempotencyKey`).
+O app **não depende** de índices compostos nem de regras `supportTickets` no cliente: listas e detalhes usam rotas `/api/support/*` com **Firebase Admin SDK** (filtro de igualdade em `openedBy.uid` e ordenação/filtros em memória). Isso funciona mesmo quando `firestore.indexes.json` ainda não foi publicado no projeto.
+
+O arquivo `firestore.indexes.json` no repositório documenta índices **opcionais** para otimizar consultas admin/bot no futuro (`openedBy.uid` + `updatedAt`, `status` + `updatedAt`, etc.; collection group `messages.idempotencyKey`).
 
 ## Limitações conhecidas
 

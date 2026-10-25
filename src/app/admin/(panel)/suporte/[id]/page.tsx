@@ -3,9 +3,9 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { PageTitle, PrimaryButton, fieldClass } from "@/components/admin/ui";
-import SupportStatusBadge from "@/components/support/SupportStatusBadge";
-import SupportThread from "@/components/support/SupportThread";
+import { PrimaryButton, fieldClass } from "@/components/admin/ui";
+import SupportLoadError from "@/components/support/SupportLoadError";
+import SupportTicketDetailShell from "@/components/support/SupportTicketDetailShell";
 import { authorizedHeaders } from "@/lib/admin/api-auth";
 import { useAuth } from "@/lib/admin/auth-context";
 import { canReviewTicket } from "@/lib/support/roles-shared";
@@ -14,7 +14,7 @@ import { useSupportTicketDetail } from "@/hooks/useSupportApi";
 export default function ChamadoDetailPage() {
   const params = useParams();
   const id = String(params.id);
-  const { data, loading, refresh } = useSupportTicketDetail(id);
+  const { data, loading, error, refresh } = useSupportTicketDetail(id);
   const { role } = useAuth();
   const [reply, setReply] = useState("");
   const [reopenReason, setReopenReason] = useState("");
@@ -88,71 +88,80 @@ export default function ChamadoDetailPage() {
   }
 
   if (loading) return <p className="text-sm text-muted">Carregando...</p>;
-  if (!ticket) return <p className="text-sm text-red-700">Chamado não encontrado.</p>;
+  if (error || !ticket || !data) {
+    return (
+      <SupportLoadError
+        message={error ?? "Chamado não encontrado."}
+        onRetry={() => void refresh()}
+      />
+    );
+  }
 
   return (
-    <div className="grid gap-4">
-      <PageTitle title={ticket.humanId} subtitle={ticket.title} />
-      <div className="flex flex-wrap gap-2">
-        <SupportStatusBadge status={ticket.status} />
-      </div>
-      {ticket.github.prUrl && (
-        <p className="text-sm">
-          Pull request:{" "}
-          <a href={ticket.github.prUrl} className="text-teal underline" target="_blank" rel="noreferrer">
-            #{ticket.github.prNumber ?? "link"}
-          </a>
-        </p>
-      )}
-      <SupportThread messages={data?.messages ?? []} />
-      {canApprove && (
-        <div className="radius-surface grid gap-3 border border-[#e7eee8] bg-white p-4">
-          <p className="text-sm font-medium text-ink">Revisão da correção</p>
-          <textarea
-            className={fieldClass}
-            rows={2}
-            placeholder="Motivo (obrigatório ao reprovar)"
-            value={reviewReason}
-            onChange={(e) => setReviewReason(e.target.value)}
-          />
-          <div className="flex flex-wrap gap-2">
-            <PrimaryButton type="button" disabled={busy} onClick={() => void review("approved")}>Aprovar</PrimaryButton>
-            <button
-              type="button"
-              className="btn-secondary radius-control border border-leaf px-4 py-2 text-sm text-teal"
-              disabled={busy}
-              onClick={() => void review("rejected")}
-            >
-              Reprovar
-            </button>
-          </div>
+    <SupportTicketDetailShell
+      data={data}
+      composer={
+        <div className="grid gap-4">
+          {canApprove && (
+            <div className="radius-surface grid gap-3 border border-[var(--color-border-subtle)] bg-white p-4">
+              <p className="text-sm font-medium text-ink">Revisão da correção</p>
+              <textarea
+                className={fieldClass}
+                rows={2}
+                placeholder="Motivo (obrigatório ao reprovar)"
+                value={reviewReason}
+                onChange={(e) => setReviewReason(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <PrimaryButton type="button" disabled={busy} onClick={() => void review("approved")}>
+                  Aprovar
+                </PrimaryButton>
+                <button
+                  type="button"
+                  className="btn-secondary radius-control border border-leaf px-4 py-2 text-sm text-teal"
+                  disabled={busy}
+                  onClick={() => void review("rejected")}
+                >
+                  Reprovar
+                </button>
+              </div>
+            </div>
+          )}
+          {canReply && (
+            <div className="grid gap-2">
+              <textarea
+                className={fieldClass}
+                rows={3}
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                placeholder="Sua resposta"
+              />
+              <PrimaryButton type="button" disabled={busy} onClick={() => void postReply()}>
+                Enviar resposta
+              </PrimaryButton>
+            </div>
+          )}
+          {canReopen && (
+            <div className="grid gap-2">
+              <textarea
+                className={fieldClass}
+                rows={2}
+                value={reopenReason}
+                onChange={(e) => setReopenReason(e.target.value)}
+                placeholder="Motivo da reabertura"
+              />
+              <button
+                type="button"
+                className="btn-secondary radius-control border border-leaf px-4 py-2 text-sm text-teal"
+                disabled={busy}
+                onClick={() => void reopen()}
+              >
+                Reabrir chamado
+              </button>
+            </div>
+          )}
         </div>
-      )}
-      {canReply && (
-        <div className="grid gap-2">
-          <textarea className={fieldClass} rows={3} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Sua resposta" />
-          <PrimaryButton type="button" disabled={busy} onClick={() => void postReply()}>Enviar resposta</PrimaryButton>
-        </div>
-      )}
-      {canReopen && (
-        <div className="grid gap-2">
-          <textarea
-            className={fieldClass}
-            rows={2}
-            value={reopenReason}
-            onChange={(e) => setReopenReason(e.target.value)}
-            placeholder="Motivo da reabertura"
-          />
-          <button
-            type="button"
-            className="btn-secondary radius-control border border-leaf px-4 py-2 text-sm text-teal"
-            disabled={busy}
-            onClick={() => void reopen()}
-          >
-            Reabrir chamado
-          </button>
-        </div>
-      )}
-    </div>
+      }
+    />
   );
 }

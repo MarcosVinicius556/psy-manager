@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import ListCard from "@/components/admin/mobile/ListCard";
 import { PageTitle, fieldClass } from "@/components/admin/ui";
-import SupportStatusBadge from "@/components/support/SupportStatusBadge";
+import SupportLoadError from "@/components/support/SupportLoadError";
+import SupportTicketListCard from "@/components/support/SupportTicketListCard";
 import { useAdminSupportTickets } from "@/hooks/useSupportApi";
-import { PRIORITY_LABELS } from "@/lib/support/labels";
 
 export default function PlataformaSuportePage() {
   const [status, setStatus] = useState("");
@@ -16,7 +15,7 @@ export default function PlataformaSuportePage() {
     if (priority) params.set("priority", priority);
     return params.toString();
   }, [status, priority]);
-  const { tickets, loading } = useAdminSupportTickets(query);
+  const { tickets, loading, error, refresh } = useAdminSupportTickets(query);
 
   return (
     <div className="grid gap-4">
@@ -39,26 +38,18 @@ export default function PlataformaSuportePage() {
         </select>
       </div>
       {loading && <p className="text-sm text-muted">Carregando...</p>}
+      {error && !loading ? <SupportLoadError message={error} onRetry={() => void refresh()} /> : null}
       <div className="grid gap-3">
         {tickets.map((ticket) => (
-          <ListCard
+          <SupportTicketListCard
             key={ticket.id}
+            ticket={ticket}
             href={`/plataforma/suporte/${ticket.id}`}
-            title={`${ticket.humanId} · ${ticket.openedBy.name}`}
-            subtitle={ticket.title}
-            meta={<SupportStatusBadge status={ticket.status} />}
-            trailing={
-              <div className="grid gap-1 text-right text-xs text-muted">
-                <span>{PRIORITY_LABELS[ticket.priority]}</span>
-                {ticket.badges?.stalled && <span className="text-amber-700">Parado</span>}
-                {ticket.badges?.botFailed && <span className="text-red-700">Bot falhou</span>}
-                {ticket.badges?.waitingHuman && <span className="text-violet-700">Aguardando humano</span>}
-              </div>
-            }
+            openedByLine={`${ticket.openedBy.name} · ${ticket.openedBy.email}`}
           />
         ))}
       </div>
-      {!loading && tickets.length === 0 && (
+      {!loading && !error && tickets.length === 0 && (
         <p className="text-sm text-muted">Nenhum chamado encontrado com os filtros atuais.</p>
       )}
     </div>

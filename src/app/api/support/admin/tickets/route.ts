@@ -13,14 +13,20 @@ export async function GET(request: Request) {
   if (!getAdminDb()) return NextResponse.json({ reason: "indisponivel" }, { status: 503 });
   if (!(await isSupportStaffUid(auth.uid))) return NextResponse.json({ reason: "proibido" }, { status: 403 });
   const { searchParams } = new URL(request.url);
-  const tickets = await listTicketsAdmin({
-    status: searchParams.get("status") ?? undefined,
-    priority: searchParams.get("priority") ?? undefined,
-    classification: searchParams.get("classification") ?? undefined,
-    assignee: searchParams.get("assignee") ?? undefined,
-    from: searchParams.get("from") ?? undefined,
-    to: searchParams.get("to") ?? undefined,
-  });
+  let tickets;
+  try {
+    tickets = await listTicketsAdmin({
+      status: searchParams.get("status") ?? undefined,
+      priority: searchParams.get("priority") ?? undefined,
+      classification: searchParams.get("classification") ?? undefined,
+      assignee: searchParams.get("assignee") ?? undefined,
+      from: searchParams.get("from") ?? undefined,
+      to: searchParams.get("to") ?? undefined,
+    });
+  } catch (error) {
+    console.error("support.admin.tickets.list", error);
+    return NextResponse.json({ reason: "erro_listagem" }, { status: 500 });
+  }
   const stalledMs = STALLED_TICKET_DAYS * 24 * 60 * 60 * 1000;
   const now = Date.now();
   const enriched = tickets.map((t) => ({

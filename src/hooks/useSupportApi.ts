@@ -16,7 +16,10 @@ export function useMySupportTickets() {
     try {
       const headers = await authorizedHeaders();
       const res = await fetch("/api/support/tickets", { headers });
-      if (!res.ok) throw new Error("Falha ao carregar chamados");
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { reason?: string } | null;
+        throw new Error(payload?.reason === "erro_listagem" ? "Falha ao carregar chamados" : "Falha ao carregar chamados");
+      }
       const data = await res.json();
       setTickets(data.tickets ?? []);
       setError(null);
@@ -72,19 +75,27 @@ export function useSupportTicketDetail(id: string) {
 export function useAdminSupportTickets(query: string) {
   const [tickets, setTickets] = useState<(SupportTicketRecord & { badges?: Record<string, boolean> })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const headers = await authorizedHeaders();
-    const res = await fetch(`/api/support/admin/tickets?${query}`, { headers });
-    const data = await res.json();
-    setTickets(data.tickets ?? []);
-    setLoading(false);
+    try {
+      const headers = await authorizedHeaders();
+      const res = await fetch(`/api/support/admin/tickets?${query}`, { headers });
+      if (!res.ok) throw new Error("Falha ao carregar chamados");
+      const data = await res.json();
+      setTickets(data.tickets ?? []);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setLoading(false);
+    }
   }, [query]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  return { tickets, loading, refresh };
+  return { tickets, loading, error, refresh };
 }

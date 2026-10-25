@@ -15,6 +15,7 @@
     "test:rules": "firebase emulators:exec --project psy-rules-test --only firestore \"vitest run --config vitest.rules.config.ts\"",
     "verify": "npm run typecheck && npm run lint && npm test && npm run test:rules && npm run build",
     "e2e:mobile": "node scripts/e2e/run-mobile.mjs",
+    "e2e:support-tickets": "node scripts/e2e/run-support-tickets.mjs",
     "e2e:seed": "tsx scripts/e2e/seed-emulator.ts",
     "landing:seed": "tsx scripts/landing/seed-landing-demo.ts",
     "landing:screenshots": "node scripts/landing/run-screenshots.mjs",

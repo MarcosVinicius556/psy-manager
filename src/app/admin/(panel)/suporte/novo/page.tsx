@@ -67,11 +67,23 @@ export default function NovoChamadoPage() {
       <PageTitle title="Novo chamado" subtitle="Descreva o problema com o máximo de detalhes." />
       <label className="grid gap-1 text-sm">
         Título
-        <input className={fieldClass} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
+        <input
+          className={fieldClass}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={200}
+          aria-label="Título"
+        />
       </label>
       <label className="grid gap-1 text-sm">
         Descrição
-        <textarea className={fieldClass} rows={5} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea
+          className={fieldClass}
+          rows={5}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          aria-label="Descrição"
+        />
       </label>
       <label className="grid gap-1 text-sm">
         Informações adicionais
