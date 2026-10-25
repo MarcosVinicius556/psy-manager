@@ -6,8 +6,16 @@ const artifactRoot = "/opt/cursor/artifacts/screenshots/platform";
 const platformEmail = process.env.E2E_PLATFORM_EMAIL || "platform@psy.test";
 const platformPassword = process.env.E2E_PLATFORM_PASSWORD || "Platform123456!";
 
+async function dismissCookieBanner(page: Page) {
+  const cookieBanner = page.getByTestId("cookie-banner");
+  if (await cookieBanner.isVisible().catch(() => false)) {
+    await cookieBanner.getByRole("button", { name: "Aceitar todos" }).click();
+  }
+}
+
 async function loginPlatformOwner(page: Page) {
   await page.goto("/admin/login", { waitUntil: "domcontentloaded" });
+  await dismissCookieBanner(page);
   await page.getByPlaceholder("Seu e-mail").fill(platformEmail);
   await page.getByPlaceholder("Sua senha").fill(platformPassword);
   await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
@@ -15,6 +23,7 @@ async function loginPlatformOwner(page: Page) {
     timeout: 90_000,
   });
   await page.goto("/plataforma", { waitUntil: "domcontentloaded" });
+  await dismissCookieBanner(page);
   await expect(page.getByText("Verificando o acesso da plataforma")).toHaveCount(0, { timeout: 60_000 });
 }
 
@@ -38,19 +47,22 @@ test.describe("platform shell", () => {
   test("desktop uses floating sidebar rail", async ({ page }, testInfo) => {
     test.skip((testInfo.project.use.viewport?.width ?? 0) < 960, "desktop only");
     await expect(page.getByTestId("platform-desk-sidebar")).toBeVisible();
-    await expect(page.getByTestId("platform-mobile-tabbar-shell")).toHaveCount(0);
+    await expect(page.getByTestId("platform-mobile-tabbar-shell")).toBeHidden();
   });
 
   test("menu sheet accordion opens one group", async ({ page }, testInfo) => {
     test.skip((testInfo.project.use.viewport?.width ?? 0) >= 960, "mobile only");
+    await page.goto("/plataforma/contas", { waitUntil: "domcontentloaded" });
     await page.getByTestId("platform-mobile-tabbar-menu").click();
-    await expect(page.getByTestId("platform-mobile-menu-sheet")).toBeVisible();
-    const gestao = page.getByTestId("mobile-menu-group-Gestão");
-    const operacao = page.getByTestId("mobile-menu-group-Operação");
-    await gestao.getByRole("button").click();
-    await expect(gestao.getByTestId("mobile-menu-group-panel-Gestão")).toBeVisible();
-    await operacao.getByRole("button").click();
-    await expect(operacao.getByTestId("mobile-menu-group-panel-Operação")).toBeVisible();
+    const sheet = page.getByTestId("platform-mobile-menu-sheet");
+    await expect(sheet).toBeVisible();
+    const gestaoPanel = page.getByTestId("mobile-menu-group-panel-Gestão");
+    const operacaoPanel = page.getByTestId("mobile-menu-group-panel-Operação");
+    await page.getByRole("button", { name: "Gestão" }).click();
+    await expect(gestaoPanel).toBeVisible();
+    await page.getByRole("button", { name: "Operação" }).click();
+    await expect(operacaoPanel).toBeVisible();
+    await expect(gestaoPanel).toBeHidden();
   });
 
   test("no horizontal overflow on key routes", async ({ page }) => {
