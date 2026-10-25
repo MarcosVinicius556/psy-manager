@@ -13,6 +13,8 @@ test.describe("Modelos de e-mail", () => {
           connectedAddress: "prof@test.com",
           connectedAt: new Date().toISOString(),
           available: true,
+          oauthAvailable: false,
+          smtpAvailable: true,
         }),
       });
     });
@@ -37,7 +39,8 @@ test.describe("Modelos de e-mail", () => {
     await page.goto("/admin/operacional/email");
     await expect(page.getByRole("heading", { name: "Modelos de e-mail" })).toBeVisible();
     await page.goto("/admin/configuracoes");
-    await expect(page.getByRole("heading", { name: "E-mail" })).toBeVisible();
+    await expect(page.getByTestId("integration-email")).toBeVisible();
+    await expect(page.getByText("Integrações", { exact: true })).toBeVisible();
     await expect(page.getByText("prof@test.com")).toBeVisible();
   });
 });

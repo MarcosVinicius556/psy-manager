@@ -5,15 +5,20 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { authorizedHeaders } from "@/lib/admin/api-auth";
+import { INTEGRATION_UNAVAILABLE_USER_MESSAGE } from "@/lib/integrations/user-messages";
 import type { EmailIntegrationPublic } from "@/lib/email-integration/types";
-import { Card, Field, fieldClass } from "./ui";
+import { Field, fieldClass } from "./ui";
 
 async function authFetch(path: string, init?: RequestInit) {
   const headers = await authorizedHeaders(init?.headers);
   return fetch(path, { ...init, headers });
 }
 
-export default function EmailIntegration() {
+type Props = {
+  embedded?: boolean;
+};
+
+export default function EmailIntegration({ embedded = false }: Props) {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<EmailIntegrationPublic | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +34,9 @@ export default function EmailIntegration() {
     const response = await authFetch("/api/integrations/email");
     const data = (await response.json()) as EmailIntegrationPublic;
     setStatus(data);
+    if (data.smtpAvailable && !data.oauthAvailable) {
+      setMode("smtp");
+    }
   }, []);
 
   useEffect(() => {
@@ -126,9 +134,11 @@ export default function EmailIntegration() {
   }
 
   const connected = Boolean(status?.provider && status.connectedAddress);
+  const oauthReady = Boolean(status?.oauthAvailable);
+  const smtpReady = Boolean(status?.smtpAvailable);
 
-  return (
-    <Card className="mt-6">
+  const inner = (
+    <section data-testid="integration-email">
       <h2 className="text-2xl font-medium text-teal">E-mail</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         Opcional: envie confirmações, contratos e recibos pela sua conta Gmail. Os dados de acesso ficam criptografados no servidor.
@@ -136,9 +146,7 @@ export default function EmailIntegration() {
       {loading ? (
         <p className="mt-4 text-sm text-muted">Carregando...</p>
       ) : !status?.available ? (
-        <p className="mt-3 text-sm text-muted">
-          Integração indisponível. Configure <code className="text-xs">EMAIL_CREDENTIALS_ENC_KEY</code> e o OAuth do Google no servidor.
-        </p>
+        <p className="mt-3 text-sm text-muted">{INTEGRATION_UNAVAILABLE_USER_MESSAGE}</p>
       ) : connected ? (
         <div className="mt-4 grid gap-4">
           <p className="text-sm text-ink">
@@ -163,23 +171,25 @@ export default function EmailIntegration() {
         </div>
       ) : (
         <div className="mt-4 grid gap-4">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={mode === "oauth" ? "btn-primary" : "btn-chip"}
-              onClick={() => setMode("oauth")}
-            >
-              Gmail OAuth
-            </button>
-            <button
-              type="button"
-              className={mode === "smtp" ? "btn-primary" : "btn-chip"}
-              onClick={() => setMode("smtp")}
-            >
-              Senha de app
-            </button>
-          </div>
-          {mode === "oauth" ? (
+          {(oauthReady || smtpReady) && oauthReady && smtpReady ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={mode === "oauth" ? "btn-primary" : "btn-chip"}
+                onClick={() => setMode("oauth")}
+              >
+                Gmail OAuth
+              </button>
+              <button
+                type="button"
+                className={mode === "smtp" ? "btn-primary" : "btn-chip"}
+                onClick={() => setMode("smtp")}
+              >
+                Senha de app
+              </button>
+            </div>
+          ) : null}
+          {mode === "oauth" && oauthReady ? (
             <div className="grid gap-3">
               <p className="text-sm text-muted">
                 Usamos apenas permissão para <strong>enviar e-mails</strong> (<code className="text-xs">gmail.send</code>). O Google Agenda continua com autorização separada.
@@ -188,8 +198,11 @@ export default function EmailIntegration() {
                 {connecting ? "Abrindo Google..." : "Conectar Gmail"}
               </button>
             </div>
-          ) : (
+          ) : smtpReady ? (
             <form onSubmit={saveSmtp} className="grid max-w-md gap-3">
+              {!oauthReady ? (
+                <p className="text-sm text-muted">Conecte com senha de app do Gmail enquanto o OAuth não estiver disponível neste ambiente.</p>
+              ) : null}
               <p className="text-sm text-muted">
                 Crie uma senha de app no Google (exige verificação em duas etapas):{" "}
                 <a
@@ -227,9 +240,19 @@ export default function EmailIntegration() {
                 {savingSmtp ? "Salvando..." : "Salvar SMTP"}
               </button>
             </form>
+          ) : (
+            <p className="text-sm text-muted">{INTEGRATION_UNAVAILABLE_USER_MESSAGE}</p>
           )}
         </div>
       )}
-    </Card>
+    </section>
+  );
+
+  if (embedded) return inner;
+
+  return (
+    <div className="mt-6 rounded-md border border-[var(--color-border-subtle)] bg-white p-6">
+      {inner}
+    </div>
   );
 }

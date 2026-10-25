@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireEmailUser } from "@/lib/email-integration/api-auth";
+import { requireEmailSmtpUser } from "@/lib/email-integration/api-auth";
 import { encryptCredential, markConnected, readEmailIntegration } from "@/lib/email-integration/store";
 import { isValidRecipientEmail, normalizeRecipientEmail } from "@/lib/email-integration/validate-email";
 
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 const APP_PASSWORD_RE = /^[a-z0-9]{16}$/i;
 
 export async function POST(request: Request) {
-  const auth = await requireEmailUser(request);
+  const auth = await requireEmailSmtpUser(request);
   if ("error" in auth) return auth.error;
 
   const body = (await request.json()) as { address?: string; appPassword?: string };
