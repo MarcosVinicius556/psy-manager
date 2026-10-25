@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { animate } from "motion/react";
 import { motion } from "motion/react";
 import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 
@@ -20,7 +22,26 @@ export function RingProgress({
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const ratio = Math.min(1, Math.max(0, value / max));
-  const offset = circumference * (1 - ratio);
+  const targetOffset = circumference * (1 - ratio);
+  const [strokeDashoffset, setStrokeDashoffset] = useState(reduced ? targetOffset : circumference);
+  const animatedOnce = useRef(false);
+
+  useEffect(() => {
+    if (reduced) {
+      setStrokeDashoffset(targetOffset);
+      return;
+    }
+    if (!animatedOnce.current) {
+      animatedOnce.current = true;
+      const controls = animate(circumference, targetOffset, {
+        duration: 0.75,
+        ease: [0.22, 1, 0.36, 1],
+        onUpdate: (latest) => setStrokeDashoffset(latest),
+      });
+      return () => controls.stop();
+    }
+    setStrokeDashoffset(targetOffset);
+  }, [circumference, reduced, targetOffset]);
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={className} aria-hidden>
@@ -33,7 +54,7 @@ export function RingProgress({
         strokeWidth={stroke}
         className="text-sky-soft"
       />
-      <motion.circle
+      <circle
         cx={size / 2}
         cy={size / 2}
         r={radius}
@@ -44,9 +65,7 @@ export function RingProgress({
         className="text-teal"
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         strokeDasharray={circumference}
-        initial={reduced ? false : { strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: reduced ? 0 : 0.75, ease: [0.22, 1, 0.36, 1] }}
+        style={{ strokeDashoffset }}
       />
     </svg>
   );

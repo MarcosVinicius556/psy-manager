@@ -25,7 +25,7 @@ import {
   remainingAmount,
   unpaidPatients,
 } from "@/lib/admin/finance";
-import { addMonths, formatDate, formatMoney, labelAppointmentPlace, labelAppointmentStatus, todayISO } from "@/lib/admin/format";
+import { addMonths, formatDate, formatMoney, isPatientActive, labelAppointmentPlace, labelAppointmentStatus, todayISO } from "@/lib/admin/format";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
 
 function useClinicPayments() {
@@ -99,16 +99,23 @@ function ReceivedWidget() {
 }
 
 function ActivePatientsWidget() {
-  const { patients } = useClinic();
-  const activeCount = patients.filter((patient) => patient.status === "ativo").length;
+  const { patients, loading } = useClinic();
+  const activeCount = patients.filter((patient) => isPatientActive(patient)).length;
+  const showMetrics = !loading;
   return (
-    <Card>
+    <Card data-testid="dashboard-active-patients">
       <div className="flex items-start justify-between gap-3">
         <CardTitle>Pacientes ativos</CardTitle>
-        <RingProgress value={activeCount} max={Math.max(activeCount, 20, 1)} size={52} />
+        {showMetrics ? <RingProgress value={activeCount} max={Math.max(activeCount, 20, 1)} size={52} /> : null}
       </div>
-      <CardMetric className="mt-3">
-        <AnimatedMetric value={activeCount} />
+      <CardMetric className="mt-3" aria-busy={!showMetrics}>
+        {showMetrics ? (
+          <span data-testid="dashboard-active-patients-count">
+            <AnimatedMetric value={activeCount} />
+          </span>
+        ) : (
+          <span className="inline-block min-w-[1ch] text-transparent" aria-hidden>0</span>
+        )}
       </CardMetric>
     </Card>
   );
