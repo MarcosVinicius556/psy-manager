@@ -28,10 +28,18 @@ export async function POST(req: Request) {
     }
     const privateDelivery = isPrivateUploadKind(kind);
 
+    const ticketId = searchParams.get("ticketId") || undefined;
+    if (kind === "support-ticket" && ticketId) {
+      const { authorizeSupportTicketMedia } = await import("@/lib/support/media-access");
+      if (!(await authorizeSupportTicketMedia(ticketId, auth.uid))) {
+        return NextResponse.json({ error: "Sem permissão para este chamado." }, { status: 403 });
+      }
+    }
     const folderResult = await resolveUploadFolder(kind, auth.uid, {
       patientId: searchParams.get("patientId") || undefined,
       appointmentId: searchParams.get("appointmentId") || undefined,
       paymentId: searchParams.get("paymentId") || undefined,
+      ticketId,
     });
     if ("error" in folderResult) {
       return NextResponse.json({ error: folderResult.error }, { status: folderResult.status });

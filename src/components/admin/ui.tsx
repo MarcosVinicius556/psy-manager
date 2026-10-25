@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import StaggerChildren from "@/components/admin/motion/StaggerChildren";
 import { AdminAccountNotices } from "@/components/admin/AccountStatus";
 import { useOptionalAdminPageMeta, useSetAdminPageMeta } from "@/lib/admin/page-meta-context";
@@ -67,6 +67,18 @@ export function WidgetSectionFooter({ children }: { children: ReactNode }) {
 
 export const fieldClass =
   "w-full min-h-12 rounded-md border border-[#e2e8ea] bg-white px-4 py-3 font-sans text-base text-ink outline-none transition-colors focus:border-teal";
+
+export function PrimaryButton({
+  children,
+  className = "",
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
+  return (
+    <button type="button" className={`btn-primary radius-control px-4 py-2.5 text-sm font-medium disabled:opacity-60 ${className}`} {...props}>
+      {children}
+    </button>
+  );
+}
 
 export function Field({
   label,

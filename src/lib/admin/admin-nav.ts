@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import {
   HiOutlineBell,
   HiOutlineBriefcase,
+  HiOutlineChatAlt2,
   HiOutlineCalendar,
   HiOutlineCash,
   HiOutlineChartBar,
@@ -102,6 +103,7 @@ const baseAdminNav: AdminNavEntry[] = [
       { href: "/admin/operacional/prontuario", label: "Modelos de prontuário", icon: HiOutlineDocumentText },
       { href: "/admin/operacional/consentimento", label: "Termo de consentimento", icon: HiOutlineShieldCheck },
       { href: "/admin/operacional/relatorios", label: "Gerador de relatórios", icon: HiOutlineChartBar },
+      { href: "/admin/suporte", label: "Suporte", icon: HiOutlineChatAlt2 },
     ],
   },
   buildLegalNavGroup(),
@@ -135,6 +137,7 @@ const routeTitles: { prefix: string; title: string }[] = [
   { prefix: "/admin/pacotes", title: "Pacotes" },
   { prefix: "/admin/usuarios", title: "Usuários" },
   { prefix: "/admin/operacional", title: "Operacional" },
+  { prefix: "/admin/suporte", title: "Suporte" },
   { prefix: "/admin/atendimentos", title: "Atendimento" },
   { prefix: "/admin/sala", title: "Sala" },
 ];

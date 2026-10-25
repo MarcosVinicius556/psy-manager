@@ -53,7 +53,7 @@ export type AccountRecord = {
   email: string;
   nome: string;
   clinicName: string;
-  role: "super_admin" | "psicologo";
+  role: "super_admin" | "support" | "psicologo";
   accountStatus: AccountStatus | "";
   subscriptionStatus: SubscriptionStatus | "";
   billingAccess: BillingAccess | "";

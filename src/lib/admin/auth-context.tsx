@@ -23,7 +23,7 @@ import { getFirebaseAuth, isFirebaseConfigured } from "./firebase";
 import { getUserRole, upsertPsychologist } from "./collections";
 import { googleProfileFromUser, prefersGoogleRedirect, rememberGoogleSignInRoute } from "./google-auth-flow";
 
-export type UserRole = "super_admin" | "psicologo";
+export type UserRole = "super_admin" | "support" | "psicologo";
 
 type AuthContextValue = {
   user: User | null;

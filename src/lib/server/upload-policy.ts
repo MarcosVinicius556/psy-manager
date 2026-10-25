@@ -13,7 +13,8 @@ export type UploadKind =
   | "appointment-atividade"
   | "payment-receipt"
   | "contract-template"
-  | "report";
+  | "report"
+  | "support-ticket";
 
 export type UploadAccept = "foto" | "documento" | "imagem";
 
@@ -28,6 +29,7 @@ export function parseUploadKind(value: string | null): UploadKind | null {
     "payment-receipt",
     "contract-template",
     "report",
+    "support-ticket",
   ];
   return kinds.includes(value as UploadKind) ? (value as UploadKind) : null;
 }
@@ -41,7 +43,7 @@ export function parseUploadAccept(searchParams: URLSearchParams): UploadAccept {
 export async function resolveUploadFolder(
   kind: UploadKind,
   uid: string,
-  ids: { patientId?: string; appointmentId?: string; paymentId?: string }
+  ids: { patientId?: string; appointmentId?: string; paymentId?: string; ticketId?: string }
 ): Promise<{ folder: string } | { error: string; status: number }> {
   switch (kind) {
     case "avatar":
@@ -80,6 +82,11 @@ export async function resolveUploadFolder(
       return { folder: `clinic/${uid}/contracts/templates` };
     case "report":
       return { folder: `clinic/${uid}/reports` };
+    case "support-ticket": {
+      const ticketId = ids.ticketId?.trim() || "";
+      if (!ticketId) return { error: "Chamado inválido.", status: 400 };
+      return { folder: `support/tickets/${ticketId}` };
+    }
     default:
       return { error: "Tipo de envio inválido.", status: 400 };
   }
