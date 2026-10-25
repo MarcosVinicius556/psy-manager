@@ -75,9 +75,35 @@ test.describe("mobile bottom navigation", () => {
     const sheet = page.getByTestId("admin-mobile-menu-sheet");
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole("link", { name: "Configurações" })).toBeVisible();
+    await page.getByTestId("mobile-menu-group-Legal").getByRole("button").click();
     await expect(sheet.getByRole("button", { name: "Preferências de cookies" })).toBeVisible();
     await page.getByRole("button", { name: "Fechar menu", exact: true }).click();
     await expect(sheet).toBeHidden();
+  });
+
+  test("menu sheet items are left-aligned and accordion keeps one group open", async ({ page }, testInfo) => {
+    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 1024, "mobile only");
+    await page.goto("/admin", { waitUntil: "networkidle" });
+    await page.getByTestId("mobile-tabbar-menu").click();
+    const sheet = page.getByTestId("admin-mobile-menu-sheet");
+    const scroll = page.getByTestId("mobile-menu-scroll");
+    const scrollBox = await scroll.boundingBox();
+    const item = sheet.getByTestId("mobile-menu-item").first();
+    await expect(item).toBeVisible();
+    const itemBox = await item.boundingBox();
+    expect(scrollBox).not.toBeNull();
+    expect(itemBox).not.toBeNull();
+    if (scrollBox && itemBox) {
+      expect(Math.abs(itemBox.x - scrollBox.x)).toBeLessThanOrEqual(4);
+    }
+
+    const clinicaPanel = page.getByTestId("mobile-menu-group-panel-Clínica");
+    const financeiroPanel = page.getByTestId("mobile-menu-group-panel-Financeiro");
+    await page.getByTestId("mobile-menu-group-Clínica").getByRole("button").click();
+    await expect(clinicaPanel).toBeVisible();
+    await page.getByTestId("mobile-menu-group-Financeiro").getByRole("button").click();
+    await expect(financeiroPanel).toBeVisible();
+    await expect(clinicaPanel).toBeHidden();
   });
 
   test("dashboard active patients count is stable after refresh", async ({ page }, testInfo) => {
@@ -115,7 +141,9 @@ test.describe("mobile bottom navigation", () => {
       await page.goto("/admin", { waitUntil: "networkidle" });
       await page.getByTestId("mobile-tabbar-menu").click();
       await expect(page.getByTestId("admin-mobile-menu-sheet")).toBeVisible();
+      await page.getByTestId("mobile-menu-group-Financeiro").getByRole("button").click();
       await page.screenshot({ path: path.join(dir, "menu-sheet-412.png"), fullPage: false });
+      await page.screenshot({ path: path.join(artifactRoot, "mobile-menu-sheet-after-412.png"), fullPage: false });
       await page.screenshot({ path: path.join(artifactRoot, "mobile-bottom-nav-after-412.png"), fullPage: false });
     }
 

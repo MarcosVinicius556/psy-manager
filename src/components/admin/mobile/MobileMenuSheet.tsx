@@ -1,73 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, type ComponentType } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, type PanInfo } from "motion/react";
-import { HiOutlineLogout, HiOutlineX } from "react-icons/hi";
+import { HiOutlineChevronDown, HiOutlineLogout, HiOutlineX } from "react-icons/hi";
 import { springNav } from "@/lib/motion/presets";
 import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
+import {
+  adminGroupForPath,
+  isAdminNavCurrent,
+  isAdminNavGroup,
+  isAdminNavLinkChild,
+  menuSheetShowsLink,
+  type AdminNavAction,
+  type AdminNavEntry,
+  type AdminNavGroup,
+  type AdminNavLink,
+  visibleMenuGroupChildren,
+} from "@/lib/admin/admin-nav";
 
-export type MobileMenuIcon = ComponentType<{ size?: number; className?: string; "aria-hidden"?: boolean }>;
-
-export type MobileMenuLink = {
-  href: string;
-  label: string;
-  icon: MobileMenuIcon;
-};
-
-export type MobileMenuAction = {
-  label: string;
-  icon: MobileMenuIcon;
-  action: "cookie-preferences";
-};
-
-export type MobileMenuGroup = {
-  label: string;
-  icon: MobileMenuIcon;
-  children: (MobileMenuLink | MobileMenuAction)[];
-};
-
-export type MobileMenuEntry = MobileMenuLink | MobileMenuGroup;
-
-const TAB_BAR_HREFS = new Set(["/admin", "/admin/agenda", "/admin/pacientes"]);
-
-function isGroup(entry: MobileMenuEntry): entry is MobileMenuGroup {
-  return "children" in entry;
-}
-
-function isLink(child: MobileMenuLink | MobileMenuAction): child is MobileMenuLink {
-  return "href" in child;
-}
-
-function isCurrent(href: string, pathname: string) {
-  return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
-}
-
-function sheetSections(menu: MobileMenuEntry[]) {
-  const sections: { title: string; items: (MobileMenuLink | MobileMenuAction)[] }[] = [];
-
-  for (const entry of menu) {
-    if (isGroup(entry)) {
-      const children = entry.children.filter((child) => isLink(child) && !TAB_BAR_HREFS.has(child.href));
-      if (children.length) sections.push({ title: entry.label, items: children });
-      continue;
-    }
-    if (!TAB_BAR_HREFS.has(entry.href)) {
-      sections.push({ title: "Geral", items: [entry] });
-    }
-  }
-
-  const merged: { title: string; items: (MobileMenuLink | MobileMenuAction)[] }[] = [];
-  for (const section of sections) {
-    const last = merged[merged.length - 1];
-    if (last && last.title === section.title) {
-      last.items.push(...section.items);
-    } else {
-      merged.push({ ...section, items: [...section.items] });
-    }
-  }
-  return merged;
-}
+export type MobileMenuEntry = AdminNavEntry;
+export type MobileMenuLink = AdminNavLink;
+export type MobileMenuAction = AdminNavAction;
+export type MobileMenuGroup = AdminNavGroup;
+export type { AdminNavIcon as MobileMenuIcon } from "@/lib/admin/admin-nav";
 
 function focusableIn(container: HTMLElement) {
   return Array.from(
@@ -75,6 +31,138 @@ function focusableIn(container: HTMLElement) {
       'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
     )
   ).filter((el) => !el.hasAttribute("disabled") && el.tabIndex !== -1);
+}
+
+function rowClass(current = false) {
+  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-medium ${
+    current ? "border-teal/25 bg-sky-soft text-teal" : "border-transparent text-ink hover:bg-sky-soft/80"
+  }`;
+}
+
+function iconShell(current = false) {
+  return `grid h-9 w-9 shrink-0 place-items-center rounded-full ${current ? "bg-teal text-white" : "bg-sky-soft text-teal"}`;
+}
+
+function MenuLinkRow({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: AdminNavLink;
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const Icon = item.icon;
+  const current = isAdminNavCurrent(item.href, pathname);
+  return (
+    <Link
+      href={item.href}
+      data-testid="mobile-menu-item"
+      onClick={onNavigate}
+      aria-current={current ? "page" : undefined}
+      className={rowClass(current)}
+    >
+      <span className={iconShell(current)}>
+        <Icon size={18} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+    </Link>
+  );
+}
+
+function MenuActionRow({
+  item,
+  onActivate,
+}: {
+  item: AdminNavAction;
+  onActivate: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button type="button" data-testid="mobile-menu-item" className={rowClass()} onClick={onActivate}>
+      <span className={iconShell()}>
+        <Icon size={18} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+    </button>
+  );
+}
+
+function MenuGroupAccordion({
+  group,
+  pathname,
+  open,
+  onToggle,
+  onNavigate,
+  onCookiePreferences,
+}: {
+  group: AdminNavGroup;
+  pathname: string;
+  open: boolean;
+  onToggle: () => void;
+  onNavigate: () => void;
+  onCookiePreferences: () => void;
+}) {
+  const reduced = useReducedMotion();
+  const Icon = group.icon;
+  const children = visibleMenuGroupChildren(group);
+  if (children.length === 0) return null;
+
+  const groupActive = group.children.some((child) => isAdminNavLinkChild(child) && isAdminNavCurrent(child.href, pathname));
+  const panelId = `mobile-menu-group-panel-${group.label}`;
+
+  return (
+    <div className="w-full min-w-0" data-testid={`mobile-menu-group-${group.label}`}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        className={`motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${
+          groupActive ? "text-teal" : "text-ink"
+        }`}
+        onClick={onToggle}
+      >
+        <span className={iconShell(groupActive && !open)}>
+          <Icon size={18} aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1 truncate">{group.label}</span>
+        <HiOutlineChevronDown
+          size={18}
+          className={`shrink-0 text-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      <motion.div
+        id={panelId}
+        data-testid={panelId}
+        initial={false}
+        animate={{
+          height: open ? "auto" : 0,
+          opacity: open ? 1 : 0,
+        }}
+        transition={reduced ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="overflow-hidden"
+      >
+        <ul className="flex flex-col gap-1 pb-1 pl-3 pt-1">
+          {children.map((child) => (
+            <li key={isAdminNavLinkChild(child) ? child.href : child.label} className="w-full min-w-0">
+              {isAdminNavLinkChild(child) ? (
+                <MenuLinkRow item={child} pathname={pathname} onNavigate={onNavigate} />
+              ) : (
+                <MenuActionRow
+                  item={child}
+                  onActivate={() => {
+                    onNavigate();
+                    onCookiePreferences();
+                  }}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      </motion.div>
+    </div>
+  );
 }
 
 export default function MobileMenuSheet({
@@ -87,7 +175,7 @@ export default function MobileMenuSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  menu: MobileMenuEntry[];
+  menu: AdminNavEntry[];
   pathname: string;
   onLogout: () => void | Promise<void>;
   onCookiePreferences: () => void;
@@ -96,10 +184,15 @@ export default function MobileMenuSheet({
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const dragY = useMotionValue(0);
   const backdropOpacity = useTransform(dragY, [0, 220], [1, 0.25]);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
-  const sections = sheetSections(menu);
+  useEffect(() => {
+    if (!open) return;
+    setOpenGroup(adminGroupForPath(menu, pathname));
+  }, [menu, open, pathname]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -143,6 +236,10 @@ export default function MobileMenuSheet({
     else dragY.set(0);
   }
 
+  function toggleGroup(label: string) {
+    setOpenGroup((current) => (current === label ? null : label));
+  }
+
   if (!open) return null;
 
   return (
@@ -163,7 +260,7 @@ export default function MobileMenuSheet({
         aria-labelledby={titleId}
         id="admin-mobile-menu-sheet"
         data-testid="admin-mobile-menu-sheet"
-        className="absolute inset-x-0 bottom-0 flex max-h-[min(82dvh,640px)] flex-col rounded-t-[1.35rem] border border-[#e7eee8] bg-white shadow-[0_-12px_48px_rgba(36,48,40,0.16)]"
+        className="absolute inset-x-0 bottom-0 flex max-h-[min(82dvh,640px)] flex-col overflow-x-hidden rounded-t-[1.35rem] border border-[#e7eee8] bg-white shadow-[0_-12px_48px_rgba(36,48,40,0.16)]"
         style={{
           paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
           y: reduced ? 0 : dragY,
@@ -192,67 +289,45 @@ export default function MobileMenuSheet({
             </button>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2">
-          {sections.map((section) => (
-            <section key={section.title} className="mb-4">
-              <p className="mb-2 px-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{section.title}</p>
-              <ul className="grid gap-1 sm:grid-cols-2">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  if (!isLink(item)) {
-                    return (
-                      <li key={item.label} className="sm:col-span-1">
-                        <button
-                          type="button"
-                          className="motion-press flex min-h-11 w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left text-sm font-medium text-ink hover:bg-sky-soft/80"
-                          onClick={() => {
-                            onClose();
-                            onCookiePreferences();
-                          }}
-                        >
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-soft text-teal">
-                            <Icon size={18} aria-hidden />
-                          </span>
-                          {item.label}
-                        </button>
-                      </li>
-                    );
-                  }
-                  const current = isCurrent(item.href, pathname);
-                  return (
-                    <li key={item.href} className="sm:col-span-1">
-                      <Link
-                        href={item.href}
-                        onClick={onClose}
-                        aria-current={current ? "page" : undefined}
-                        className={`motion-press flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium ${
-                          current ? "border-teal/25 bg-sky-soft text-teal" : "border-transparent text-ink hover:bg-sky-soft/80"
-                        }`}
-                      >
-                        <span
-                          className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${current ? "bg-teal text-white" : "bg-sky-soft text-teal"}`}
-                        >
-                          <Icon size={18} aria-hidden />
-                        </span>
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+        <div
+          ref={scrollRef}
+          data-testid="mobile-menu-scroll"
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pb-2"
+        >
+          <div className="flex w-full min-w-0 flex-col gap-1">
+            {menu.map((entry) => {
+              if (isAdminNavGroup(entry)) {
+                const visible = visibleMenuGroupChildren(entry);
+                if (visible.length === 0) return null;
+                return (
+                  <MenuGroupAccordion
+                    key={entry.label}
+                    group={entry}
+                    pathname={pathname}
+                    open={openGroup === entry.label}
+                    onToggle={() => toggleGroup(entry.label)}
+                    onNavigate={onClose}
+                    onCookiePreferences={onCookiePreferences}
+                  />
+                );
+              }
+              if (!menuSheetShowsLink(entry)) return null;
+              return (
+                <MenuLinkRow key={entry.href} item={entry} pathname={pathname} onNavigate={onClose} />
+              );
+            })}
+          </div>
         </div>
         <div className="shrink-0 border-t border-[#eef2ee] px-3 pt-2">
           <button
             type="button"
-            className="motion-press flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-accent"
+            className="motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-accent"
             onClick={async () => {
               onClose();
               await onLogout();
             }}
           >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[#f6e6df] text-accent">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f6e6df] text-accent">
               <HiOutlineLogout size={18} aria-hidden />
             </span>
             Sair

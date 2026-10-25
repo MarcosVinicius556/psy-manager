@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutGroup } from "motion/react";
-import { HiOutlineBell, HiOutlineBriefcase, HiOutlineCalendar, HiOutlineCash, HiOutlineChartBar, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineCog, HiOutlineCreditCard, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineHome, HiOutlineLogout, HiOutlineOfficeBuilding, HiOutlineShieldCheck, HiOutlineUserAdd, HiOutlineUsers } from "react-icons/hi";
+import { HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineLogout } from "react-icons/hi";
 import BrandLogo from "@/components/BrandLogo";
 import { AdminPageMotion } from "@/components/admin/motion/AdminPageMotion";
 import { SidebarActivePill } from "@/components/admin/motion/NavPill";
@@ -16,126 +16,41 @@ import Avatar from "./Avatar";
 import { isExpenseAlert } from "@/lib/admin/expenses";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
-import { HiOutlineBuildingOffice } from "react-icons/hi2";
-import { LEGAL_FOOTER_LINKS } from "@/lib/legal/config";
+import {
+  adminGroupForPath,
+  adminTitleForPath,
+  buildAdminMenu,
+  isAdminNavCurrent,
+  isAdminNavGroup,
+  isAdminNavLinkChild,
+  type AdminNavEntry,
+  type AdminNavGroup,
+  type AdminNavLink,
+} from "@/lib/admin/admin-nav";
 import { useCookieConsent } from "@/components/legal/CookieConsentProvider";
 
-type NavIcon = typeof HiOutlineHome;
+type NavLinkItem = AdminNavLink;
+type NavGroupItem = AdminNavGroup;
+type NavEntry = AdminNavEntry;
 
-type NavLinkItem = {
-  href: string;
-  label: string;
-  icon: NavIcon;
-};
-
-type NavActionItem = {
-  label: string;
-  icon: NavIcon;
-  action: "cookie-preferences";
-};
-
-type NavGroupChild = NavLinkItem | NavActionItem;
-
-type NavGroupItem = {
-  label: string;
-  icon: NavIcon;
-  children: NavGroupChild[];
-};
-
-type NavEntry = NavLinkItem | NavGroupItem;
-
-function isNavLinkChild(child: NavGroupChild): child is NavLinkItem {
-  return "href" in child;
+function isNavLinkChild(child: NavGroupItem["children"][number]) {
+  return isAdminNavLinkChild(child);
 }
-
-function buildLegalNavGroup(): NavGroupItem {
-  return {
-    label: "Legal",
-    icon: HiOutlineShieldCheck,
-    children: [
-      ...LEGAL_FOOTER_LINKS.map((link) => ({
-        href: link.href,
-        label: link.label,
-        icon: HiOutlineDocumentText,
-      })),
-      { label: "Preferências de cookies", icon: HiOutlineCog, action: "cookie-preferences" },
-    ],
-  };
-}
-
-const items: NavEntry[] = [
-  { href: "/admin", label: "Início", icon: HiOutlineHome },
-  {
-    label: "Clínica",
-    icon: HiOutlineBuildingOffice,
-    children: [
-      { href: "/admin/agenda", label: "Agenda", icon: HiOutlineCalendar },
-      { href: "/admin/pacientes", label: "Pacientes", icon: HiOutlineUsers },
-      { href: "/admin/locais", label: "Locais", icon: HiOutlineOfficeBuilding },
-      { href: "/admin/pacotes", label: "Pacotes", icon: HiOutlineClipboardList },
-    ],
-  },
-  {
-    label: "Financeiro",
-    icon: HiOutlineCash,
-    children: [
-      { href: "/admin/financeiro", label: "Contas a receber", icon: HiOutlineCash },
-      { href: "/admin/despesas", label: "Contas a pagar", icon: HiOutlineCurrencyDollar },
-    ],
-  },
-  {
-    label: "Operacional",
-    icon: HiOutlineBriefcase,
-    children: [
-      { href: "/admin/operacional/contrato", label: "Modelo de contrato", icon: HiOutlineDocumentText },
-      { href: "/admin/operacional/prontuario", label: "Modelos de prontuário", icon: HiOutlineDocumentText },
-      { href: "/admin/operacional/consentimento", label: "Termo de consentimento", icon: HiOutlineShieldCheck },
-      { href: "/admin/operacional/relatorios", label: "Gerador de relatórios", icon: HiOutlineChartBar },
-    ],
-  },
-  buildLegalNavGroup(),
-  { href: "/admin/assinatura", label: "Assinatura", icon: HiOutlineCreditCard },
-  { href: "/admin/notificacoes", label: "Notificações", icon: HiOutlineBell },
-  { href: "/admin/configuracoes", label: "Configurações", icon: HiOutlineCog },
-];
 
 function isGroup(entry: NavEntry): entry is NavGroupItem {
-  return "children" in entry;
+  return isAdminNavGroup(entry);
 }
 
 function isCurrent(href: string, pathname: string) {
-  return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+  return isAdminNavCurrent(href, pathname);
 }
 
-const routeTitles: { prefix: string; title: string }[] = [
-  { prefix: "/admin/agenda", title: "Agenda" },
-  { prefix: "/admin/pacientes", title: "Pacientes" },
-  { prefix: "/admin/financeiro", title: "Financeiro" },
-  { prefix: "/admin/despesas", title: "Contas a pagar" },
-  { prefix: "/admin/configuracoes", title: "Configurações" },
-  { prefix: "/admin/notificacoes", title: "Notificações" },
-  { prefix: "/admin/assinatura", title: "Assinatura" },
-  { prefix: "/admin/locais", title: "Locais" },
-  { prefix: "/admin/pacotes", title: "Pacotes" },
-  { prefix: "/admin/usuarios", title: "Usuários" },
-  { prefix: "/admin/operacional", title: "Operacional" },
-  { prefix: "/admin/atendimentos", title: "Atendimento" },
-  { prefix: "/admin/sala", title: "Sala" },
-];
-
 function titleForPath(pathname: string) {
-  if (pathname === "/admin") return "Início";
-  const match = routeTitles.find((item) => pathname.startsWith(item.prefix));
-  return match?.title ?? "Painel";
+  return adminTitleForPath(pathname);
 }
 
 function groupForPath(menu: NavEntry[], pathname: string) {
-  const match = menu.find(
-    (entry) =>
-      isGroup(entry) &&
-      entry.children.some((child) => isNavLinkChild(child) && isCurrent(child.href, pathname))
-  );
-  return match && isGroup(match) ? match.label : null;
+  return adminGroupForPath(menu, pathname);
 }
 
 function navShellClass(collapsed: boolean, nested = false) {
@@ -372,16 +287,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user, role } = useAuth();
-  const menu: NavEntry[] = [
-    ...items.slice(0, -1),
-    ...(role === "super_admin"
-      ? [
-          { href: "/admin/usuarios", label: "Usuários", icon: HiOutlineUserAdd } satisfies NavLinkItem,
-          { href: "/plataforma", label: "Plataforma", icon: HiOutlineShieldCheck } satisfies NavLinkItem,
-        ]
-      : []),
-    items[items.length - 1],
-  ];
+  const menu = buildAdminMenu(role);
   const { notifications, members, locationInvites, expenses } = useClinic();
   const me = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const profileName = me?.nome || user?.displayName || user?.email || "Conta";
