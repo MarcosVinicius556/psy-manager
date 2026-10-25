@@ -84,7 +84,7 @@ export default function Drawer({
           </h2>
           <button
             type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-[#d7e0d8] bg-white text-teal transition-colors duration-300 hover:border-teal hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal"
+            className="btn-icon shrink-0"
             onClick={onClose}
             aria-label="Fechar"
             data-testid="drawer-close"

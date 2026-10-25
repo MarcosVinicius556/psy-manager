@@ -21,7 +21,7 @@ export default function MobileHeader({
         {onOpenMenu ? (
           <button
             type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-[#e2e8ea] text-teal"
+            className="btn-icon shrink-0"
             aria-label="Abrir menu"
             onClick={onOpenMenu}
           >

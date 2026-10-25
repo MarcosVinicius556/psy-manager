@@ -24,7 +24,7 @@ function NavButton({ label, direction, onClick }: { label: string; direction: "p
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-[#e2e8ea] text-teal hover:bg-sky-soft"
+      className="btn-icon"
     >
       <Icon size={18} />
     </button>

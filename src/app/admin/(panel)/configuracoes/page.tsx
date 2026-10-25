@@ -18,9 +18,6 @@ import GoogleCalendarIntegration from "@/components/admin/GoogleCalendarIntegrat
 import EmailIntegration from "@/components/admin/EmailIntegration";
 import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
 
-const dangerButton =
-  "inline-flex cursor-pointer items-center justify-center rounded-md border border-[#a01f1f] bg-[#a01f1f] px-5 py-3 text-sm font-semibold text-white transition-colors duration-300 hover:bg-transparent hover:text-[#a01f1f] disabled:cursor-not-allowed disabled:opacity-60";
-
 export default function SettingsPage() {
   const { user, sendPasswordReset } = useAuth();
   const { members, loading, saveOwnProfile } = useClinic();
@@ -246,7 +243,7 @@ export default function SettingsPage() {
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onPhoto} />
               <button
                 type="button"
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-white bg-white px-3 py-1.5 text-xs font-semibold text-teal transition-colors duration-300 hover:bg-transparent hover:text-white disabled:opacity-60"
+                className="btn-on-teal absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap"
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
               >
@@ -421,7 +418,7 @@ export default function SettingsPage() {
           <p className="mt-2 text-sm leading-relaxed text-muted">
             A senha só é alterada depois da sua confirmação. Se você não lembrar da atual, dá para receber um link no e-mail de acesso.
           </p>
-          <button type="button" className={`${dangerButton} mt-5`} onClick={() => setConfirmOpen(true)}>
+          <button type="button" className="btn-danger mt-5 px-5 py-3" onClick={() => setConfirmOpen(true)}>
             Alterar senha
           </button>
         </Card>
@@ -528,11 +525,7 @@ export default function SettingsPage() {
                                     aria-pressed={on}
                                     aria-label={`${day.label} ${time}`}
                                     onClick={() => toggleSlot(key)}
-                                    className={`h-8 w-full rounded-md border transition-colors duration-300 ${
-                                      on
-                                        ? "border-teal bg-teal hover:bg-transparent"
-                                        : "border-[#d7e0d8] bg-white hover:border-teal hover:bg-sky-soft"
-                                    }`}
+                                    className={`btn-slot ${on ? "btn-slot-on" : "btn-slot-off"}`}
                                   />
                                 </td>
                               );
@@ -576,7 +569,7 @@ export default function SettingsPage() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  className={dangerButton}
+                  className="btn-danger px-5 py-3"
                   onClick={() => {
                     setConfirmOpen(false);
                     setPasswordOpen(true);
@@ -637,7 +630,7 @@ export default function SettingsPage() {
             </p>
             <button
               type="button"
-              className="mt-3 inline-flex items-center justify-center rounded-md border border-teal bg-teal px-4 py-2 text-sm font-semibold text-white transition-colors duration-300 hover:bg-transparent hover:text-teal disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-text mt-3 px-4 py-2"
               disabled={sendingReset || !email}
               onClick={onForgot}
             >

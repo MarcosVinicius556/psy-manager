@@ -32,7 +32,7 @@ export default function FloatingActionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`btn-primary fixed right-4 z-20 hidden min-h-11 items-center justify-center font-semibold shadow-[0_12px_32px_rgba(196,122,90,0.45)] transition-[padding,gap,transform] duration-200 active:scale-[0.98] desk:inline-flex ${
+      className={`btn-primary fixed right-4 z-20 hidden min-h-11 items-center justify-center font-semibold shadow-[0_12px_32px_rgba(196,122,90,0.45)] transition-[padding,gap] duration-200 desk:inline-flex ${
         compact ? "gap-0 p-3" : "gap-2 px-5 py-3 text-sm"
       }`}
       style={{ bottom: "calc(6.1rem + env(safe-area-inset-bottom))" }}
