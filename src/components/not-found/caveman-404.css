@@ -1,0 +1,188 @@
+.cave-404-interactive {
+  display: block;
+  width: min(100%, 22rem);
+  margin-inline: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cave-404-interactive--playful {
+  cursor: pointer;
+}
+
+.cave-404-interactive:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 4px;
+  border-radius: var(--radius-surface);
+}
+
+.cave-404-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.cave-404__shadow {
+  transform-origin: center;
+}
+
+.cave-404__lasso-arm {
+  transform-origin: 182px 108px;
+  transform-box: view-box;
+}
+
+.cave-404__figure {
+  transform-origin: 182px 148px;
+  transform-box: view-box;
+}
+
+.cave-404__leg-left,
+.cave-404__leg-right,
+.cave-404__arm-left,
+.cave-404__arm-right {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cave-404-interactive--playful:not(.cave-404-interactive--jump) .cave-404__lasso-arm {
+    animation: cave-404-lasso 2.8s linear infinite;
+  }
+
+  .cave-404-interactive--jump .cave-404__lasso-arm {
+    animation: none;
+  }
+
+  .cave-404-interactive--jump .cave-404__figure {
+    animation: cave-404-yank 1.85s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__arm-left {
+    animation: cave-404-arm-left 1.85s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__arm-right {
+    animation: cave-404-arm-right 1.85s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__leg-left {
+    animation: cave-404-leg-left 1.85s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__leg-right {
+    animation: cave-404-leg-right 1.85s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__shadow {
+    animation: cave-404-shadow 1.85s ease-in-out forwards;
+  }
+}
+
+@keyframes cave-404-lasso {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cave-404-yank {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  10% {
+    transform: translateY(-58px) scale(1, 1);
+  }
+  28% {
+    transform: translateY(-58px) scale(1, 1);
+  }
+  58% {
+    transform: translateY(0) scale(1, 1);
+  }
+  66% {
+    transform: translateY(4px) scale(1.1, 0.78);
+  }
+  78% {
+    transform: translateY(0) scale(1.02, 0.94);
+  }
+  90% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes cave-404-arm-left {
+  0%,
+  100%,
+  88% {
+    transform: rotate(0deg);
+  }
+  10%,
+  58% {
+    transform: rotate(-72deg) translate(-4px, -2px);
+  }
+}
+
+@keyframes cave-404-arm-right {
+  0%,
+  100%,
+  88% {
+    transform: rotate(0deg);
+  }
+  10%,
+  58% {
+    transform: rotate(68deg) translate(4px, -2px);
+  }
+}
+
+@keyframes cave-404-leg-left {
+  0%,
+  100%,
+  88% {
+    transform: rotate(0deg);
+  }
+  10%,
+  58% {
+    transform: rotate(-38deg);
+  }
+}
+
+@keyframes cave-404-leg-right {
+  0%,
+  100%,
+  88% {
+    transform: rotate(0deg);
+  }
+  10%,
+  58% {
+    transform: rotate(42deg);
+  }
+}
+
+@keyframes cave-404-shadow {
+  0%,
+  100%,
+  88% {
+    transform: scaleX(1);
+    opacity: 0.35;
+  }
+  10%,
+  28% {
+    transform: scaleX(0.45);
+    opacity: 0.12;
+  }
+  58% {
+    transform: scaleX(1);
+    opacity: 0.35;
+  }
+  66% {
+    transform: scaleX(1.35);
+    opacity: 0.5;
+  }
+}
