@@ -6,14 +6,17 @@ import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 
 export function SidebarActivePill({ layoutId = "admin-sidebar-pill" }: { layoutId?: string }) {
   const reduced = useReducedMotion();
+  const className =
+    "pointer-events-none absolute inset-0 rounded-[var(--radius-control)] bg-white/22 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]";
   if (reduced) {
-    return <span className="absolute inset-0 rounded-md border border-white bg-white" aria-hidden />;
+    return <span className={className} data-testid="admin-sidebar-pill" aria-hidden />;
   }
   return (
     <motion.span
       layoutId={layoutId}
-      className="absolute inset-0 rounded-md border border-white bg-white"
+      className={className}
       transition={springNav}
+      data-testid="admin-sidebar-pill"
       aria-hidden
     />
   );
