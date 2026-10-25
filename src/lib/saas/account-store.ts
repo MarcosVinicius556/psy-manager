@@ -40,7 +40,8 @@ export function mapAccount(uid: string, data: DocumentData | undefined): Account
     email: text(data.email) || base.email,
     nome: text(data.nome),
     clinicName: text(data.clinicName),
-    role: data.role === "super_admin" ? "super_admin" : "psicologo",
+    role:
+      data.role === "super_admin" ? "super_admin" : data.role === "support" ? "support" : "psicologo",
     accountStatus: accountStatus === "ativa" || accountStatus === "suspensa" || accountStatus === "desativada" ? accountStatus : "",
     subscriptionStatus: subscription,
     billingAccess: billing === "trial" || billing === "integral" || billing === "restrito" || billing === "legado" ? billing : "",

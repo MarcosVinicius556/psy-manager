@@ -10,12 +10,16 @@ export type ParsedClinicAssetPath =
   | { kind: "patient-tcle"; ownerUid: string; patientId: string }
   | { kind: "appointment-clinical"; ownerUid: string; appointmentId: string }
   | { kind: "payment-receipt"; ownerUid: string; paymentId: string }
+  | { kind: "support-ticket"; ticketId: string }
   | { kind: "unsupported" };
 
 /** Interpreta pastas usadas em `resolveUploadFolder` (sem extensão no public_id). */
 export function parseClinicAssetPath(publicId: string): ParsedClinicAssetPath {
   const segments = publicId.split("/").filter(Boolean);
   if (segments[0] === "avatars") return { kind: "unsupported" };
+  if (segments[0] === "support" && segments[1] === "tickets" && segments.length >= 3) {
+    return { kind: "support-ticket", ticketId: segments[2] };
+  }
   if (segments[0] !== "clinic" || segments.length < 3) return { kind: "unsupported" };
   const ownerUid = segments[1];
   const area = segments[2];

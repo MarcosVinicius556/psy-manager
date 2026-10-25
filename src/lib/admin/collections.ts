@@ -962,7 +962,10 @@ export async function upsertPsychologist(uid: string, email: string, extras?: { 
 
 export async function getUserRole(uid: string) {
   const snapshot = await getDoc(doc(getFirebaseDb(), "users", uid));
-  return snapshot.data()?.role === "super_admin" ? "super_admin" : "psicologo";
+  const role = snapshot.data()?.role;
+  if (role === "super_admin") return "super_admin";
+  if (role === "support") return "support";
+  return "psicologo";
 }
 
 export async function provisionPsychologist(input: { uid: string; nome: string; email: string }) {

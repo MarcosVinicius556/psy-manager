@@ -392,4 +392,39 @@ describe("platform and rate limits", () => {
       })
     );
   });
+
+  it("support ticket opener can read own ticket but not others", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "supportTickets", "ticket-a"), {
+        humanId: "CH-000001",
+        openedBy: { uid: ownerUid, name: "Owner", email: "o@test.com", clinicId: ownerUid },
+        status: "aberto",
+      });
+      await setDoc(doc(db, "supportTickets", "ticket-b"), {
+        humanId: "CH-000002",
+        openedBy: { uid: memberUid, name: "Member", email: "m@test.com", clinicId: memberUid },
+        status: "aberto",
+      });
+    });
+    const ownerDb = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(getDoc(doc(ownerDb, "supportTickets", "ticket-a")));
+    await assertFails(getDoc(doc(ownerDb, "supportTickets", "ticket-b")));
+  });
+
+  it("super admin can read any support ticket", async () => {
+    const db = env.authenticatedContext(superUid).firestore();
+    await assertSucceeds(getDoc(doc(db, "supportTickets", "ticket-b")));
+  });
+
+  it("clients cannot write support ticket documents", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      setDoc(doc(db, "supportTickets", "ticket-new"), {
+        humanId: "CH-000099",
+        openedBy: { uid: ownerUid, name: "Owner", email: "o@test.com", clinicId: ownerUid },
+        status: "resolvido",
+      })
+    );
+  });
 });
