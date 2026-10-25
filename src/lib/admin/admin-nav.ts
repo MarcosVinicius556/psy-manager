@@ -19,6 +19,13 @@ import {
 } from "react-icons/hi";
 import { HiOutlineBuildingOffice } from "react-icons/hi2";
 import { LEGAL_FOOTER_LINKS } from "@/lib/legal/config";
+import {
+  menuSheetShowsLinkForTabBar,
+  navGroupForPath,
+  navIsCurrent,
+  visibleMenuGroupChildrenForTabBar,
+  type ShellNavConfig,
+} from "@/lib/shell/nav-helpers";
 
 export type AdminNavIcon = ComponentType<{ size?: number; className?: string; "aria-hidden"?: boolean }>;
 
@@ -56,7 +63,7 @@ export function isAdminNavLinkChild(child: AdminNavGroupChild): child is AdminNa
 }
 
 export function isAdminNavCurrent(href: string, pathname: string) {
-  return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+  return navIsCurrent("/admin", href, pathname);
 }
 
 function buildLegalNavGroup(): AdminNavGroup {
@@ -149,21 +156,22 @@ export function adminTitleForPath(pathname: string) {
 }
 
 export function adminGroupForPath(menu: AdminNavEntry[], pathname: string) {
-  const match = menu.find(
-    (entry) =>
-      isAdminNavGroup(entry) &&
-      entry.children.some((child) => isAdminNavLinkChild(child) && isAdminNavCurrent(child.href, pathname))
-  );
-  return match && isAdminNavGroup(match) ? match.label : null;
+  return navGroupForPath(menu, pathname, isAdminNavCurrent);
 }
 
 export function visibleMenuGroupChildren(group: AdminNavGroup) {
-  return group.children.filter((child) => {
-    if (!isAdminNavLinkChild(child)) return true;
-    return !MOBILE_TAB_BAR_HREFS.has(child.href);
-  });
+  return visibleMenuGroupChildrenForTabBar(MOBILE_TAB_BAR_HREFS, group);
 }
 
 export function menuSheetShowsLink(entry: AdminNavLink) {
-  return !MOBILE_TAB_BAR_HREFS.has(entry.href);
+  return menuSheetShowsLinkForTabBar(MOBILE_TAB_BAR_HREFS, entry);
 }
+
+export const adminShellNavConfig: ShellNavConfig = {
+  groupForPath: adminGroupForPath,
+  isNavCurrent: isAdminNavCurrent,
+  menuSheetShowsLink,
+  visibleMenuGroupChildren,
+  sheetTestId: "admin-mobile-menu-sheet",
+  sheetElementId: "admin-mobile-menu-sheet",
+};

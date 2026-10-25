@@ -7,17 +7,15 @@ import { HiOutlineChevronDown, HiOutlineLogout, HiOutlineX } from "react-icons/h
 import { springNav } from "@/lib/motion/presets";
 import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 import {
-  adminGroupForPath,
-  isAdminNavCurrent,
+  adminShellNavConfig,
   isAdminNavGroup,
   isAdminNavLinkChild,
-  menuSheetShowsLink,
   type AdminNavAction,
   type AdminNavEntry,
   type AdminNavGroup,
   type AdminNavLink,
-  visibleMenuGroupChildren,
 } from "@/lib/admin/admin-nav";
+import type { ShellNavConfig } from "@/lib/shell/nav-helpers";
 
 export type MobileMenuEntry = AdminNavEntry;
 export type MobileMenuLink = AdminNavLink;
@@ -53,13 +51,15 @@ function MenuLinkRow({
   item,
   pathname,
   onNavigate,
+  isNavCurrent,
 }: {
   item: AdminNavLink;
   pathname: string;
   onNavigate: () => void;
+  isNavCurrent: (href: string, pathname: string) => boolean;
 }) {
   const Icon = item.icon;
-  const current = isAdminNavCurrent(item.href, pathname);
+  const current = isNavCurrent(item.href, pathname);
   return (
     <Link
       href={item.href}
@@ -101,6 +101,7 @@ function MenuGroupAccordion({
   onToggle,
   onNavigate,
   onCookiePreferences,
+  nav,
 }: {
   group: AdminNavGroup;
   pathname: string;
@@ -108,13 +109,16 @@ function MenuGroupAccordion({
   onToggle: () => void;
   onNavigate: () => void;
   onCookiePreferences: () => void;
+  nav: ShellNavConfig;
 }) {
   const reduced = useReducedMotion();
   const Icon = group.icon;
-  const children = visibleMenuGroupChildren(group);
+  const children = nav.visibleMenuGroupChildren(group);
   if (children.length === 0) return null;
 
-  const groupActive = group.children.some((child) => isAdminNavLinkChild(child) && isAdminNavCurrent(child.href, pathname));
+  const groupActive = group.children.some(
+    (child) => isAdminNavLinkChild(child) && nav.isNavCurrent(child.href, pathname)
+  );
   const panelId = `mobile-menu-group-panel-${group.label}`;
 
   return (
@@ -151,7 +155,7 @@ function MenuGroupAccordion({
           {children.map((child) => (
             <li key={isAdminNavLinkChild(child) ? child.href : child.label} className="w-full min-w-0">
               {isAdminNavLinkChild(child) ? (
-                <MenuLinkRow item={child} pathname={pathname} onNavigate={onNavigate} />
+                <MenuLinkRow item={child} pathname={pathname} onNavigate={onNavigate} isNavCurrent={nav.isNavCurrent} />
               ) : (
                 <MenuActionRow
                   item={child}
@@ -176,6 +180,7 @@ export default function MobileMenuSheet({
   pathname,
   onLogout,
   onCookiePreferences,
+  navConfig = adminShellNavConfig,
 }: {
   open: boolean;
   onClose: () => void;
@@ -183,6 +188,7 @@ export default function MobileMenuSheet({
   pathname: string;
   onLogout: () => void | Promise<void>;
   onCookiePreferences: () => void;
+  navConfig?: ShellNavConfig;
 }) {
   const reduced = useReducedMotion();
   const titleId = useId();
@@ -195,8 +201,8 @@ export default function MobileMenuSheet({
 
   useEffect(() => {
     if (!open) return;
-    setOpenGroup(adminGroupForPath(menu, pathname));
-  }, [menu, open, pathname]);
+    setOpenGroup(navConfig.groupForPath(menu, pathname));
+  }, [menu, navConfig, open, pathname]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -262,8 +268,8 @@ export default function MobileMenuSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        id="admin-mobile-menu-sheet"
-        data-testid="admin-mobile-menu-sheet"
+        id={navConfig.sheetElementId}
+        data-testid={navConfig.sheetTestId}
         className="absolute inset-x-0 bottom-0 flex max-h-[min(82dvh,640px)] flex-col overflow-x-hidden rounded-t-lg bg-white shadow-[0_-12px_48px_rgba(36,48,40,0.16)]"
         style={{
           paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
@@ -301,7 +307,7 @@ export default function MobileMenuSheet({
           <div className="flex w-full min-w-0 flex-col gap-1">
             {menu.map((entry) => {
               if (isAdminNavGroup(entry)) {
-                const visible = visibleMenuGroupChildren(entry);
+                const visible = navConfig.visibleMenuGroupChildren(entry);
                 if (visible.length === 0) return null;
                 return (
                   <MenuGroupAccordion
@@ -312,12 +318,19 @@ export default function MobileMenuSheet({
                     onToggle={() => toggleGroup(entry.label)}
                     onNavigate={onClose}
                     onCookiePreferences={onCookiePreferences}
+                    nav={navConfig}
                   />
                 );
               }
-              if (!menuSheetShowsLink(entry)) return null;
+              if (!navConfig.menuSheetShowsLink(entry)) return null;
               return (
-                <MenuLinkRow key={entry.href} item={entry} pathname={pathname} onNavigate={onClose} />
+                <MenuLinkRow
+                  key={entry.href}
+                  item={entry}
+                  pathname={pathname}
+                  onNavigate={onClose}
+                  isNavCurrent={navConfig.isNavCurrent}
+                />
               );
             })}
           </div>
