@@ -14,6 +14,7 @@
   --color-accent: #c47a5a;
   --color-accent-hover: #b06a4c;
   --color-footer: #172f33;
+  --color-border-subtle: #d7e0d8;
   --color-landing-cream: #f4f3ef;
   /* Controls (buttons, inputs, chips, tabs): match .btn-primary (6px). Surfaces (cards, sheets): slightly softer (8px). */
   --radius-xs: 0.25rem;
@@ -103,6 +104,15 @@
   section[id] {
     @apply scroll-mt-24;
   }
+
+  /* Tailwind v4 defaults border color to currentColor; restore subtle unspecified borders. */
+  *,
+  ::before,
+  ::after,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border-subtle, currentColor);
+  }
 }
 
 @layer components {
@@ -112,12 +122,14 @@
   .btn-chip-active,
   .btn-row,
   .btn-danger,
-  .motion-press {
+  .btn-icon,
+  .btn-on-teal,
+  .btn-slot {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-control);
     border-style: solid;
     border-width: 1px;
     padding: 0.5rem 1rem;
@@ -126,77 +138,146 @@
     font-weight: 600;
     line-height: 1.2;
     cursor: pointer;
-    transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+  }
+
+  .btn-primary:focus-visible,
+  .btn-text:focus-visible,
+  .btn-chip:focus-visible,
+  .btn-chip-active:focus-visible,
+  .btn-row:focus-visible,
+  .btn-danger:focus-visible,
+  .btn-icon:focus-visible,
+  .btn-on-teal:focus-visible,
+  .btn-slot:focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    .btn-primary:hover:not(:disabled),
+    .btn-text:hover:not(:disabled),
+    .btn-row:hover:not(:disabled),
+    .btn-danger:hover:not(:disabled),
+    .btn-icon:hover:not(:disabled) {
+      background-color: transparent;
+      border-color: var(--btn-tone);
+      color: var(--btn-tone);
+    }
+
+    .btn-chip:hover:not(:disabled) {
+      background-color: transparent;
+      border-color: var(--color-teal);
+      color: var(--color-teal);
+    }
   }
 
   .btn-primary {
-    border-color: var(--color-accent);
-    background: var(--color-accent);
+    --btn-tone: var(--color-accent);
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
     padding: 0.9rem 1.75rem;
     font-size: 0.95rem;
     color: #fff;
   }
 
-  @media (hover: hover) {
-    .btn-primary:hover:not(:disabled) {
-      background: transparent;
-      color: var(--color-accent);
-    }
-  }
-
   .btn-text {
-    border-color: var(--color-teal);
-    background: #fff;
-    color: var(--color-teal);
-  }
-
-  @media (hover: hover) {
-    .btn-text:hover:not(:disabled) {
-      background: transparent;
-      color: var(--color-teal);
-    }
+    --btn-tone: var(--color-teal);
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
+    color: #fff;
   }
 
   .btn-chip {
+    --btn-tone: var(--color-teal);
     border-color: #d7e0d8;
-    background: #fff;
+    background-color: #fff;
     font-weight: 500;
     color: var(--color-ink);
   }
 
-  @media (hover: hover) {
-    .btn-chip:hover:not(:disabled) {
-      border-color: var(--color-teal);
-      background: transparent;
-      color: var(--color-teal);
-    }
-  }
-
   .btn-chip-active {
-    border-color: var(--color-teal);
-    background: var(--color-teal);
+    --btn-tone: var(--color-teal);
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
     font-weight: 500;
     color: #fff;
   }
 
-  .btn-chip-active:hover:not(:disabled),
-  .btn-chip-active:focus:not(:disabled) {
-    background: var(--color-teal);
-    color: #fff;
+  @media (hover: hover) {
+    .btn-chip-active:hover:not(:disabled) {
+      background-color: var(--btn-tone);
+      border-color: var(--btn-tone);
+      color: #fff;
+    }
   }
 
   .btn-row {
-    border-color: var(--color-teal);
-    background: var(--color-teal);
+    --btn-tone: var(--color-teal);
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
     padding: 0.4rem 0.85rem;
     font-size: 0.8125rem;
     color: #fff;
   }
 
+  .btn-icon {
+    --btn-tone: var(--color-teal);
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
+    padding: 0;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    color: #fff;
+  }
+
+  .btn-on-teal {
+    --btn-tone: #fff;
+    border-color: #fff;
+    background-color: #fff;
+    color: var(--color-teal);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
   @media (hover: hover) {
-    .btn-row:hover:not(:disabled) {
-      background: transparent;
-      color: var(--color-teal);
+    .btn-on-teal:hover:not(:disabled) {
+      background-color: transparent;
+      border-color: #fff;
+      color: #fff;
+    }
+  }
+
+  .btn-slot {
+    --btn-tone: var(--color-teal);
+    min-height: 2rem;
+    padding: 0;
+    width: 100%;
+  }
+
+  .btn-slot-off {
+    border-color: #d7e0d8;
+    background-color: #fff;
+    color: transparent;
+  }
+
+  .btn-slot-on {
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
+    color: transparent;
+  }
+
+  @media (hover: hover) {
+    .btn-slot-off:hover:not(:disabled) {
+      background-color: transparent;
+      border-color: var(--btn-tone);
+      color: transparent;
+    }
+
+    .btn-slot-on:hover:not(:disabled) {
+      background-color: transparent;
+      border-color: var(--btn-tone);
+      color: transparent;
     }
   }
 
@@ -310,16 +391,12 @@
   }
 
   .btn-danger {
-    border-color: #a01f1f;
-    background: #a01f1f;
+    --btn-tone: #a01f1f;
+    border-color: var(--btn-tone);
+    background-color: var(--btn-tone);
     padding: 0.4rem 0.85rem;
     font-size: 0.8125rem;
     color: #fff;
-  }
-
-  .btn-danger:hover:not(:disabled) {
-    background: transparent;
-    color: #a01f1f;
   }
 
   .btn-primary:disabled,
@@ -327,7 +404,8 @@
   .btn-chip:disabled,
   .btn-chip-active:disabled,
   .btn-row:disabled,
-  .btn-danger:disabled {
+  .btn-danger:disabled,
+  .btn-icon:disabled {
     cursor: not-allowed;
     opacity: 0.6;
   }
@@ -493,43 +571,8 @@ header.landing .btn-primary,
   font-size: 0.86rem;
 }
 
-@media (hover: hover) {
-  header.landing .btn-text:hover:not(:disabled),
-  .landing .btn-text:hover:not(:disabled) {
-    background: transparent;
-    border-color: var(--color-teal);
-    color: var(--color-teal);
-  }
-}
-
 #site-menu .site-menu-link {
   color: var(--landing-ink);
-}
-
-#site-menu .site-menu-cta.btn-text {
-  border-color: var(--color-teal);
-  background: #fff;
-  color: var(--color-teal);
-}
-
-@media (hover: hover) {
-  #site-menu .site-menu-cta.btn-text:hover:not(:disabled) {
-    border-color: var(--color-teal);
-    background: transparent;
-    color: var(--color-teal);
-  }
-}
-
-#site-menu .site-menu-cta.btn-text:active:not(:disabled) {
-  border-color: var(--color-teal);
-  background: var(--landing-soft);
-  color: var(--color-teal);
-}
-
-#site-menu .site-menu-cta.btn-primary:active:not(:disabled) {
-  border-color: var(--landing-cta-hover);
-  background: var(--landing-cta-hover);
-  color: #fff;
 }
 
 .landing-device {
@@ -659,7 +702,8 @@ header.landing .btn-primary,
   .btn-text,
   .btn-row,
   .btn-primary,
-  .btn-danger {
+  .btn-danger,
+  .btn-icon {
     min-height: 2.75rem;
   }
 }

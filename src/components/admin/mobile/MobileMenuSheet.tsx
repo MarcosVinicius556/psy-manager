@@ -34,7 +34,7 @@ function focusableIn(container: HTMLElement) {
 }
 
 function rowClass(current = false) {
-  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium ${
+  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md border-0 px-3 py-2.5 text-left text-sm font-medium ${
     current ? "bg-sky-soft text-teal" : "text-ink hover:bg-sky-soft/80"
   }`;
 }
@@ -44,7 +44,7 @@ function iconShell(current = false) {
 }
 
 function groupHeaderClass(active = false) {
-  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold hover:bg-sky-soft/80 ${
+  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md border-0 px-3 py-2.5 text-left text-sm font-semibold hover:bg-sky-soft/80 ${
     active ? "text-teal" : "text-ink"
   }`;
 }
@@ -325,7 +325,7 @@ export default function MobileMenuSheet({
         <div className="shrink-0 border-t border-[#eef2ee] px-3 pt-2">
           <button
             type="button"
-            className="motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-accent hover:bg-[#f6e6df]/60"
+            className="motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md border-0 px-3 py-2.5 text-left text-sm font-semibold text-accent hover:bg-[#f6e6df]/60"
             onClick={async () => {
               onClose();
               await onLogout();
