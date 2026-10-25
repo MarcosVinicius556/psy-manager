@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import ListCard from "@/components/admin/mobile/ListCard";
-import { PageTitle, fieldClass } from "@/components/admin/ui";
+import { Empty, PageTitle, fieldClass } from "@/components/admin/ui";
 import SupportStatusBadge from "@/components/support/SupportStatusBadge";
 import { useAdminSupportTickets } from "@/hooks/useSupportApi";
 import { PRIORITY_LABELS } from "@/lib/support/labels";
@@ -58,9 +58,7 @@ export default function PlataformaSuportePage() {
           />
         ))}
       </div>
-      {!loading && tickets.length === 0 && (
-        <p className="text-sm text-muted">Nenhum chamado encontrado com os filtros atuais.</p>
-      )}
+      {!loading && tickets.length === 0 && <Empty>Nenhum chamado encontrado com os filtros atuais.</Empty>}
     </div>
   );
 }

@@ -41,9 +41,7 @@ function isGroup(entry: NavEntry): entry is NavGroupItem {
   return isAdminNavGroup(entry);
 }
 
-function isCurrent(href: string, pathname: string) {
-  return isAdminNavCurrent(href, pathname);
-}
+type NavCurrentFn = (href: string, pathname: string) => boolean;
 
 function FadeLabel({ show, className, children }: { show: boolean; className?: string; children: ReactNode }) {
   const reduced = useReducedMotion();
@@ -77,11 +75,15 @@ function NavAnchor({
   collapsed,
   pathname,
   unread,
+  isCurrent,
+  notificationsHref,
 }: {
   item: NavLinkItem;
   collapsed: boolean;
   pathname: string;
   unread: number;
+  isCurrent: NavCurrentFn;
+  notificationsHref: string | null;
 }) {
   const Icon = item.icon;
   const current = isCurrent(item.href, pathname);
@@ -95,7 +97,7 @@ function NavAnchor({
       <span className="relative z-10 flex min-w-0 flex-1 items-center gap-3">
         <span className="relative shrink-0">
           <Icon size={20} className={iconTone(current)} />
-          {item.href === "/admin/notificacoes" && unread > 0 && (
+          {notificationsHref && item.href === notificationsHref && unread > 0 && (
             <span
               className={`absolute -right-1 -top-1 h-2 w-2 bg-accent transition-opacity duration-300 ${collapsed ? "opacity-100" : "opacity-0"}`}
               style={{ borderRadius: "50%" }}
@@ -105,7 +107,7 @@ function NavAnchor({
         <FadeLabel show={!collapsed} className={`flex-1 ${labelTone(current)}`}>
           {item.label}
         </FadeLabel>
-        <FadeLabel show={!collapsed && item.href === "/admin/notificacoes" && unread > 0}>
+        <FadeLabel show={!collapsed && notificationsHref !== null && item.href === notificationsHref && unread > 0}>
           <span className="rounded-[var(--radius-control)] bg-accent px-2 py-0.5 text-xs text-white">{unread}</span>
         </FadeLabel>
       </span>
@@ -121,6 +123,7 @@ function NavGroup({
   open,
   onToggle,
   onCookiePreferences,
+  isCurrent,
 }: {
   item: NavGroupItem;
   collapsed: boolean;
@@ -128,6 +131,7 @@ function NavGroup({
   open: boolean;
   onToggle: () => void;
   onCookiePreferences?: () => void;
+  isCurrent: NavCurrentFn;
 }) {
   const groupActive = item.children.some((child) => isNavLinkChild(child) && isCurrent(child.href, pathname));
   const [box, setBox] = useState({ top: 0, left: 0 });
@@ -321,6 +325,14 @@ export type AdminDeskSidebarProps = {
   profileEmail?: string | null;
   unread: number;
   onLogout: () => void | Promise<void>;
+  homeHref?: string;
+  profileHref?: string;
+  notificationsHref?: string | null;
+  brandSubtitle?: string;
+  sidebarTestId?: string;
+  layoutGroupId?: string;
+  isNavCurrent?: NavCurrentFn;
+  beforeLogout?: ReactNode;
 };
 
 export function AdminDeskSidebar({
@@ -337,13 +349,21 @@ export function AdminDeskSidebar({
   profileEmail,
   unread,
   onLogout,
+  homeHref = "/admin",
+  profileHref = "/admin/configuracoes",
+  notificationsHref = "/admin/notificacoes",
+  brandSubtitle,
+  sidebarTestId = "admin-desk-sidebar",
+  layoutGroupId = "admin-sidebar",
+  isNavCurrent = isAdminNavCurrent,
+  beforeLogout,
 }: AdminDeskSidebarProps) {
   const reduced = useReducedMotion();
   const targetWidth = collapsed ? SIDEBAR_COLLAPSED_W : wide ? SIDEBAR_EXPANDED_WIDE_W : SIDEBAR_EXPANDED_W;
 
   const avatarLink = (
     <Link
-      href="/admin/configuracoes"
+      href={profileHref}
       className={`flex items-center overflow-hidden rounded-[var(--radius-control)] py-2 transition-colors hover:bg-white/10 ${
         collapsed ? "justify-center" : "gap-3 px-2"
       }`}
@@ -371,7 +391,7 @@ export function AdminDeskSidebar({
 
   return (
     <motion.aside
-      data-testid="admin-desk-sidebar"
+      data-testid={sidebarTestId}
       data-collapsed={collapsed ? "true" : "false"}
       initial={false}
       animate={{ width: targetWidth, paddingLeft: collapsed ? 8 : 16, paddingRight: collapsed ? 8 : 16 }}
@@ -382,11 +402,14 @@ export function AdminDeskSidebar({
         className={`flex shrink-0 gap-2 transition-[justify-content] duration-300 ${collapsed ? "flex-col items-center" : "items-center justify-between"}`}
       >
         <Link
-          href="/admin"
+          href={homeHref}
           aria-label="Psy Manager"
-          className={`flex min-w-0 items-center overflow-hidden ${collapsed ? "justify-center" : "rounded-[var(--radius-control)] bg-white/95 px-2 py-1.5"}`}
+          className={`flex min-w-0 flex-col overflow-hidden ${collapsed ? "items-center justify-center" : "rounded-[var(--radius-control)] bg-white/95 px-2 py-1.5"}`}
         >
           <BrandLogo variant={collapsed ? "mark" : "lockup"} height={collapsed ? 34 : 44} />
+          {brandSubtitle && !collapsed ? (
+            <span className="mt-1.5 block text-[0.68rem] uppercase tracking-[0.16em] text-leaf">{brandSubtitle}</span>
+          ) : null}
         </Link>
       </div>
 
@@ -400,7 +423,7 @@ export function AdminDeskSidebar({
         {collapsed ? <HiOutlineChevronRight size={18} aria-hidden /> : <HiOutlineChevronLeft size={18} aria-hidden />}
       </button>
 
-      <LayoutGroup id="admin-sidebar">
+      <LayoutGroup id={layoutGroupId}>
         <nav className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden" aria-label="Menu principal">
           {menu.map((entry) =>
             isGroup(entry) ? (
@@ -412,9 +435,18 @@ export function AdminDeskSidebar({
                 open={openGroup === entry.label}
                 onToggle={() => onToggleGroup(entry.label)}
                 onCookiePreferences={onCookiePreferences}
+                isCurrent={isNavCurrent}
               />
             ) : (
-              <NavAnchor key={entry.href} item={entry} collapsed={collapsed} pathname={pathname} unread={unread} />
+              <NavAnchor
+                key={entry.href}
+                item={entry}
+                collapsed={collapsed}
+                pathname={pathname}
+                unread={unread}
+                isCurrent={isNavCurrent}
+                notificationsHref={notificationsHref}
+              />
             )
           )}
         </nav>
@@ -423,6 +455,7 @@ export function AdminDeskSidebar({
       <div className="shrink-0 pt-4">
         <div className="mb-3 h-px bg-white/12" aria-hidden />
         {wrapCollapsedTooltip(collapsed, profileName, avatarLink)}
+        {beforeLogout}
         {wrapCollapsedTooltip(collapsed, "Sair", logoutButton)}
       </div>
     </motion.aside>

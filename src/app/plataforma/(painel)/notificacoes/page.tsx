@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Empty, PageTitle, fieldClass } from "@/components/admin/ui";
+import StackedRow from "@/components/admin/mobile/StackedRow";
+import { Card, Empty, MobileStackedList, PageTitle, fieldClass } from "@/components/admin/ui";
 import { getFirebaseAuth } from "@/lib/admin/firebase";
 import { deliverAdminEmail } from "@/lib/saas/email-client";
 import { matchesAccountFilter, type AccountRecord } from "@/lib/saas/model";
@@ -132,16 +133,17 @@ export default function NotificationsPage() {
       </Card>
       <Card className="mt-4">
         <h2 className="text-2xl text-teal">Histórico</h2>
-        <div className="mt-3 grid gap-2">
+        <MobileStackedList className="mt-3">
           {history.length === 0 && <Empty>Nenhum comunicado registrado.</Empty>}
           {history.map((item) => (
-            <article key={item.id} className="rounded-md bg-paper px-3 py-3 text-sm">
-              <p className="font-semibold">{item.titulo}</p>
-              <p className="mt-1 text-muted">{item.corpo}</p>
-              <p className="mt-1 text-muted">{item.audiencia} contas · {item.enviados} e-mails confirmados · {item.falhas} sem confirmação · {item.status}</p>
-            </article>
+            <StackedRow
+              key={item.id}
+              primary={item.titulo}
+              secondary={item.corpo}
+              hint={`${item.audiencia} contas · ${item.enviados} e-mails confirmados · ${item.falhas} sem confirmação · ${item.status}`}
+            />
           ))}
-        </div>
+        </MobileStackedList>
       </Card>
     </div>
   );
