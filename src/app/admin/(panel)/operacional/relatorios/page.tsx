@@ -244,9 +244,9 @@ export default function ReportsPage() {
         <Card className="mb-6">
           <h2 className="text-xl font-medium text-teal">Modelos favoritos</h2>
           <p className="mt-1 text-sm text-muted">Filtros e colunas salvos para gerar o mesmo relatório de novo.</p>
-          <ul className="mt-4 divide-y divide-[#eef2ee]">
+          <ul className="mt-4 flex flex-col gap-3">
             {favorites.map((template) => (
-              <li key={template.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <li key={template.id} className={`admin-list-card flex flex-wrap items-center justify-between gap-3 border border-[#e7eee8] bg-white px-3 py-3`}>
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 font-medium text-ink">
                     <HiStar className="shrink-0 text-accent" size={16} />

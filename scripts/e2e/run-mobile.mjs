@@ -82,6 +82,7 @@ async function main() {
     "e2e/interactive-buttons.spec.ts",
     "e2e/agenda-calendar.spec.ts",
     "e2e/public-feedback.spec.ts",
+    "e2e/design-system-listings.spec.ts",
   ]);
   shutdown();
 }

@@ -75,7 +75,7 @@ export default function MobileTabBar({
     const current = item.current ?? false;
     const content = (
       <span
-        className={`relative flex w-full min-w-0 flex-col items-center justify-end gap-0.5 rounded-xl px-0.5 pb-1 pt-1.5 transition-colors ${
+        className={`relative flex w-full min-w-0 flex-col items-center justify-end gap-0.5 rounded-md px-0.5 pb-1 pt-1.5 transition-colors ${
           current ? "bg-teal/12" : ""
         }`}
       >
@@ -158,7 +158,7 @@ export default function MobileTabBar({
       >
         <div className="pointer-events-auto mx-2 sm:mx-3">
           <div
-            className="grid grid-cols-5 items-end gap-0 rounded-full border border-[#e3ebe4] bg-white/95 px-0.5 pb-1.5 pt-2 shadow-[0_16px_48px_rgba(36,48,40,0.14)] backdrop-blur-md sm:px-1"
+            className="grid grid-cols-5 items-end gap-0 rounded-lg border border-[#e3ebe4] bg-white/95 px-0.5 pb-1.5 pt-2 shadow-[0_16px_48px_rgba(36,48,40,0.14)] backdrop-blur-md sm:px-1"
             data-testid="mobile-tabbar-shell"
           >
             {tabs.slice(0, 2).map(renderTab)}
@@ -168,7 +168,7 @@ export default function MobileTabBar({
                 data-testid="mobile-tabbar-fab"
                 aria-label={quickOpen ? "Fechar ações rápidas" : "Ações rápidas"}
                 aria-expanded={quickOpen}
-                className="grid h-11 w-11 place-items-center rounded-full border border-accent bg-accent text-white shadow-[0_10px_28px_rgba(196,122,90,0.38)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="btn-primary grid h-11 w-11 place-items-center !p-0 shadow-[0_10px_28px_rgba(196,122,90,0.38)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 onClick={onFabClick}
                 animate={{ rotate: quickOpen ? 45 : 0 }}
                 transition={reduced ? { duration: 0 } : springNav}

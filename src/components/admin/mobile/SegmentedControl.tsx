@@ -22,7 +22,7 @@ export default function SegmentedControl<T extends string>({
   return (
     <LayoutGroup id="segmented-control">
       <div
-        className="relative grid w-full min-w-0 gap-1 rounded-full border border-[#d7e0d8] bg-white p-1"
+        className="relative grid w-full min-w-0 gap-1 rounded-md border border-[#d7e0d8] bg-white p-1"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         role="tablist"
         aria-label={ariaLabel}
@@ -35,7 +35,7 @@ export default function SegmentedControl<T extends string>({
               type="button"
               role="tab"
               aria-selected={active}
-              className={`motion-press relative z-10 min-h-11 min-w-0 truncate rounded-full px-2 py-2 text-center text-xs font-medium leading-tight transition-colors sm:px-3 sm:text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal ${
+              className={`motion-press relative z-10 min-h-11 min-w-0 truncate rounded-md px-2 py-2 text-center text-xs font-medium leading-tight transition-colors sm:px-3 sm:text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal ${
                 active ? "text-white" : "text-ink"
               }`}
               onClick={() => onChange(option.value)}
@@ -43,11 +43,11 @@ export default function SegmentedControl<T extends string>({
             >
               {active ? (
                 reduced ? (
-                  <span className="absolute inset-0 rounded-full bg-teal" aria-hidden />
+                  <span className="absolute inset-0 rounded-md bg-teal" aria-hidden />
                 ) : (
                   <motion.span
                     layoutId="segmented-pill"
-                    className="absolute inset-0 rounded-full bg-teal"
+                    className="absolute inset-0 rounded-md bg-teal"
                     transition={springNav}
                     aria-hidden
                   />

@@ -13,6 +13,9 @@ type StackedRowProps = {
   actions?: ReactNode;
 };
 
+const shellClass =
+  "admin-list-card min-w-0 border border-[#e7eee8] bg-white px-4 py-3.5 text-left";
+
 export default function StackedRow({
   primary,
   secondary,
@@ -28,7 +31,7 @@ export default function StackedRow({
   if (structured) {
     const actionRow = actions ?? action;
     return (
-      <div className="min-w-0 border-b border-[#eef2ee] py-3 last:border-b-0">
+      <div className={shellClass}>
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1 font-medium text-ink">{primary}</div>
           {amount != null ? <div className="shrink-0 font-num text-sm font-semibold text-ink">{amount}</div> : null}
@@ -46,7 +49,7 @@ export default function StackedRow({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 border-b border-[#eef2ee] py-3 last:border-b-0">
+    <div className={`${shellClass} flex min-w-0 flex-col gap-3`}>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-medium text-ink">{primary}</div>

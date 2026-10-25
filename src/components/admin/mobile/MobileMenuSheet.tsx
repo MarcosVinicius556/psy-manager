@@ -34,13 +34,19 @@ function focusableIn(container: HTMLElement) {
 }
 
 function rowClass(current = false) {
-  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-medium ${
-    current ? "border-teal/25 bg-sky-soft text-teal" : "border-transparent text-ink hover:bg-sky-soft/80"
+  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium ${
+    current ? "bg-sky-soft text-teal" : "text-ink hover:bg-sky-soft/80"
   }`;
 }
 
 function iconShell(current = false) {
-  return `grid h-9 w-9 shrink-0 place-items-center rounded-full ${current ? "bg-teal text-white" : "bg-sky-soft text-teal"}`;
+  return `grid h-9 w-9 shrink-0 place-items-center rounded-md ${current ? "bg-teal text-white" : "bg-sky-soft text-teal"}`;
+}
+
+function groupHeaderClass(active = false) {
+  return `motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold hover:bg-sky-soft/80 ${
+    active ? "text-teal" : "text-ink"
+  }`;
 }
 
 function MenuLinkRow({
@@ -117,9 +123,7 @@ function MenuGroupAccordion({
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
-        className={`motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${
-          groupActive ? "text-teal" : "text-ink"
-        }`}
+        className={groupHeaderClass(groupActive)}
         onClick={onToggle}
       >
         <span className={iconShell(groupActive && !open)}>
@@ -260,7 +264,7 @@ export default function MobileMenuSheet({
         aria-labelledby={titleId}
         id="admin-mobile-menu-sheet"
         data-testid="admin-mobile-menu-sheet"
-        className="absolute inset-x-0 bottom-0 flex max-h-[min(82dvh,640px)] flex-col overflow-x-hidden rounded-t-[1.35rem] border border-[#e7eee8] bg-white shadow-[0_-12px_48px_rgba(36,48,40,0.16)]"
+        className="absolute inset-x-0 bottom-0 flex max-h-[min(82dvh,640px)] flex-col overflow-x-hidden rounded-t-lg bg-white shadow-[0_-12px_48px_rgba(36,48,40,0.16)]"
         style={{
           paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
           y: reduced ? 0 : dragY,
@@ -281,7 +285,7 @@ export default function MobileMenuSheet({
             <button
               ref={closeRef}
               type="button"
-              className="grid h-10 w-10 place-items-center rounded-full text-muted"
+              className="grid h-10 w-10 place-items-center rounded-md text-muted hover:bg-sky-soft/80"
               aria-label="Fechar menu"
               onClick={onClose}
             >
@@ -321,13 +325,13 @@ export default function MobileMenuSheet({
         <div className="shrink-0 border-t border-[#eef2ee] px-3 pt-2">
           <button
             type="button"
-            className="motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-accent"
+            className="motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-accent hover:bg-[#f6e6df]/60"
             onClick={async () => {
               onClose();
               await onLogout();
             }}
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f6e6df] text-accent">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#f6e6df] text-accent">
               <HiOutlineLogout size={18} aria-hidden />
             </span>
             Sair

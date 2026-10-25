@@ -6,6 +6,8 @@ import { AdminAccountNotices } from "@/components/admin/AccountStatus";
 import { useOptionalAdminPageMeta, useSetAdminPageMeta } from "@/lib/admin/page-meta-context";
 import { useOptionalSaas } from "@/lib/saas/context";
 
+export const mobileListRowSurfaceClass = "admin-list-card border border-[#e7eee8] bg-white";
+
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <section className={`admin-card min-w-0 overflow-hidden bg-white p-5 sm:p-6 ${className}`}>
@@ -127,8 +129,17 @@ export function ResponsiveTableWrap({ children, className = "" }: { children: Re
 
 export function MobileListGrid({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`mobile-list-grid admin-mobile-only ${className}`} data-mobile-list data-admin-stagger-grid>
+    <div className={`mobile-list-grid admin-mobile-only gap-3 ${className}`} data-mobile-list data-admin-stagger-grid>
       <StaggerChildren>{children}</StaggerChildren>
+    </div>
+  );
+}
+
+/** Vertical stack of mobile rows/cards with consistent spacing (non-grid). */
+export function MobileStackedList({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`mobile-stacked-list admin-mobile-only ${className}`} data-mobile-list>
+      {children}
     </div>
   );
 }

@@ -54,7 +54,7 @@ function groupForPath(menu: NavEntry[], pathname: string) {
 }
 
 function navShellClass(collapsed: boolean, nested = false) {
-  return `relative flex items-center overflow-hidden rounded-xl border border-transparent text-sm font-medium transition-[color,background-color] duration-200 ${
+  return `relative flex items-center overflow-hidden rounded-md border border-transparent text-sm font-medium transition-[color,background-color] duration-200 ${
     collapsed ? "justify-center px-0 py-3" : nested ? "gap-3 py-2.5 pl-9 pr-3" : "gap-3 px-3 py-3"
   }`;
 }

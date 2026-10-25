@@ -181,7 +181,7 @@ export function OnboardingCard() {
         {snapshot.steps.map((step) => (
           <li
             key={step.id}
-            className="motion-press flex flex-wrap items-center justify-between gap-2 rounded-xl bg-paper px-3 py-2 text-sm sm:flex-nowrap"
+            className="motion-press flex flex-wrap items-center justify-between gap-2 rounded-md bg-paper px-3 py-2 text-sm sm:flex-nowrap"
           >
             <span className="flex min-w-0 items-start gap-2">
               <span className="mt-0.5 text-teal" aria-hidden>
