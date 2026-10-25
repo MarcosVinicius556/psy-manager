@@ -7,7 +7,7 @@ import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
 export function SidebarActivePill({ layoutId = "admin-sidebar-pill" }: { layoutId?: string }) {
   const reduced = useReducedMotion();
   const className =
-    "pointer-events-none absolute inset-0 rounded-[var(--radius-control)] bg-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]";
+    "pointer-events-none absolute inset-0 rounded-[var(--radius-control)] bg-white/22 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]";
   if (reduced) {
     return <span className={className} data-testid="admin-sidebar-pill" aria-hidden />;
   }

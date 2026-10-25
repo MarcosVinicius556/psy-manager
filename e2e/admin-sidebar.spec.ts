@@ -116,6 +116,63 @@ test.describe("admin desktop sidebar", () => {
     await expect(flyout.getByRole("link", { name: "Agenda" })).toBeVisible();
   });
 
+  test("active route label uses light high-contrast color", async ({ page }, testInfo) => {
+    test.skip((testInfo.project.use.viewport?.width ?? 0) < 960, "desktop only");
+    await page.goto("/admin/pacientes", { waitUntil: "domcontentloaded" });
+    await expandSidebarIfCollapsed(page);
+
+    const activeLink = page.getByTestId("admin-desk-sidebar").locator('[aria-current="page"]').first();
+    await expect(activeLink).toBeVisible();
+    const lum = await activeLink.evaluate((el) => {
+      const { color } = getComputedStyle(el);
+      const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (!m) return 0;
+      const ch = (v: number) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      const r = Number(m[1]);
+      const g = Number(m[2]);
+      const b = Number(m[3]);
+      return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+    });
+    expect(lum).toBeGreaterThan(0.72);
+    await expect(page.getByTestId("admin-sidebar-pill")).toHaveCount(1);
+  });
+
+  test("only one pill when another group is open", async ({ page }, testInfo) => {
+    test.skip((testInfo.project.use.viewport?.width ?? 0) < 960, "desktop only");
+    await page.goto("/admin/pacientes", { waitUntil: "domcontentloaded" });
+    await expandSidebarIfCollapsed(page);
+    await page.getByRole("button", { name: "Legal" }).click();
+    await expect(page.getByTestId("admin-sidebar-pill")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Clínica" }).getByTestId("admin-sidebar-pill")).toHaveCount(0);
+  });
+
+  test("collapsed flyout active link stays readable", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desk-980", "980px collapsed rail");
+    await page.goto("/admin/pacientes", { waitUntil: "domcontentloaded" });
+    const aside = page.getByTestId("admin-desk-sidebar");
+    if ((await aside.getAttribute("data-collapsed")) !== "true") {
+      await page.getByTestId("admin-sidebar-collapse-toggle").click();
+      await expect(aside).toHaveAttribute("data-collapsed", "true");
+    }
+    await page.getByRole("button", { name: "Clínica" }).click();
+    const active = page.getByRole("menu", { name: "Clínica" }).locator('[aria-current="page"]');
+    await expect(active).toBeVisible();
+    const lum = await active.evaluate((el) => {
+      const { color } = getComputedStyle(el);
+      const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (!m) return 0;
+      const ch = (v: number) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * ch(Number(m[1])) + 0.7152 * ch(Number(m[2])) + 0.0722 * ch(Number(m[3]));
+    });
+    expect(lum).toBeGreaterThan(0.72);
+  });
+
   test("nav rows avoid harsh dark borders", async ({ page }, testInfo) => {
     test.skip((testInfo.project.use.viewport?.width ?? 0) < 960, "desktop only");
     await page.goto("/admin", { waitUntil: "domcontentloaded" });

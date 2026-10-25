@@ -11,6 +11,7 @@ import { SidebarActivePill } from "@/components/admin/motion/NavPill";
 import { NavTooltip } from "@/components/admin/desk-sidebar/NavTooltip";
 import {
   iconTone,
+  labelTone,
   navRowClass,
   navRowTone,
   SIDEBAR_COLLAPSED_W,
@@ -101,7 +102,7 @@ function NavAnchor({
             />
           )}
         </span>
-        <FadeLabel show={!collapsed} className="flex-1">
+        <FadeLabel show={!collapsed} className={`flex-1 ${labelTone(current)}`}>
           {item.label}
         </FadeLabel>
         <FadeLabel show={!collapsed && item.href === "/admin/notificacoes" && unread > 0}>
@@ -175,7 +176,8 @@ function NavGroup({
     };
   }, [flyoutOpen, open, onToggle]);
 
-  const highlighted = collapsed ? groupActive : groupActive && !open;
+  const pillOnGroup = collapsed && groupActive && !open;
+  const containsActive = groupActive && !pillOnGroup;
 
   const groupButton = (
     <button
@@ -183,15 +185,15 @@ function NavGroup({
       type="button"
       aria-expanded={open}
       aria-label={item.label}
-      className={`motion-press w-full ${navRowClass(collapsed)} ${navRowTone(highlighted)}`}
+      className={`motion-press w-full ${navRowClass(collapsed)} ${navRowTone(pillOnGroup, containsActive)}`}
       onClick={() => {
         if (collapsed) placeFlyout();
         onToggle();
       }}
     >
-      {highlighted ? <SidebarActivePill /> : null}
-      <Icon size={20} className={`relative z-10 ${iconTone(highlighted)}`} />
-      <FadeLabel show={!collapsed} className="relative z-10 flex-1 text-left">
+      {pillOnGroup ? <SidebarActivePill /> : null}
+      <Icon size={20} className={`relative z-10 ${iconTone(pillOnGroup)}`} />
+      <FadeLabel show={!collapsed} className={`relative z-10 flex-1 text-left ${labelTone(pillOnGroup)}`}>
         {item.label}
       </FadeLabel>
       <HiOutlineChevronDown
@@ -241,7 +243,7 @@ function NavGroup({
                 >
                   {childCurrent ? <SidebarActivePill /> : null}
                   <ChildIcon size={18} className={`relative z-10 ${iconTone(childCurrent)}`} />
-                  <span className="relative z-10 flex-1">{child.label}</span>
+                  <span className={`relative z-10 flex-1 text-left ${labelTone(childCurrent)}`}>{child.label}</span>
                 </Link>
               );
             })}
@@ -294,7 +296,7 @@ function NavGroup({
                 >
                   {childCurrent ? <SidebarActivePill /> : null}
                   <ChildIcon size={18} className={`relative z-10 ${iconTone(childCurrent)}`} />
-                  <span className="relative z-10 flex-1">{child.label}</span>
+                  <span className={`relative z-10 flex-1 ${labelTone(childCurrent)}`}>{child.label}</span>
                 </Link>
               );
             })}

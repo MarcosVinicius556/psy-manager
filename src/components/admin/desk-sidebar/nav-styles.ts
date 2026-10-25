@@ -9,10 +9,17 @@ export function navRowClass(collapsed: boolean, nested = false) {
   }`;
 }
 
-export function navRowTone(current: boolean) {
-  return current ? "text-teal" : "text-white/85 hover:bg-white/10 hover:text-white";
+/** Active route with sliding pill — high contrast on dark rail. */
+export function navRowTone(active: boolean, containsActive = false) {
+  if (active) return "text-white font-semibold";
+  if (containsActive) return "text-white/95 font-medium";
+  return "text-white/85 hover:bg-white/10 hover:text-white";
 }
 
-export function iconTone(current: boolean) {
-  return `shrink-0 transition-colors duration-200 ${current ? "text-teal" : "text-white/90"}`;
+export function iconTone(active: boolean) {
+  return `shrink-0 transition-colors duration-200 ${active ? "text-white" : "text-white/90"}`;
+}
+
+export function labelTone(active: boolean) {
+  return active ? "font-semibold text-white" : "";
 }
