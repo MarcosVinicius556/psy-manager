@@ -4,7 +4,10 @@ export type EmailIntegrationPublic = {
   provider: EmailProvider;
   connectedAddress: string | null;
   connectedAt: string | null;
+  /** At least one connect mode (OAuth or SMTP) is configured on the server. */
   available: boolean;
+  oauthAvailable: boolean;
+  smtpAvailable: boolean;
 };
 
 export type EmailIntegrationPrivate = {

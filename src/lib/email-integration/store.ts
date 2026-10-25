@@ -1,7 +1,7 @@
 import { getAdminDb } from "@/lib/firebase-admin";
 import { decryptSecret, encryptSecret } from "./encryption";
 import type { EmailIntegrationPrivate, EmailIntegrationPublic, EmailProvider } from "./types";
-import { emailIntegrationAvailable } from "./config";
+import { emailIntegrationAvailable, emailOAuthAvailable, emailSmtpAvailable } from "./config";
 
 const COLLECTION = "emailIntegrations";
 
@@ -11,16 +11,24 @@ function docRef(uid: string) {
   return db.collection(COLLECTION).doc(uid);
 }
 
+function publicAvailabilityFlags() {
+  return {
+    available: emailIntegrationAvailable(),
+    oauthAvailable: emailOAuthAvailable(),
+    smtpAvailable: emailSmtpAvailable(),
+  };
+}
+
 export function toPublicIntegration(record: EmailIntegrationPrivate | null): EmailIntegrationPublic {
-  const available = emailIntegrationAvailable();
+  const flags = publicAvailabilityFlags();
   if (!record?.provider || !record.connectedAddress) {
-    return { provider: null, connectedAddress: null, connectedAt: null, available };
+    return { provider: null, connectedAddress: null, connectedAt: null, ...flags };
   }
   return {
     provider: record.provider,
     connectedAddress: record.connectedAddress,
     connectedAt: record.connectedAt || null,
-    available,
+    ...flags,
   };
 }
 

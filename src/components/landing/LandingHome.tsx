@@ -24,16 +24,20 @@ export default function LandingHome() {
       <LandingFinalCta />
 
       <div
-        className="landing-sticky-cta fixed inset-x-0 bottom-0 z-40 border-t border-[#ddd8cf] bg-landing-cream/95 p-3 backdrop-blur-md sm:hidden"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        className="landing-sticky-cta pointer-events-none fixed inset-x-0 bottom-0 z-40 sm:hidden"
+        aria-hidden="true"
       >
-        <Link href="/cadastro" className="btn-primary landing-pill-cta w-full min-h-11">
-          Testar grátis
-        </Link>
+        <div
+          className="pointer-events-auto border-t border-[var(--color-border-subtle)] bg-landing-cream/95 p-3 backdrop-blur-md"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          <Link href="/cadastro" className="btn-primary w-full min-h-11">
+            Testar grátis
+          </Link>
+        </div>
       </div>
-      <div className="h-20 sm:hidden" aria-hidden="true" />
 
-      <Footer />
+      <Footer className="pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:pb-[max(2.5rem,env(safe-area-inset-bottom))]" />
     </div>
   );
 }

@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { EMAIL_OAUTH_SCOPES, emailOAuthRedirectUri } from "@/lib/email-integration/config";
 import { createEmailOAuthState } from "@/lib/email-integration/oauth-state";
 import { saveOAuthPendingNonce } from "@/lib/email-integration/store";
-import { requireEmailUser } from "@/lib/email-integration/api-auth";
+import { requireEmailOAuthUser } from "@/lib/email-integration/api-auth";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const auth = await requireEmailUser(request);
+  const auth = await requireEmailOAuthUser(request);
   if ("error" in auth) return auth.error;
 
   const url = new URL(request.url);

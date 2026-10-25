@@ -86,6 +86,8 @@ async function main() {
     "e2e/admin-desk-breakpoint.spec.ts",
     "e2e/admin-sidebar.spec.ts",
     "e2e/cookie-banner-viewport.spec.ts",
+    "e2e/settings-landing-integrations.spec.ts",
+    "e2e/email-integration.spec.ts",
   ]);
   shutdown();
 }
