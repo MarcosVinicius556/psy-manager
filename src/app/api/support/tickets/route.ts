@@ -13,8 +13,13 @@ export async function GET(request: Request) {
   const auth = await requireAuthUser(request);
   if ("error" in auth) return auth.error;
   if (!getAdminDb()) return NextResponse.json({ reason: "indisponivel" }, { status: 503 });
-  const tickets = await listTicketsForUser(auth.uid);
-  return NextResponse.json({ tickets });
+  try {
+    const tickets = await listTicketsForUser(auth.uid);
+    return NextResponse.json({ tickets });
+  } catch (error) {
+    console.error("support.tickets.list", error);
+    return NextResponse.json({ reason: "erro_listagem" }, { status: 500 });
+  }
 }
 
 type CreateBody = {

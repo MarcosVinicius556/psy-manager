@@ -1,4 +1,4 @@
-import { FieldValue, type Query } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { BOT_MAX_FAILED_ATTEMPTS, SUPPORT_COUNTER_DOC, SUPPORT_TICKETS_COLLECTION } from "./constants";
 import { mapBotExecution, mapHistory, mapMessage, mapTicket } from "./mappers";
@@ -14,6 +14,12 @@ import type {
 } from "./types";
 import { deliverSupportInboxNotice, notifyAdminsOfTicket } from "./notifications";
 import { signedAuthenticatedUrl } from "@/lib/server/cloudinary-sign";
+import {
+  ADMIN_TICKET_LIST_LIMIT,
+  isFirestoreMissingIndexError,
+  sortTicketsByUpdatedAtDesc,
+  USER_TICKET_LIST_LIMIT,
+} from "./list-queries";
 
 function dbOrThrow() {
   const db = getAdminDb();
@@ -136,13 +142,17 @@ export async function getTicket(id: string): Promise<SupportTicketRecord | null>
 }
 
 export async function listTicketsForUser(uid: string) {
-  const snap = await dbOrThrow()
-    .collection(SUPPORT_TICKETS_COLLECTION)
-    .where("openedBy.uid", "==", uid)
-    .orderBy("updatedAt", "desc")
-    .limit(100)
-    .get();
-  return snap.docs.map((doc) => mapTicket(doc.id, doc.data())).filter(Boolean) as SupportTicketRecord[];
+  const col = dbOrThrow().collection(SUPPORT_TICKETS_COLLECTION);
+  try {
+    const snap = await col.where("openedBy.uid", "==", uid).limit(USER_TICKET_LIST_LIMIT).get();
+    const tickets = snap.docs.map((doc) => mapTicket(doc.id, doc.data())).filter(Boolean) as SupportTicketRecord[];
+    return sortTicketsByUpdatedAtDesc(tickets).slice(0, USER_TICKET_LIST_LIMIT);
+  } catch (error) {
+    if (!isFirestoreMissingIndexError(error)) throw error;
+    const snap = await col.where("openedBy.uid", "==", uid).limit(USER_TICKET_LIST_LIMIT).get();
+    const tickets = snap.docs.map((doc) => mapTicket(doc.id, doc.data())).filter(Boolean) as SupportTicketRecord[];
+    return sortTicketsByUpdatedAtDesc(tickets).slice(0, USER_TICKET_LIST_LIMIT);
+  }
 }
 
 export async function listTicketsAdmin(filters: {
@@ -153,13 +163,37 @@ export async function listTicketsAdmin(filters: {
   from?: string;
   to?: string;
 }) {
-  let query: Query = dbOrThrow().collection(SUPPORT_TICKETS_COLLECTION);
-  if (filters.status) query = query.where("status", "==", filters.status);
-  if (filters.priority) query = query.where("priority", "==", filters.priority);
-  if (filters.classification) query = query.where("classification", "==", filters.classification);
-  query = query.orderBy("updatedAt", "desc").limit(200);
-  const snap = await query.get();
+  const col = dbOrThrow().collection(SUPPORT_TICKETS_COLLECTION);
+  const equalityFilters: [string, string][] = [];
+  if (filters.status) equalityFilters.push(["status", filters.status]);
+  if (filters.priority) equalityFilters.push(["priority", filters.priority]);
+  if (filters.classification) equalityFilters.push(["classification", filters.classification]);
+
+  let snap;
+  try {
+    if (equalityFilters.length === 0) {
+      snap = await col.orderBy("updatedAt", "desc").limit(ADMIN_TICKET_LIST_LIMIT).get();
+    } else {
+      const [field, value] = equalityFilters[0];
+      snap = await col.where(field, "==", value).limit(ADMIN_TICKET_LIST_LIMIT * 3).get();
+    }
+  } catch (error) {
+    if (!isFirestoreMissingIndexError(error)) throw error;
+    snap = await col.limit(ADMIN_TICKET_LIST_LIMIT * 2).get();
+  }
+
   let tickets = snap.docs.map((doc) => mapTicket(doc.id, doc.data())).filter(Boolean) as SupportTicketRecord[];
+  if (equalityFilters.length > 1) {
+    tickets = tickets.filter((t) =>
+      equalityFilters.every(([field, value]) => {
+        if (field === "status") return t.status === value;
+        if (field === "priority") return t.priority === value;
+        if (field === "classification") return t.classification === value;
+        return true;
+      })
+    );
+  }
+  tickets = sortTicketsByUpdatedAtDesc(tickets).slice(0, ADMIN_TICKET_LIST_LIMIT);
   if (filters.from) {
     const fromMs = Date.parse(filters.from);
     tickets = tickets.filter((t) => Date.parse(t.createdAt) >= fromMs);
