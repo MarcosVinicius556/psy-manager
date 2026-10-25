@@ -402,7 +402,11 @@ service cloud.firestore {
     }
 
     match /locationInvites/{inviteId} {
-      allow read: if signedIn() && resource.data.inviteeUid == request.auth.uid;
+      allow read: if signedIn()
+        && (
+          (resource.data.keys().hasAll(["inviteeUid"]) && resource.data.inviteeUid == request.auth.uid)
+          || resource.data.ownerUid == request.auth.uid
+        );
       allow update: if signedIn()
         && resource.data.inviteeUid == request.auth.uid
         && resource.data.status == "pendente"

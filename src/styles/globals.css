@@ -459,6 +459,10 @@ header.landing.header-scrolled {
   color: var(--landing-ink);
   font-size: 0.92rem;
   font-weight: 500;
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding-inline: 0.15rem;
 }
 
 header.landing .btn-text,

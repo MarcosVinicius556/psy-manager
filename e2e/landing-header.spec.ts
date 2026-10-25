@@ -16,6 +16,10 @@ test.describe("landing header mobile + desktop", () => {
     fs.mkdirSync(dir, { recursive: true });
 
     await page.goto("/", { waitUntil: "networkidle" });
+    const acceptCookies = page.getByRole("button", { name: "Aceitar todos" });
+    if (await acceptCookies.isVisible().catch(() => false)) {
+      await acceptCookies.click();
+    }
 
     await page.screenshot({ path: path.join(dir, "menu-closed.png"), fullPage: false });
 

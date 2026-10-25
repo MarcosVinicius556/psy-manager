@@ -18,7 +18,13 @@ export async function loginAsDemo(page: Page) {
   await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("/login"), {
     timeout: 90_000,
   });
-  await expect(page.locator(".admin-tabbar")).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByTestId("mobile-tabbar-menu")).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveCount(0);
+
+  const width = page.viewportSize()?.width ?? 1280;
+  if (width < 768) {
+    await expect(page.locator(".admin-tabbar")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("mobile-tabbar-menu")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveCount(0);
+  } else {
+    await expect(page.getByRole("link", { name: "Início" }).first()).toBeVisible({ timeout: 90_000 });
+  }
 }

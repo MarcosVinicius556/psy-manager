@@ -11,11 +11,11 @@ export default function Footer() {
           <div>
             <BrandLogo variant="mark" height={44} />
             <p className="mt-4 mb-5 max-w-[320px] leading-relaxed">
-              Agenda, pacientes, financeiro e documentos do consultório em um só painel — separado da página da clínica.
+              Agenda, pacientes, financeiro e documentos do consultório em um painel feito para a prática clínica.
             </p>
           </div>
           <div>
-            <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Produto</h4>
+            <h3 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Produto</h3>
             <Link href="/#funcionalidades" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
               Funcionalidades
             </Link>
@@ -27,7 +27,7 @@ export default function Footer() {
             </Link>
           </div>
           <div>
-            <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Acesso</h4>
+            <h3 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Acesso</h3>
             <a href="/cadastro" className="flex min-h-11 items-center text-[0.95rem] transition-colors duration-200 hover:text-white">
               Começar gratuitamente
             </a>
@@ -39,7 +39,7 @@ export default function Footer() {
             </a>
           </div>
           <div>
-            <h4 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Legal</h4>
+            <h3 className="mb-3.5 text-[0.82rem] font-semibold tracking-[0.08em] text-white uppercase">Legal</h3>
             <LegalFooterLinks
               className="flex flex-col"
               linkClassName="flex min-h-11 items-center text-left text-[0.95rem] transition-colors duration-200 hover:text-white"
