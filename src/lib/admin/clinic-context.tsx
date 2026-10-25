@@ -1101,16 +1101,18 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       async receivePayment(id, input) {
         const payment = payments.find((item) => item.id === id);
         if (!payment) throw new Error("Lançamento não encontrado.");
-        const patch = receiptPatch(payment, input);
-        await updatePayment(id, {
-          historico: patch.historico,
-          valorAcordado: patch.valorAcordado,
-          status: patch.status,
-          paidAt: patch.paidAt,
-          formaPagamento: patch.formaPagamento,
+        const wasPaid = payment.status === "pago";
+        const headers = await authorizedHeaders({ "Content-Type": "application/json" });
+        const response = await fetch(`/api/payments/${encodeURIComponent(id)}/receive`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(input),
         });
-        if (patch.status === "pago" && payment.status !== "pago") trackActivation("primeiro_pagamento");
-        if (!patch.parcial && !payment.packageId) await promoteNextSessionPayment(payment.patientId, payment.id);
+        const data = (await response.json()) as { reason?: string; status?: string; parcial?: boolean };
+        if (!response.ok) throw new Error(data.reason || "Não foi possível registrar o pagamento.");
+        if (data.status === "pago" && !wasPaid) trackActivation("primeiro_pagamento");
+        if (!data.parcial && !payment.packageId) await promoteNextSessionPayment(payment.patientId, payment.id);
+        const patch = receiptPatch(payment, input);
         toast.success(
           patch.parcial ? `Pagamento parcial registrado. Falta ${patch.faltante.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` : "Pagamento confirmado."
         );
@@ -1122,21 +1124,22 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           if (!payment) throw new Error("Lançamento não encontrado.");
           const missing = remainingAmount(payment);
           if (missing > 0) {
-            const patch = receiptPatch(payment, {
-              valor: missing,
-              formaPagamento: payment.formaPagamento,
-              data: todayISO(),
-              observacao: "Confirmado pela notificação",
+            const wasPaid = payment.status === "pago";
+            const headers = await authorizedHeaders({ "Content-Type": "application/json" });
+            const response = await fetch(`/api/payments/${encodeURIComponent(payment.id)}/receive`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                valor: missing,
+                formaPagamento: payment.formaPagamento,
+                data: todayISO(),
+                observacao: "Confirmado pela notificação",
+              }),
             });
-            await updatePayment(payment.id, {
-              historico: patch.historico,
-              valorAcordado: patch.valorAcordado,
-              status: patch.status,
-              paidAt: patch.paidAt,
-              formaPagamento: patch.formaPagamento,
-            });
-            if (!patch.parcial && !payment.packageId) await promoteNextSessionPayment(payment.patientId, payment.id);
-            trackActivation("primeiro_pagamento");
+            const data = (await response.json()) as { reason?: string; status?: string; parcial?: boolean };
+            if (!response.ok) throw new Error(data.reason || "Não foi possível confirmar o pagamento.");
+            if (data.status === "pago" && !wasPaid) trackActivation("primeiro_pagamento");
+            if (!data.parcial && !payment.packageId) await promoteNextSessionPayment(payment.patientId, payment.id);
           }
         } else if (payment) {
           const patch = unpaidPatch(payment);

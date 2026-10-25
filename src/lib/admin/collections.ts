@@ -35,6 +35,13 @@ import {
   type ContractTemplateVersion,
 } from "./contract";
 import { parseTemplateDefinition, type ReportDefinition, type ReportRun, type ReportStore, type ReportTemplate } from "./reports";
+import type {
+  EmailAttachmentKind,
+  EmailLogEntry,
+  EmailTemplate,
+  EmailTemplateTrigger,
+  EmailTemplateVersion,
+} from "@/lib/email-integration/types";
 import {
   emptyClinical,
   type Appointment,
@@ -1406,5 +1413,225 @@ export async function writeClinicalNoteTemplate(
 export async function removeClinicalNoteTemplate(id: string) {
   assertClinicWrite();
   await deleteDoc(doc(getFirebaseDb(), "clinicalNoteTemplates", id));
+}
+
+function mapEmailTemplateVersion(value: unknown, index: number): EmailTemplateVersion | null {
+  const data = (value ?? {}) as Partial<EmailTemplateVersion>;
+  const assunto = text(data.assunto);
+  const corpo = text(data.corpo);
+  if (!assunto && !corpo && !text(data.nome)) return null;
+  return {
+    id: text(data.id) || `versao-${index}`,
+    versao: Number(data.versao) || index + 1,
+    quando: text(data.quando),
+    resumo: text(data.resumo) || "Versão",
+    nome: text(data.nome) || "Modelo",
+    assunto,
+    corpo,
+  };
+}
+
+function mapEmailTemplate(id: string, data: DocumentData): EmailTemplate | null {
+  const nome = text(data.nome);
+  if (!nome) return null;
+  const triggerRaw = text(data.trigger);
+  const triggers = new Set([
+    "confirmacao_pagamento",
+    "copia_contrato",
+    "envio_recibo",
+    "lembrete_sessao",
+    "link_avaliacao",
+    "livre",
+  ]);
+  const trigger = (triggers.has(triggerRaw) ? triggerRaw : "livre") as EmailTemplateTrigger;
+  const anexoRaw = text(data.anexo);
+  const anexo = (anexoRaw === "contrato" || anexoRaw === "recibo" ? anexoRaw : "nenhum") as EmailAttachmentKind;
+  const createdAt = text(data.createdAt);
+  return {
+    id,
+    nome,
+    trigger,
+    assunto: text(data.assunto),
+    corpo: text(data.corpo),
+    anexo,
+    autoSend: Boolean(data.autoSend),
+    arquivado: Boolean(data.arquivado),
+    versao: Math.max(1, Number(data.versao) || 1),
+    historico: Array.isArray(data.historico)
+      ? data.historico.map(mapEmailTemplateVersion).filter((item): item is EmailTemplateVersion => Boolean(item))
+      : [],
+    createdAt,
+    updatedAt: text(data.updatedAt) || createdAt,
+  };
+}
+
+export async function listEmailTemplates(includeArchived = false) {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const snapshot = await getDocs(query(collection(getFirebaseDb(), "emailTemplates"), where("ownerUid", "==", uid)));
+  return snapshot.docs
+    .map((item) => mapEmailTemplate(item.id, item.data()))
+    .filter((item): item is EmailTemplate => Boolean(item))
+    .filter((item) => includeArchived || !item.arquivado)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export async function getEmailTemplate(id: string) {
+  const snapshot = await getDoc(doc(getFirebaseDb(), "emailTemplates", id));
+  if (!snapshot.exists()) return null;
+  return mapEmailTemplate(snapshot.id, snapshot.data());
+}
+
+function emailVersionSummary(
+  current: EmailTemplate,
+  next: { nome: string; assunto: string; corpo: string; trigger: EmailTemplateTrigger; anexo: EmailAttachmentKind; autoSend: boolean }
+) {
+  const parts: string[] = [];
+  if (current.nome !== next.nome) parts.push("nome");
+  if (current.assunto !== next.assunto) parts.push("assunto");
+  if (current.corpo !== next.corpo) parts.push("corpo");
+  if (current.trigger !== next.trigger) parts.push("gatilho");
+  if (current.anexo !== next.anexo) parts.push("anexo");
+  if (current.autoSend !== next.autoSend) parts.push("envio automático");
+  return parts.length ? `Alteração: ${parts.join(", ")}` : "Atualização";
+}
+
+export async function writeEmailTemplate(
+  input: {
+    nome: string;
+    trigger: EmailTemplateTrigger;
+    assunto: string;
+    corpo: string;
+    anexo: EmailAttachmentKind;
+    autoSend: boolean;
+  },
+  id?: string
+) {
+  assertClinicWrite();
+  const now = new Date().toISOString();
+  const nome = input.nome.trim() || "Modelo de e-mail";
+  const assunto = input.assunto.trim();
+  const corpo = input.corpo.trim();
+  if (!assunto || !corpo) throw new Error("Informe assunto e corpo do e-mail.");
+  if (!id) {
+    const historico: EmailTemplateVersion[] = [
+      {
+        id: crypto.randomUUID(),
+        versao: 1,
+        quando: now,
+        resumo: "Criação do modelo",
+        nome,
+        assunto,
+        corpo,
+      },
+    ];
+    const ref = await addDoc(collection(getFirebaseDb(), "emailTemplates"), {
+      nome,
+      trigger: input.trigger,
+      assunto,
+      corpo,
+      anexo: input.anexo,
+      autoSend: input.autoSend,
+      arquivado: false,
+      versao: 1,
+      historico,
+      ownerUid: currentOwnerUid(),
+      createdAt: now,
+      updatedAt: now,
+    });
+    return ref.id;
+  }
+  const current = await getEmailTemplate(id);
+  if (!current) throw new Error("Modelo de e-mail não encontrado.");
+  const unchanged =
+    current.nome === nome &&
+    current.assunto === assunto &&
+    current.corpo === corpo &&
+    current.trigger === input.trigger &&
+    current.anexo === input.anexo &&
+    current.autoSend === input.autoSend;
+  if (unchanged) {
+    await updateDoc(doc(getFirebaseDb(), "emailTemplates", id), { updatedAt: now });
+    return id;
+  }
+  const versao = current.versao + 1;
+  const entry: EmailTemplateVersion = {
+    id: crypto.randomUUID(),
+    versao,
+    quando: now,
+    resumo: emailVersionSummary(current, input),
+    nome,
+    assunto,
+    corpo,
+  };
+  await updateDoc(doc(getFirebaseDb(), "emailTemplates", id), {
+    nome,
+    trigger: input.trigger,
+    assunto,
+    corpo,
+    anexo: input.anexo,
+    autoSend: input.autoSend,
+    versao,
+    historico: [...current.historico, entry],
+    updatedAt: now,
+  });
+  return id;
+}
+
+export async function setEmailTemplateArchived(id: string, arquivado: boolean) {
+  assertClinicWrite();
+  await updateDoc(doc(getFirebaseDb(), "emailTemplates", id), {
+    arquivado,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+function mapEmailLog(id: string, data: DocumentData): EmailLogEntry | null {
+  const to = text(data.to);
+  if (!to) return null;
+  return {
+    id,
+    to,
+    templateId: text(data.templateId) || null,
+    templateNome: text(data.templateNome) || null,
+    subject: text(data.subject),
+    status: data.status === "erro" ? "erro" : data.status === "pendente" ? "pendente" : "enviado",
+    error: text(data.error) || null,
+    sentAt: text(data.sentAt),
+    patientId: text(data.patientId) || null,
+    paymentId: text(data.paymentId) || null,
+    relatedType: text(data.relatedType) || null,
+    relatedId: text(data.relatedId) || null,
+  };
+}
+
+export async function listEmailLogForPatient(patientId: string, limit = 30) {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const snapshot = await getDocs(
+    query(
+      collection(getFirebaseDb(), "emailLog"),
+      where("ownerUid", "==", uid),
+      where("patientId", "==", patientId)
+    )
+  );
+  return snapshot.docs
+    .map((item) => mapEmailLog(item.id, item.data()))
+    .filter((item): item is EmailLogEntry => Boolean(item))
+    .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
+    .slice(0, limit);
+}
+
+export async function listEmailLogForTemplate(templateId: string, limit = 30) {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const snapshot = await getDocs(
+    query(collection(getFirebaseDb(), "emailLog"), where("ownerUid", "==", uid), where("templateId", "==", templateId))
+  );
+  return snapshot.docs
+    .map((item) => mapEmailLog(item.id, item.data()))
+    .filter((item): item is EmailLogEntry => Boolean(item))
+    .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
+    .slice(0, limit);
 }
 

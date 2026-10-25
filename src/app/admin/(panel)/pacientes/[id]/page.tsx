@@ -17,6 +17,7 @@ import StackedRow from "@/components/admin/mobile/StackedRow";
 import ListCard from "@/components/admin/mobile/ListCard";
 import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, Pill, ResponsiveTableWrap, Td, Th, mobileListRowSurfaceClass } from "@/components/admin/ui";
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
+import PatientFreeEmailSend, { PatientEmailLog, PaymentEmailSendButton } from "@/components/admin/PatientEmailActions";
 import PatientTcleEmit from "@/components/admin/PatientTcleEmit";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, isUnpaid, paymentReceipts, remainingAmount } from "@/lib/admin/finance";
@@ -33,9 +34,17 @@ import { maskCpf, maskPhone } from "@/lib/masks";
 import { feedbackAvailability } from "@/components/admin/FeedbackShare";
 import SecureMediaImage from "@/components/admin/SecureMediaImage";
 import { fetchSignedMediaUrl, patientPhotoAsset } from "@/lib/cloudinary/client-media";
-import type { Appointment, ClinicAttachment, Payment } from "@/lib/admin/types";
+import type { Appointment, ClinicAttachment, Patient, Payment } from "@/lib/admin/types";
 
-function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payment: Payment) => void }) {
+function PaymentRows({
+  payments,
+  patient,
+  onOpen,
+}: {
+  payments: Payment[];
+  patient: Patient;
+  onOpen: (payment: Payment) => void;
+}) {
   return (
     <>
       <MobileStackedList>
@@ -60,6 +69,7 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
                     {canReceive ? "Receber" : "Histórico"}
                   </button>
                   <PaymentFiscalReceipt payment={payment} compact />
+                  <PaymentEmailSendButton patient={patient} payment={payment} />
                 </div>
               }
             />
@@ -103,6 +113,7 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
                       </button>
                       <ReceiptLinks files={paymentReceipts(payment)} />
                       <PaymentFiscalReceipt payment={payment} />
+                      <PaymentEmailSendButton patient={patient} payment={payment} />
                     </div>
                   </Td>
                 </tr>
@@ -277,6 +288,7 @@ export default function PatientDetailPage() {
           <div className="mb-6">
             <PatientContractEmit patient={patient} />
           </div>
+          <PatientEmailLog patientId={patient.id} />
           <FileAttachments
             label="Contrato assinado"
             description="Anexe o PDF ou a imagem depois que o paciente assinar. PNG, JPG, WebP ou PDF, até 10 MB. O envio usa o armazenamento já configurado; sem as variáveis do Cloudinary, o arquivo não sobe."
@@ -287,6 +299,14 @@ export default function PatientDetailPage() {
             multiple={false}
             disabled={savingContract}
           />
+        </Card>
+      )}
+
+      {tab === "prontuario" && (
+        <Card className="mb-6">
+          <h2 className="mb-2 text-2xl font-medium text-teal">E-mail ao paciente</h2>
+          <p className="mb-4 text-sm text-muted">Escolha um modelo e envie com prévia. Configure o Gmail em Configurações → E-mail.</p>
+          <PatientFreeEmailSend patient={patient} />
         </Card>
       )}
 
@@ -589,7 +609,7 @@ export default function PatientDetailPage() {
             {paidPayments.length === 0 ? (
               <Empty>Nenhum pagamento efetuado.</Empty>
             ) : (
-              <PaymentRows payments={paidPayments} onOpen={setReceiving} />
+              <PaymentRows payments={paidPayments} patient={patient} onOpen={setReceiving} />
             )}
           </Card>
           <Card>
@@ -597,7 +617,7 @@ export default function PatientDetailPage() {
             {haverPayments.length === 0 ? (
               <Empty>Nenhum pagamento em haver.</Empty>
             ) : (
-              <PaymentRows payments={haverPayments} onOpen={setReceiving} />
+              <PaymentRows payments={haverPayments} patient={patient} onOpen={setReceiving} />
             )}
           </Card>
           <Card>
@@ -606,7 +626,7 @@ export default function PatientDetailPage() {
             {scheduledPayments.length === 0 ? (
               <Empty>Nenhum pagamento agendado.</Empty>
             ) : (
-              <PaymentRows payments={scheduledPayments} onOpen={setReceiving} />
+              <PaymentRows payments={scheduledPayments} patient={patient} onOpen={setReceiving} />
             )}
           </Card>
         </div>

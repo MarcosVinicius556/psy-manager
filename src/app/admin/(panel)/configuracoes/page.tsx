@@ -15,6 +15,7 @@ import { CRP_REGIONS, formatCrp } from "@/lib/admin/crp";
 import { maskCep, maskCpf, maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
 import GoogleCalendarIntegration from "@/components/admin/GoogleCalendarIntegration";
+import EmailIntegration from "@/components/admin/EmailIntegration";
 import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
 
 const dangerButton =
@@ -397,6 +398,8 @@ export default function SettingsPage() {
       </Card>
 
       <GoogleCalendarIntegration />
+
+      <EmailIntegration />
 
       <SecuritySettingsCard />
 
