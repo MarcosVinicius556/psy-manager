@@ -150,7 +150,7 @@ export default function MobileTabBar({
         onCookiePreferences={onCookiePreferences}
       />
       <nav
-        className={`admin-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-30 transition-transform duration-300 ease-out lg:hidden ${
+        className={`admin-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-30 transition-transform duration-300 ease-out desk:hidden ${
           hidden ? "translate-y-[120%]" : "translate-y-0"
         }`}
         aria-label="Atalhos"

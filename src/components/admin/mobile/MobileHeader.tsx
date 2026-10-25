@@ -14,7 +14,7 @@ export default function MobileHeader({
 }) {
   return (
     <header
-      className="sticky top-0 z-30 border-b border-[#d7e0d8] bg-white/95 text-ink backdrop-blur-md lg:hidden"
+      className="sticky top-0 z-30 border-b border-[#d7e0d8] bg-white/95 text-ink backdrop-blur-md desk:hidden"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className={`flex h-14 items-center gap-3 ${onOpenMenu ? "px-3" : "px-4"}`}>

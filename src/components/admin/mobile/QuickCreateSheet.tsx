@@ -50,9 +50,9 @@ export default function QuickCreateSheet({
 
   return (
     <>
-      <button type="button" className="fixed inset-0 z-40 bg-ink/35 lg:hidden" aria-label="Fechar ações rápidas" onClick={onClose} />
+      <button type="button" className="fixed inset-0 z-40 bg-ink/35 desk:hidden" aria-label="Fechar ações rápidas" onClick={onClose} />
       <div
-        className="fixed inset-x-3 z-50 rounded-lg border border-[#e7eee8] bg-white p-3 shadow-[0_20px_60px_rgba(36,48,40,0.18)] lg:hidden"
+        className="fixed inset-x-3 z-50 rounded-lg border border-[#e7eee8] bg-white p-3 shadow-[0_20px_60px_rgba(36,48,40,0.18)] desk:hidden"
         style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
         role="dialog"
         aria-modal="true"

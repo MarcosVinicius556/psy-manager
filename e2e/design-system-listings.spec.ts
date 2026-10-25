@@ -68,7 +68,7 @@ test.describe("design system — mobile listing screenshots (390px)", () => {
   test("desktop primary button hover", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-1280", "desktop hover capture");
     await page.goto("/", { waitUntil: "networkidle" });
-    const cta = page.getByRole("link", { name: /Começar|gratuitamente|cadastro/i }).first();
+    const cta = page.getByRole("link", { name: "Testar grátis" }).first();
     await cta.hover();
     await page.screenshot({ path: path.join(artifactRoot, "landing-primary-hover-1280.png"), fullPage: false });
   });

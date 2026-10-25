@@ -83,6 +83,7 @@ async function main() {
     "e2e/agenda-calendar.spec.ts",
     "e2e/public-feedback.spec.ts",
     "e2e/design-system-listings.spec.ts",
+    "e2e/admin-desk-breakpoint.spec.ts",
   ]);
   shutdown();
 }

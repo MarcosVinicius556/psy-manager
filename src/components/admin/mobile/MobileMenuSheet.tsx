@@ -247,7 +247,7 @@ export default function MobileMenuSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 lg:hidden" aria-hidden={false}>
+    <div className="fixed inset-0 z-40 desk:hidden" aria-hidden={false}>
       <motion.button
         type="button"
         aria-label="Fechar menu"
