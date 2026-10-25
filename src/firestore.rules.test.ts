@@ -328,6 +328,30 @@ describe("platform and rate limits", () => {
     await assertFails(setDoc(doc(db, "apiEmailRateLimits", ownerUid), { count: 1 }));
   });
 
+  it("clients cannot read email integrations", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(getDoc(doc(db, "emailIntegrations", ownerUid)));
+  });
+
+  it("owner reads own email log", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "emailLog", "log-1"), {
+        ownerUid: ownerUid,
+        to: "a@b.com",
+        subject: "Teste",
+        status: "enviado",
+        sentAt: new Date().toISOString(),
+      });
+    });
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(getDoc(doc(db, "emailLog", "log-1")));
+  });
+
+  it("psychologist cannot read another owners email log", async () => {
+    const db = env.authenticatedContext(memberUid).firestore();
+    await assertFails(getDoc(doc(db, "emailLog", "log-1")));
+  });
+
   it("owner records activation event once", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
     await assertSucceeds(

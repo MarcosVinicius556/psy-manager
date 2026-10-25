@@ -18,6 +18,7 @@ import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
+import { PaymentEmailSendButton } from "@/components/admin/PatientEmailActions";
 import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -187,6 +188,7 @@ function FinanceContent() {
                 const remaining = remainingAmount(payment);
                 const received = receivedAmount(payment);
                 const canReceive = remaining > 0 && payment.status !== "nao_pago";
+                const patient = patients.find((item) => item.id === payment.patientId);
                 return (
                   <StackedRow
                     key={payment.id}
@@ -224,6 +226,7 @@ function FinanceContent() {
                           {canReceive ? "Receber" : "Histórico"}
                         </button>
                         <PaymentFiscalReceipt payment={payment} compact />
+                        {patient ? <PaymentEmailSendButton patient={patient} payment={payment} /> : null}
                       </div>
                     }
                   />
@@ -249,6 +252,7 @@ function FinanceContent() {
                   const remaining = remainingAmount(payment);
                   const received = receivedAmount(payment);
                   const canReceive = remaining > 0 && payment.status !== "nao_pago";
+                  const patient = patients.find((item) => item.id === payment.patientId);
                   return (
                     <tr key={payment.id} className="hover:bg-paper">
                       <Td>
@@ -287,6 +291,7 @@ function FinanceContent() {
                           </button>
                           <ReceiptLinks files={paymentReceipts(payment)} />
                           <PaymentFiscalReceipt payment={payment} />
+                          {patient ? <PaymentEmailSendButton patient={patient} payment={payment} /> : null}
                         </div>
                       </Td>
                     </tr>

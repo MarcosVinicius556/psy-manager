@@ -544,6 +544,26 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /emailIntegrations/{uid} {
+      allow read, write: if false;
+    }
+
+    match /emailAutomationMarkers/{markerId} {
+      allow read, write: if false;
+    }
+
+    match /emailTemplates/{templateId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
+      allow delete: if tenantDelete();
+    }
+
+    match /emailLog/{logId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
     match /legalAcceptances/{acceptanceId} {
       allow read: if signedIn() && resource.data.uid == request.auth.uid;
       allow create, update, delete: if false;
