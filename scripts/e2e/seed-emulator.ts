@@ -63,7 +63,16 @@ async function main() {
     termsAcceptedAt: now,
   });
 
-  await db.doc(`users/${uid}`).set({ ...trial, role: "super_admin", onboardingDismissed: true }, { merge: true });
+  await db.doc(`users/${uid}`).set(
+    {
+      ...trial,
+      role: "psicologo",
+      billingAccess: "legado",
+      subscriptionStatus: "legado",
+      onboardingDismissed: true,
+    },
+    { merge: true }
+  );
 
   await db.collection("memberPrivate").doc(uid).set(
     {
@@ -101,15 +110,14 @@ async function main() {
     createdAt: now,
   };
 
-  await db.collection("members").doc(uid).set(memberPayload);
-  await db.collection("members").doc("member-demo").set(memberPayload);
+  await db.collection("members").doc(uid).set(memberPayload, { merge: true });
 
   const locationRef = db.collection("locations").doc("loc-demo");
   await locationRef.set({
     nome: "Consultório Centro",
     endereco: "Rua das Flores, 120 — Centro",
     observacoes: "Sala 302",
-    memberIds: ["member-demo"],
+    memberIds: [uid],
     memberUids: [uid],
     createdByUid: uid,
     ownerUid: uid,
@@ -143,16 +151,7 @@ async function main() {
     });
   }
 
-  await db.collection("appointments").doc("appt-1").set({
-    patientId: "pat-ana",
-    date: isoDate(0),
-    startTime: "10:00",
-    endTime: "11:00",
-    modality: "presencial",
-    professionalId: "member-demo",
-    locationId: "loc-demo",
-    sessionType: "padrao",
-    valor: 200,
+  const appointmentBase = {
     valorSocial: false,
     packageId: null,
     packageVersao: null,
@@ -160,12 +159,25 @@ async function main() {
     faltaJustificativa: "",
     recurring: false,
     seriesId: null,
-    status: "agendado",
     clinical: {},
     accessUids: [uid],
     ownerUid: uid,
     createdAt: now,
     updatedAt: now,
+  };
+
+  await db.collection("appointments").doc("appt-1").set({
+    patientId: "pat-ana",
+    date: isoDate(0),
+    startTime: "10:00",
+    endTime: "11:00",
+    modality: "presencial",
+    professionalId: uid,
+    locationId: "loc-demo",
+    sessionType: "padrao",
+    valor: 200,
+    status: "agendado",
+    ...appointmentBase,
   });
 
   await db.collection("appointments").doc("appt-2").set({
@@ -174,23 +186,12 @@ async function main() {
     startTime: "14:00",
     endTime: "15:00",
     modality: "online",
-    professionalId: "member-demo",
+    professionalId: uid,
     locationId: "loc-demo",
     sessionType: "padrao",
     valor: 200,
-    valorSocial: false,
-    packageId: null,
-    packageVersao: null,
-    creditoEmHaver: false,
-    faltaJustificativa: "",
-    recurring: false,
-    seriesId: null,
     status: "agendado",
-    clinical: {},
-    accessUids: [uid],
-    ownerUid: uid,
-    createdAt: now,
-    updatedAt: now,
+    ...appointmentBase,
   });
 
   await db.collection("payments").doc("pay-1").set({
@@ -258,6 +259,8 @@ async function main() {
     ownerUid: uid,
   });
 
+  let platformUid = "";
+  if (process.env.SEED_LANDING_ONLY !== "1") {
   let platformUser;
   try {
     platformUser = await auth.getUserByEmail(PLATFORM_EMAIL);
@@ -265,7 +268,7 @@ async function main() {
     platformUser = await auth.createUser({ email: PLATFORM_EMAIL, password: PLATFORM_PASSWORD, displayName: "Proprietário Plataforma" });
   }
 
-  const platformUid = platformUser.uid;
+  platformUid = platformUser.uid;
   const platformAccount = buildTrialAccount({
     uid: platformUid,
     email: PLATFORM_EMAIL,
@@ -298,6 +301,7 @@ async function main() {
     foto: "",
     ownerUid: platformUid,
   });
+  }
 
   const feedbackExpires = new Date(Date.now() + 48 * 60 * 60 * 1000);
   const feedbackCommon = {

@@ -10,89 +10,83 @@ function e2eFeedbackDocId(sequence) {
   return ["00000000", "0000", "4000", "8000", tail].join("-");
 }
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3020";
 const demoEmail = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
 const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
 const outDir = path.join(process.cwd(), "public", "landing");
 
+function mondayIso() {
+  const d = new Date();
+  const offset = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - offset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const agendaDate = mondayIso();
+
+/** Screenshots referenced by landing (hero, features, receita, how-it-works). */
 const shots = [
   {
     name: "admin-inicio",
     route: "/admin",
-    desktop: true,
     admin: true,
-    prepare: dismissCookies,
     ready: async (page) => {
       await page.getByRole("heading", { name: "Início" }).waitFor({ state: "visible", timeout: 60_000 });
-      await page.getByText(/Total (recebido|a receber)/i).first().waitFor({ state: "visible", timeout: 60_000 });
     },
   },
   {
     name: "agenda-semana",
-    route: "/admin/agenda",
-    desktop: true,
+    route: `/admin/agenda?date=${agendaDate}`,
     admin: true,
     prepare: async (page) => {
-      await dismissCookies(page);
-      const week = page.getByRole("button", { name: "Semana" });
-      if (await week.count()) await week.click();
-      await page.waitForTimeout(500);
+      await page.getByRole("heading", { name: "Agenda" }).waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByRole("button", { name: "Semana", exact: true }).click();
     },
     ready: async (page) => {
-      await page.getByText("Ana Souza").first().waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByRole("heading", { name: "Esta semana" }).waitFor({ state: "visible", timeout: 60_000 });
+      await page.getByRole("link", { name: /Ana Souza/i }).first().waitFor({ state: "visible", timeout: 60_000 });
     },
   },
   {
     name: "paciente-prontuario",
     route: "/admin/pacientes/pat-ana",
-    desktop: true,
     admin: true,
-    prepare: dismissCookies,
     ready: async (page) => {
       await page.getByRole("heading", { name: "Ana Souza" }).waitFor({ state: "visible", timeout: 60_000 });
       await page.getByText("Linha do tempo").waitFor({ state: "visible", timeout: 60_000 });
-      await page.getByText("Visualizar").first().waitFor({ state: "visible", timeout: 60_000 });
     },
   },
   {
     name: "financeiro",
     route: "/admin/financeiro",
-    desktop: true,
     admin: true,
-    prepare: dismissCookies,
     ready: async (page) => {
       await page.getByRole("heading", { name: "Contas a receber" }).waitFor({ state: "visible", timeout: 60_000 });
-      await page.getByText("Ana Souza").first().waitFor({ state: "visible", timeout: 60_000 });
+      await page.locator("table tbody tr").first().waitFor({ state: "visible", timeout: 60_000 });
     },
   },
   {
     name: "receita-saude",
     route: "/admin/financeiro/receita-saude",
-    desktop: true,
     admin: true,
-    prepare: dismissCookies,
     ready: async (page) => {
-      await page.getByText(/Receita Saúde/i).first().waitFor({ state: "visible", timeout: 60_000 });
-    },
-  },
-  {
-    name: "avaliacao-paciente",
-    route: `/feedback/${e2eFeedbackDocId(1)}`,
-    desktop: true,
-    admin: false,
-    prepare: dismissCookies,
-    ready: async (page) => {
-      await page.getByText(/Ana Souza/i).first().waitFor({ state: "visible", timeout: 60_000 });
+      await page.waitForFunction(() => /Receita Saúde/i.test(document.body.innerText), undefined, { timeout: 60_000 });
     },
   },
   {
     name: "avaliacao-paciente-mobile",
     route: `/feedback/${e2eFeedbackDocId(1)}`,
-    desktop: false,
     admin: false,
-    prepare: dismissCookies,
+    mobile: true,
     ready: async (page) => {
-      await page.getByText(/Ana Souza/i).first().waitFor({ state: "visible", timeout: 60_000 });
+      await page.waitForFunction(
+        () => /Como foi o atendimento\?/i.test(document.body.innerText),
+        undefined,
+        { timeout: 60_000 }
+      );
     },
   },
 ];
@@ -101,27 +95,25 @@ async function dismissCookies(page) {
   const accept = page.getByRole("button", { name: "Aceitar todos" });
   if (await accept.isVisible().catch(() => false)) {
     await accept.click();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
   }
 }
 
 async function login(page) {
   await page.goto(`${baseURL}/admin/login`, { waitUntil: "domcontentloaded" });
   await dismissCookies(page);
-  const email = page.locator('input[autocomplete="email"]');
-  const password = page.locator('input[autocomplete="current-password"]');
-  await email.waitFor({ state: "visible", timeout: 120_000 });
-  if (await page.getByRole("heading", { name: "Painel indisponível no momento" }).isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: "Tentar novamente" }).click();
-    await email.waitFor({ state: "visible", timeout: 120_000 });
-  }
+  const email = page.locator('input[type="email"]');
+  const password = page.locator('input[type="password"]').first();
+  await email.waitFor({ state: "visible", timeout: 90_000 });
   await email.fill(demoEmail);
   await password.fill(demoPassword);
-  await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click();
+  await page.locator("form").getByRole("button", { name: "Entrar", exact: true }).click({ force: true });
   await page.waitForURL((url) => url.pathname.startsWith("/admin") && !url.pathname.includes("/login"), {
-    timeout: 120_000,
+    timeout: 90_000,
   });
-  await page.getByRole("link", { name: "Início" }).first().waitFor({ state: "visible", timeout: 120_000 });
+  await page.getByRole("link", { name: "Início" }).first().waitFor({ state: "visible", timeout: 90_000 });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.getByRole("link", { name: "Início" }).first().waitFor({ state: "visible", timeout: 90_000 });
 }
 
 async function saveWebpAvif(pngBuffer, name) {
@@ -132,22 +124,16 @@ async function saveWebpAvif(pngBuffer, name) {
   return { webp, avif };
 }
 
-async function captureTarget(page, admin) {
-  if (!admin) {
-    return page;
-  }
-  const content = page.locator("div.mx-auto.max-w-\\[1200px\\]").first();
-  await content.waitFor({ state: "visible", timeout: 60_000 });
-  return content;
-}
-
 async function capture(page, shot) {
-  await page.waitForLoadState("networkidle", { timeout: 60_000 }).catch(() => {});
+  await page.waitForLoadState("domcontentloaded");
   if (shot.admin) await waitForClinicLoaded(page);
+  if (shot.prepare) await shot.prepare(page);
   if (shot.ready) await shot.ready(page);
   await assertNoForbiddenScreenshotText(page);
-  await page.waitForTimeout(300);
-  const target = await captureTarget(page, shot.admin);
+  const target = shot.admin
+    ? page.locator("div.mx-auto.max-w-\\[1200px\\]").first()
+    : page.locator("form").first();
+  await target.waitFor({ state: "visible", timeout: 60_000 }).catch(() => {});
   const png = await target.screenshot({ type: "png", animations: "disabled" });
   await assertNoForbiddenScreenshotText(page);
   return png;
@@ -156,7 +142,6 @@ async function capture(page, shot) {
 async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
-
   const desktopContext = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
@@ -165,26 +150,25 @@ async function main() {
   await login(desktopPage);
 
   const written = [];
-  for (const shot of shots.filter((s) => s.desktop)) {
+  for (const shot of shots.filter((s) => !s.mobile)) {
     await desktopPage.goto(`${baseURL}${shot.route}`, { waitUntil: "domcontentloaded" });
-    if (shot.prepare) await shot.prepare(desktopPage);
-    const png = await capture(desktopPage, shot);
-    written.push(await saveWebpAvif(png, shot.name));
+    await dismissCookies(desktopPage);
+    written.push(await saveWebpAvif(await capture(desktopPage, shot), shot.name));
   }
   await desktopContext.close();
 
-  const mobileContext = await browser.newContext({
-    viewport: { width: 412, height: 915 },
-    deviceScaleFactor: 2,
-  });
-  const mobilePage = await mobileContext.newPage();
-  for (const shot of shots.filter((s) => !s.desktop)) {
-    await mobilePage.goto(`${baseURL}${shot.route}`, { waitUntil: "domcontentloaded" });
-    if (shot.prepare) await shot.prepare(mobilePage);
-    const png = await capture(mobilePage, shot);
-    written.push(await saveWebpAvif(png, shot.name));
+  const mobileShot = shots.find((s) => s.mobile);
+  if (mobileShot) {
+    const mobileContext = await browser.newContext({
+      viewport: { width: 412, height: 915 },
+      deviceScaleFactor: 2,
+    });
+    const mobilePage = await mobileContext.newPage();
+    await mobilePage.goto(`${baseURL}${mobileShot.route}`, { waitUntil: "domcontentloaded" });
+    await dismissCookies(mobilePage);
+    written.push(await saveWebpAvif(await capture(mobilePage, mobileShot), mobileShot.name));
+    await mobileContext.close();
   }
-  await mobileContext.close();
 
   await browser.close();
   console.log(JSON.stringify({ ok: true, outDir, files: written }, null, 2));

@@ -70,6 +70,6 @@ export const landingScreenshots = {
 export const heroFanShots = [
   landingScreenshots.pacienteProntuario,
   landingScreenshots.financeiro,
-  landingScreenshots.reciboPdf,
   landingScreenshots.agendaSemana,
+  landingScreenshots.adminInicio,
 ];

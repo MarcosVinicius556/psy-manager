@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const projectId = process.env.FIREBASE_PROJECT_ID || "demo-psy-manager";
@@ -28,59 +28,46 @@ function run(cmd, args) {
   });
 }
 
-function start(cmd, args) {
-  return spawn(cmd, args, { stdio: "inherit", env, detached: false });
-}
-
-async function waitFor(url, attempts = 90) {
-  for (let i = 0; i < attempts; i += 1) {
+function freePorts() {
+  const ports = [3020, 8080, 9099, 4000, 4400];
+  for (const port of ports) {
     try {
-      const res = await fetch(url);
-      if (res.ok || res.status < 500) return;
-    } catch {
-      /* retry */
-    }
-    await sleep(1000);
-  }
-  throw new Error(`Timeout waiting for ${url}`);
-}
-
-const children = [];
-
-function shutdown() {
-  for (const child of children) {
-    try {
-      child.kill("SIGINT");
+      const pids = execSync(`lsof -t -i :${port} 2>/dev/null || true`, { encoding: "utf8" })
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      for (const pid of pids) {
+        try {
+          process.kill(Number(pid), "SIGKILL");
+        } catch {
+          /* ignore */
+        }
+      }
     } catch {
       /* ignore */
     }
   }
 }
 
-process.on("SIGINT", () => {
-  shutdown();
-  process.exit(130);
-});
-
 async function main() {
+  freePorts();
+  await sleep(1500);
   await run("npm", ["run", "build"]);
-  const firebase = start("npx", ["firebase", "emulators:start", "--only", "auth,firestore", "--project", projectId]);
-  children.push(firebase);
-  await sleep(8000);
-  await run("npx", ["tsx", "scripts/e2e/seed-emulator.ts"]);
-  await run("npx", ["tsx", "scripts/landing/seed-landing-demo.ts"]);
-
-  const next = start("npx", ["next", "start", "-p", "3000"]);
-  children.push(next);
-  await waitFor("http://127.0.0.1:3000/");
-
-  await run("npx", ["tsx", "scripts/landing/render-receipt-image.ts"]);
-  await run("node", ["scripts/landing/capture-screenshots.mjs"]);
-  shutdown();
+  await run("npx", [
+    "firebase",
+    "emulators:exec",
+    "--only",
+    "auth,firestore",
+    "--project",
+    projectId,
+    "node",
+    "scripts/landing/run-capture-inner.mjs",
+  ]);
+  freePorts();
 }
 
 main().catch((error) => {
   console.error(error);
-  shutdown();
+  freePorts();
   process.exit(1);
 });

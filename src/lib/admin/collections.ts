@@ -344,15 +344,20 @@ async function listShared<T extends { id: string }>(
   const uid = getFirebaseAuth().currentUser?.uid;
   if (!uid) return [];
   const base = collection(getFirebaseDb(), name);
-  const owned = await getDocs(query(base, where("ownerUid", "==", uid)));
-  let sharedDocs: typeof owned.docs = [];
+  let ownedDocs: Awaited<ReturnType<typeof getDocs>>["docs"] = [];
+  let sharedDocs: Awaited<ReturnType<typeof getDocs>>["docs"] = [];
+  try {
+    ownedDocs = (await getDocs(query(base, where("ownerUid", "==", uid)))).docs;
+  } catch (error) {
+    console.error(error);
+  }
   try {
     sharedDocs = (await getDocs(query(base, where(shareField, "array-contains", uid)))).docs;
   } catch (error) {
     console.error(error);
   }
   const byId = new Map<string, T>();
-  for (const item of [...owned.docs, ...sharedDocs]) byId.set(item.id, map(item.id, item.data()));
+  for (const item of [...ownedDocs, ...sharedDocs]) byId.set(item.id, map(item.id, item.data() as DocumentData));
   return [...byId.values()];
 }
 
