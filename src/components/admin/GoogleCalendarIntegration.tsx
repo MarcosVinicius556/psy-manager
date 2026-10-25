@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
-import { Card, Field, fieldClass } from "@/components/admin/ui";
+import { Field, fieldClass } from "@/components/admin/ui";
 import { getFirebaseAuth } from "@/lib/admin/firebase";
+import { INTEGRATION_UNAVAILABLE_USER_MESSAGE } from "@/lib/integrations/user-messages";
 import type { GoogleCalendarEventTitleMode, GoogleCalendarIntegrationSettings } from "@/lib/google-calendar/types";
 
 type CalendarOption = { id: string; summary: string; primary?: boolean };
@@ -19,7 +20,11 @@ async function authFetch(path: string, init?: RequestInit) {
   return fetch(path, { ...init, headers });
 }
 
-export default function GoogleCalendarIntegration() {
+type Props = {
+  embedded?: boolean;
+};
+
+export default function GoogleCalendarIntegration({ embedded = false }: Props) {
   const params = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [available, setAvailable] = useState(false);
@@ -136,20 +141,21 @@ export default function GoogleCalendarIntegration() {
     }
   }
 
-  if (loading) {
+  if (!embedded && loading) {
     return (
-      <Card className="mt-6">
+      <div className="mt-6 rounded-md border border-[var(--color-border-subtle)] bg-white p-6">
         <p className="text-sm text-muted">Carregando integrações...</p>
-      </Card>
+      </div>
     );
   }
 
-  return (
-    <Card className="mt-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Integrações</p>
+  const section = (
+    <section data-testid="integration-google-calendar">
       <h2 className="mt-1 text-2xl font-medium text-teal">Google Agenda</h2>
-      {!available ? (
-        <p className="mt-3 text-sm text-muted">Integração indisponível. O administrador da plataforma ainda não configurou o OAuth do Google.</p>
+      {loading ? (
+        <p className="mt-3 text-sm text-muted">Carregando...</p>
+      ) : !available ? (
+        <p className="mt-3 text-sm text-muted">{INTEGRATION_UNAVAILABLE_USER_MESSAGE}</p>
       ) : (
         <>
           <p className="mt-2 text-sm text-muted">
@@ -248,6 +254,15 @@ export default function GoogleCalendarIntegration() {
           )}
         </>
       )}
-    </Card>
+    </section>
+  );
+
+  if (embedded) return section;
+
+  return (
+    <div className="mt-6 rounded-md border border-[var(--color-border-subtle)] bg-white p-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Integrações</p>
+      {section}
+    </div>
   );
 }

@@ -8,7 +8,7 @@ const demoEmail = process.env.E2E_DEMO_EMAIL || "demo@clinica.test";
 const demoPassword = process.env.E2E_DEMO_PASSWORD || "Demo123456!";
 const platformEmail = process.env.E2E_PLATFORM_EMAIL || "platform@psy.test";
 const platformPassword = process.env.E2E_PLATFORM_PASSWORD || "Platform123456!";
-const outDir = "/opt/cursor/artifacts/screenshots";
+const outDir = "/opt/cursor/artifacts/screenshots/platform";
 const viewport = { width: 412, height: 915 };
 
 async function login(page, email, password) {

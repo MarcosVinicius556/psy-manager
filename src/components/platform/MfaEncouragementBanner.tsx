@@ -22,7 +22,10 @@ export default function MfaEncouragementBanner() {
   if (!needsMfa || dismissed) return null;
 
   return (
-    <div className="mb-4 rounded-md border border-[#c9dfd1] bg-[#eef6f0] px-4 py-3 text-sm text-ink sm:flex sm:items-center sm:justify-between sm:gap-4">
+    <div
+      className="mb-4 rounded-[var(--radius-surface)] border border-[#e7eee8] bg-sky-soft/50 px-4 py-3 text-sm text-ink sm:flex sm:items-center sm:justify-between sm:gap-4"
+      data-testid="platform-mfa-banner"
+    >
       <div className="flex min-w-0 items-start gap-3">
         <HiOutlineShieldExclamation className="mt-0.5 shrink-0 text-xl text-teal" aria-hidden />
         <p className="leading-relaxed">

@@ -3,9 +3,15 @@ import BrandLogo from "@/components/BrandLogo";
 import LegalFooterLinks from "@/components/legal/LegalFooterLinks";
 import { consultantWhatsAppUrl } from "@/lib/contact";
 
-export default function Footer() {
+type FooterProps = {
+  className?: string;
+};
+
+export default function Footer({ className = "" }: FooterProps) {
   return (
-    <footer className="mt-auto bg-footer pt-12 pb-[max(2.5rem,env(safe-area-inset-bottom))] text-white/70 sm:pt-16">
+    <footer
+      className={`mt-auto bg-footer pt-12 pb-[max(2.5rem,env(safe-area-inset-bottom))] text-white/70 sm:pt-16 ${className}`.trim()}
+    >
       <div className="site-container">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 sm:gap-10">
           <div>

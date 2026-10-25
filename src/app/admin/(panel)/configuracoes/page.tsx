@@ -14,8 +14,7 @@ import Select from "@/components/admin/Select";
 import { CRP_REGIONS, formatCrp } from "@/lib/admin/crp";
 import { maskCep, maskCpf, maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
-import GoogleCalendarIntegration from "@/components/admin/GoogleCalendarIntegration";
-import EmailIntegration from "@/components/admin/EmailIntegration";
+import IntegrationsSettingsCard from "@/components/admin/IntegrationsSettingsCard";
 import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
 
 export default function SettingsPage() {
@@ -394,9 +393,7 @@ export default function SettingsPage() {
         </button>
       </Card>
 
-      <GoogleCalendarIntegration />
-
-      <EmailIntegration />
+      <IntegrationsSettingsCard />
 
       <SecuritySettingsCard />
 

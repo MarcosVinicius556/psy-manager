@@ -78,6 +78,7 @@ async function main() {
     "e2e/mobile-bottom-nav.spec.ts",
     "e2e/landing-header.spec.ts",
     "e2e/platform-no-crash.spec.ts",
+    "e2e/platform-shell.spec.ts",
     "e2e/no-horizontal-scroll.spec.ts",
     "e2e/interactive-buttons.spec.ts",
     "e2e/agenda-calendar.spec.ts",
@@ -87,6 +88,8 @@ async function main() {
     "e2e/admin-desk-breakpoint.spec.ts",
     "e2e/admin-sidebar.spec.ts",
     "e2e/cookie-banner-viewport.spec.ts",
+    "e2e/settings-landing-integrations.spec.ts",
+    "e2e/email-integration.spec.ts",
   ]);
   shutdown();
 }

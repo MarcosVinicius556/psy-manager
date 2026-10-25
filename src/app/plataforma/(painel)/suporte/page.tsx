@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageTitle, fieldClass } from "@/components/admin/ui";
+import { Empty, PageTitle, fieldClass } from "@/components/admin/ui";
 import SupportLoadError from "@/components/support/SupportLoadError";
 import SupportTicketListCard from "@/components/support/SupportTicketListCard";
 import { useAdminSupportTickets } from "@/hooks/useSupportApi";
@@ -50,7 +50,7 @@ export default function PlataformaSuportePage() {
         ))}
       </div>
       {!loading && !error && tickets.length === 0 && (
-        <p className="text-sm text-muted">Nenhum chamado encontrado com os filtros atuais.</p>
+        <Empty>Nenhum chamado encontrado com os filtros atuais.</Empty>
       )}
     </div>
   );
