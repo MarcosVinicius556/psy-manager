@@ -20,13 +20,16 @@ export function Caveman404Art({ onFigureAnimationEnd }: ArtProps) {
           <stop offset="45%" stopColor={stone.light} />
           <stop offset="100%" stopColor={stone.mid} />
         </linearGradient>
+        <clipPath id="c404-floor-clip">
+          <rect x="0" y="208" width="500" height="240" />
+        </clipPath>
       </defs>
 
       <line x1="20" y1="300" x2="480" y2="300" stroke="var(--color-border-subtle)" strokeWidth="2.5" />
 
       <ellipse className="cave-404__shadow" cx="250" cy="304" rx="58" ry="11" fill="var(--color-teal)" opacity="0.2" />
 
-      <g className="cave-404__ground-cable" aria-hidden="true">
+      <g className="cave-404__ground-cable" clipPath="url(#c404-floor-clip)" aria-hidden="true">
         <path
           d="M62 300 C82 300 98 292 112 282 C126 272 140 264 156 256 C172 248 190 242 208 236 C222 232 236 230 248 228"
           fill="none"
@@ -50,10 +53,10 @@ export function Caveman404Art({ onFigureAnimationEnd }: ArtProps) {
           strokeWidth="5.5"
           strokeLinecap="round"
         />
-        <g transform="translate(54 297)">
-          <rect x="0" y="3" width="14" height="10" rx="1.5" fill={cable} />
-          <rect x="-7" y="1" width="5" height="6" rx="0.8" fill={cable} />
-          <rect x="-7" y="9" width="5" height="6" rx="0.8" fill={cable} />
+        <g transform="translate(62 293)">
+          <rect x="0" y="5" width="18" height="13" rx="3" fill={cable} />
+          <rect x="-10" y="6.5" width="8" height="3.5" rx="1" fill="#d8ddd6" />
+          <rect x="-10" y="13" width="8" height="3.5" rx="1" fill="#d8ddd6" />
         </g>
       </g>
 

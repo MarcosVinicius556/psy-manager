@@ -30,7 +30,7 @@
   display: block;
   width: 100%;
   height: auto;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cave-404__shadow {
@@ -132,10 +132,10 @@
     transform: translateY(0) scale(1, 1);
   }
   8% {
-    transform: translateY(-112px) scale(1, 1);
+    transform: translateY(-92px) scale(1, 1);
   }
   26% {
-    transform: translateY(-112px) scale(1, 1);
+    transform: translateY(-92px) scale(1, 1);
   }
   56% {
     transform: translateY(0) scale(1, 1);
