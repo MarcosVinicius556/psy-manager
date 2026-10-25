@@ -1,6 +1,6 @@
 .cave-404-interactive {
   display: block;
-  width: min(100%, 21.25rem);
+  width: min(100%, 22.5rem);
   margin-inline: auto;
   padding: 0;
   border: none;
@@ -12,7 +12,7 @@
 
 @media (min-width: 640px) {
   .cave-404-interactive {
-    width: min(100%, 30rem);
+    width: min(100%, 26.25rem);
   }
 }
 
@@ -38,12 +38,12 @@
 }
 
 .cave-404__lasso {
-  transform-origin: 268px 168px;
+  transform-origin: 262px 198px;
   transform-box: view-box;
 }
 
 .cave-404__figure {
-  transform-origin: 242px 224px;
+  transform-origin: 262px 266px;
   transform-box: view-box;
 }
 
@@ -116,10 +116,10 @@
     transform: translateY(0) scale(1, 1);
   }
   8% {
-    transform: translateY(-98px) scale(1, 1);
+    transform: translateY(-108px) scale(1, 1);
   }
   26% {
-    transform: translateY(-98px) scale(1, 1);
+    transform: translateY(-108px) scale(1, 1);
   }
   56% {
     transform: translateY(0) scale(1, 1);
