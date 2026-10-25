@@ -1,0 +1,206 @@
+.cave-404-interactive {
+  display: block;
+  width: min(100%, 21.25rem);
+  margin-inline: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .cave-404-interactive {
+    width: min(100%, 30rem);
+  }
+}
+
+.cave-404-interactive--playful {
+  cursor: pointer;
+}
+
+.cave-404-interactive:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 4px;
+  border-radius: var(--radius-surface);
+}
+
+.cave-404-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+
+.cave-404__shadow {
+  transform-origin: center;
+}
+
+.cave-404__lasso {
+  transform-origin: 268px 168px;
+  transform-box: view-box;
+}
+
+.cave-404__figure {
+  transform-origin: 242px 224px;
+  transform-box: view-box;
+}
+
+.cave-404__leg-left {
+  transform-box: fill-box;
+  transform-origin: 80% 20%;
+}
+
+.cave-404__leg-right {
+  transform-box: fill-box;
+  transform-origin: 20% 20%;
+}
+
+.cave-404__arm-left {
+  transform-box: fill-box;
+  transform-origin: 90% 30%;
+}
+
+.cave-404__arm-right {
+  transform-box: fill-box;
+  transform-origin: 10% 30%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cave-404-interactive--playful:not(.cave-404-interactive--jump) .cave-404__lasso {
+    animation: cave-404-lasso 2.2s linear infinite;
+  }
+
+  .cave-404-interactive--jump .cave-404__lasso {
+    animation: none;
+  }
+
+  .cave-404-interactive--jump .cave-404__figure {
+    animation: cave-404-yank 2s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__arm-left {
+    animation: cave-404-arm-left 2s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__arm-right {
+    animation: cave-404-arm-right 2s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__leg-left {
+    animation: cave-404-leg-left 2s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__leg-right {
+    animation: cave-404-leg-right 2s ease-in-out forwards;
+  }
+
+  .cave-404-interactive--jump .cave-404__shadow {
+    animation: cave-404-shadow 2s ease-in-out forwards;
+  }
+}
+
+@keyframes cave-404-lasso {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cave-404-yank {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  8% {
+    transform: translateY(-98px) scale(1, 1);
+  }
+  26% {
+    transform: translateY(-98px) scale(1, 1);
+  }
+  56% {
+    transform: translateY(0) scale(1, 1);
+  }
+  64% {
+    transform: translateY(6px) scale(1.14, 0.72);
+  }
+  76% {
+    transform: translateY(0) scale(1.04, 0.92);
+  }
+  88% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes cave-404-arm-left {
+  0%,
+  100%,
+  86% {
+    transform: rotate(0deg);
+  }
+  8%,
+  56% {
+    transform: rotate(-82deg);
+  }
+}
+
+@keyframes cave-404-arm-right {
+  0%,
+  100%,
+  86% {
+    transform: rotate(0deg);
+  }
+  8%,
+  56% {
+    transform: rotate(78deg);
+  }
+}
+
+@keyframes cave-404-leg-left {
+  0%,
+  100%,
+  86% {
+    transform: rotate(0deg);
+  }
+  8%,
+  56% {
+    transform: rotate(-48deg);
+  }
+}
+
+@keyframes cave-404-leg-right {
+  0%,
+  100%,
+  86% {
+    transform: rotate(0deg);
+  }
+  8%,
+  56% {
+    transform: rotate(52deg);
+  }
+}
+
+@keyframes cave-404-shadow {
+  0%,
+  100%,
+  86% {
+    transform: scaleX(1);
+    opacity: 0.32;
+  }
+  8%,
+  26% {
+    transform: scaleX(0.35);
+    opacity: 0.1;
+  }
+  56% {
+    transform: scaleX(1);
+    opacity: 0.32;
+  }
+  64% {
+    transform: scaleX(1.45);
+    opacity: 0.55;
+  }
+}
