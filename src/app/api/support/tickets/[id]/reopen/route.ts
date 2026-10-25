@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+import { requireAuthUser } from "@/lib/server/require-auth";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { getTicket, reopenTicket } from "@/lib/support/store";
+import { mapStoreError, readJson } from "@/lib/support/http";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuthUser(request);
+  if ("error" in auth) return auth.error;
+  if (!getAdminDb()) return NextResponse.json({ reason: "indisponivel" }, { status: 503 });
+  const { id } = await context.params;
+  const ticket = await getTicket(id);
+  if (!ticket) return NextResponse.json({ reason: "nao_encontrado" }, { status: 404 });
+  if (ticket.openedBy.uid !== auth.uid) return NextResponse.json({ reason: "proibido" }, { status: 403 });
+  if (ticket.status !== "resolvido" && ticket.status !== "encerrado") {
+    return NextResponse.json({ reason: "status_invalido" }, { status: 409 });
+  }
+  const body = await readJson<{ reason?: string }>(request);
+  if (!body?.reason?.trim()) return NextResponse.json({ reason: "motivo_obrigatorio" }, { status: 400 });
+  try {
+    await reopenTicket(id, { uid: auth.uid, name: auth.email ?? "Usuário" }, body.reason.trim());
+    const updated = await getTicket(id);
+    return NextResponse.json({ ticket: updated });
+  } catch (error) {
+    return mapStoreError(error);
+  }
+}

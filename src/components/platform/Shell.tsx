@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  HiOutlineChatAlt2,
   HiOutlineClipboardList,
   HiOutlineCreditCard,
   HiOutlineHome,
@@ -19,10 +20,11 @@ import MobileHeader from "@/components/admin/mobile/MobileHeader";
 import { useAuth } from "@/lib/admin/auth-context";
 import { AdminPageMetaProvider, useAdminPageMeta } from "@/lib/admin/page-meta-context";
 
-const links = [
+const allLinks = [
   { href: "/plataforma", label: "Indicadores", icon: HiOutlineHome, short: "Painel" },
   { href: "/plataforma/contas", label: "Contas", icon: HiOutlineUserGroup, short: "Contas" },
   { href: "/plataforma/planos", label: "Planos", icon: HiOutlineCreditCard, short: "Planos" },
+  { href: "/plataforma/suporte", label: "Suporte", icon: HiOutlineChatAlt2, short: "Suporte" },
   { href: "/plataforma/notificacoes", label: "Notificações", icon: HiOutlineMail, short: "Avisos" },
   { href: "/plataforma/auditoria", label: "Auditoria", icon: HiOutlineClipboardList, short: "Auditoria" },
 ];
@@ -32,12 +34,19 @@ function titleForPath(pathname: string) {
   if (pathname.startsWith("/plataforma/contas/")) return "Conta";
   if (pathname.startsWith("/plataforma/contas")) return "Contas";
   if (pathname.startsWith("/plataforma/planos")) return "Planos";
+  if (pathname.startsWith("/plataforma/suporte")) return "Suporte";
   if (pathname.startsWith("/plataforma/notificacoes")) return "Notificações";
   if (pathname.startsWith("/plataforma/auditoria")) return "Auditoria";
   return "Plataforma";
 }
 
-function PlatformShellInner({ children }: { children: React.ReactNode }) {
+function platformLinks(role: string | null | undefined) {
+  if (role === "support") return allLinks.filter((link) => link.href.startsWith("/plataforma/suporte"));
+  return allLinks;
+}
+
+function PlatformShellInner({ children, role }: { children: React.ReactNode; role: string | null | undefined }) {
+  const links = platformLinks(role);
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
@@ -208,7 +217,7 @@ function PlatformShellInner({ children }: { children: React.ReactNode }) {
         aria-label="Plataforma"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="grid grid-cols-5">
+        <div className={`grid grid-cols-${Math.min(links.length, 6)}`} style={{ gridTemplateColumns: `repeat(${links.length}, minmax(0, 1fr))` }}>
           {links.map((link) => {
             const Icon = link.icon;
             const current = link.href === "/plataforma" ? pathname === link.href : pathname.startsWith(link.href);
@@ -236,10 +245,16 @@ function PlatformShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function PlatformShell({ children }: { children: React.ReactNode }) {
+export default function PlatformShell({
+  children,
+  role,
+}: {
+  children: React.ReactNode;
+  role?: string | null;
+}) {
   return (
     <AdminPageMetaProvider>
-      <PlatformShellInner>{children}</PlatformShellInner>
+      <PlatformShellInner role={role ?? null}>{children}</PlatformShellInner>
     </AdminPageMetaProvider>
   );
 }

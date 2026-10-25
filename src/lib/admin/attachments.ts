@@ -9,6 +9,7 @@ export type ClinicUploadTarget = {
   patientId?: string;
   appointmentId?: string;
   paymentId?: string;
+  ticketId?: string;
 };
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -38,6 +39,7 @@ function uploadQuery(target: ClinicUploadTarget, kind: AttachmentKind) {
   if (target.patientId) params.set("patientId", target.patientId);
   if (target.appointmentId) params.set("appointmentId", target.appointmentId);
   if (target.paymentId) params.set("paymentId", target.paymentId);
+  if (target.ticketId) params.set("ticketId", target.ticketId);
   return params;
 }
 

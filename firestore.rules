@@ -18,6 +18,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "super_admin";
     }
 
+    function isSupportStaff() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["super_admin", "support"];
+    }
+
+    function supportTicketOpener() {
+      return signedIn()
+        && resource.data.openedBy.uid == request.auth.uid;
+    }
+
     function accountData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -581,6 +591,40 @@ service cloud.firestore {
 
     match /apiPublicFeedbackRateLimits/{docId} {
       allow read, write: if false;
+    }
+
+    match /apiSupportRateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    match /supportTicketCounters/{docId} {
+      allow read, write: if false;
+    }
+
+    match /supportTickets/{ticketId} {
+      allow read: if supportTicketOpener() || isSupportStaff();
+      allow create, update, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if supportTicketOpener()
+          || isSupportStaff();
+        allow create, update, delete: if false;
+      }
+
+      match /history/{eventId} {
+        allow read: if supportTicketOpener() || isSupportStaff();
+        allow create, update, delete: if false;
+      }
+
+      match /attachments/{attachmentId} {
+        allow read: if supportTicketOpener() || isSupportStaff();
+        allow create, update, delete: if false;
+      }
+
+      match /botExecutions/{executionId} {
+        allow read: if isSupportStaff();
+        allow create, update, delete: if false;
+      }
     }
 
     function activationEventNameAllowed(name) {
