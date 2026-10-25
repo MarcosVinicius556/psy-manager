@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { HiOutlinePlus } from "react-icons/hi";
-import { PageTitle } from "@/components/admin/ui";
+import { Empty, PageTitle } from "@/components/admin/ui";
 import SupportLoadError from "@/components/support/SupportLoadError";
 import SupportTicketListCard from "@/components/support/SupportTicketListCard";
 import { useMySupportTickets } from "@/hooks/useSupportApi";
@@ -28,12 +28,9 @@ export default function SuportePage() {
           <SupportTicketListCard key={ticket.id} ticket={ticket} href={`/admin/suporte/${ticket.id}`} />
         ))}
         {!loading && !error && tickets.length === 0 && (
-          <p
-            className="radius-surface border border-[var(--color-border-subtle)] bg-white px-4 py-6 text-center text-sm text-muted"
-            data-testid="support-empty-state"
-          >
-            Você ainda não abriu chamados. Use &quot;Novo chamado&quot; para falar com o suporte.
-          </p>
+          <div data-testid="support-empty-state">
+            <Empty>Você ainda não abriu chamados. Use &quot;Novo chamado&quot; para falar com o suporte.</Empty>
+          </div>
         )}
       </div>
     </div>

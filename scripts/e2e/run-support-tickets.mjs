@@ -17,7 +17,7 @@ const env = {
   NEXT_PUBLIC_APP_ID: "1:1234567890:web:demo",
   NEXT_PUBLIC_FIREBASE_EMULATOR: "true",
   NEXT_PUBLIC_FIREBASE_EMULATOR_HOST: "127.0.0.1",
-  PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3000",
+  PLAYWRIGHT_BASE_URL: `http://127.0.0.1:${process.env.E2E_PORT || "3010"}`,
 };
 
 function run(cmd, args, opts = {}) {
@@ -62,14 +62,16 @@ process.on("SIGINT", () => {
 });
 
 async function main() {
+  await run("npm", ["run", "build"]);
+  const port = process.env.E2E_PORT || "3010";
   const firebase = start("npx", ["firebase", "emulators:start", "--only", "auth,firestore", "--project", projectId]);
   children.push(firebase);
   await sleep(8000);
   await run("npx", ["tsx", "scripts/e2e/seed-emulator.ts"]);
 
-  const next = start("npx", ["next", "start", "-p", "3000"]);
+  const next = start("npx", ["next", "start", "-p", port]);
   children.push(next);
-  await waitFor("http://127.0.0.1:3000/");
+  await waitFor(`http://127.0.0.1:${port}/`);
 
   await run("npx", [
     "playwright",
