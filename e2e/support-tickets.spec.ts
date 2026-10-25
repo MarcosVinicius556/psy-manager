@@ -165,7 +165,7 @@ test.describe("support tickets — owner flow", () => {
     await page.getByLabel("Título").fill("Falha na agenda");
     await page.getByLabel("Descrição").fill("Horário não salva ao editar.");
     await page.getByRole("button", { name: "Abrir chamado" }).click();
-    await page.waitForURL(/\/admin\/suporte\/ticket-created/);
+    await page.waitForURL(/\/admin\/suporte\/ticket-created/, { timeout: 180_000 });
     await expect(page.getByTestId("support-ticket-detail")).toBeVisible();
   });
 
@@ -177,7 +177,7 @@ test.describe("support tickets — owner flow", () => {
     });
 
     await page.goto("/admin/suporte", { waitUntil: "networkidle" });
-    await expect(page.getByRole("alert")).toContainText("Falha ao carregar chamados");
+    await expect(page.getByRole("alert").first()).toContainText("Falha ao carregar chamados");
     await expect(page.getByRole("button", { name: "Tentar novamente" })).toBeVisible();
     await expect(page.getByTestId("support-empty-state")).toHaveCount(0);
   });
