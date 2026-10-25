@@ -1,18 +1,20 @@
 .cave-404-interactive {
+  --cave-404-jump-room: 5.75rem;
   display: block;
-  width: min(100%, 21.25rem);
+  width: min(calc(100% - 2rem), 28.75rem);
   margin-inline: auto;
-  padding: 0;
+  padding: var(--cave-404-jump-room) 0 0;
   border: none;
   background: transparent;
   cursor: default;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  overflow: visible;
 }
 
 @media (min-width: 640px) {
   .cave-404-interactive {
-    width: min(100%, 30rem);
+    width: min(100%, 28.75rem);
   }
 }
 
@@ -30,7 +32,8 @@
   display: block;
   width: 100%;
   height: auto;
-  overflow: hidden;
+  margin-top: calc(-1 * var(--cave-404-jump-room));
+  overflow: visible;
 }
 
 .cave-404__shadow {
@@ -38,41 +41,46 @@
 }
 
 .cave-404__lasso {
-  transform-origin: 268px 168px;
+  transform-origin: 272px 202px;
   transform-box: view-box;
 }
 
 .cave-404__figure {
-  transform-origin: 242px 224px;
+  transform-origin: 250px 298px;
   transform-box: view-box;
 }
 
 .cave-404__leg-left {
   transform-box: fill-box;
-  transform-origin: 80% 20%;
+  transform-origin: 80% 15%;
 }
 
 .cave-404__leg-right {
   transform-box: fill-box;
-  transform-origin: 20% 20%;
+  transform-origin: 20% 15%;
 }
 
 .cave-404__arm-left {
   transform-box: fill-box;
-  transform-origin: 90% 30%;
+  transform-origin: 90% 25%;
 }
 
 .cave-404__arm-right {
   transform-box: fill-box;
-  transform-origin: 10% 30%;
+  transform-origin: 10% 25%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .cave-404-interactive--playful:not(.cave-404-interactive--jump) .cave-404__lasso {
-    animation: cave-404-lasso 2.2s linear infinite;
+    animation: cave-404-lasso 2.4s linear infinite;
   }
 
-  .cave-404-interactive--jump .cave-404__lasso {
+  .cave-404-interactive--playful:not(.cave-404-interactive--jump) .cave-404__arm-right {
+    animation: cave-404-arm-swing 2.4s ease-in-out infinite;
+  }
+
+  .cave-404-interactive--jump .cave-404__lasso,
+  .cave-404-interactive--jump .cave-404__arm-right {
     animation: none;
   }
 
@@ -102,11 +110,22 @@
 }
 
 @keyframes cave-404-lasso {
-  from {
+  0%,
+  100% {
+    transform: rotate(-42deg);
+  }
+  50% {
+    transform: rotate(42deg);
+  }
+}
+
+@keyframes cave-404-arm-swing {
+  0%,
+  100% {
     transform: rotate(0deg);
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    transform: rotate(6deg);
   }
 }
 
@@ -116,10 +135,10 @@
     transform: translateY(0) scale(1, 1);
   }
   8% {
-    transform: translateY(-98px) scale(1, 1);
+    transform: translateY(-92px) scale(1, 1);
   }
   26% {
-    transform: translateY(-98px) scale(1, 1);
+    transform: translateY(-92px) scale(1, 1);
   }
   56% {
     transform: translateY(0) scale(1, 1);
