@@ -9,7 +9,7 @@ import ListCard from "@/components/admin/mobile/ListCard";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import AnimatedMetric from "@/components/admin/motion/AnimatedMetric";
 import { RingProgress } from "@/components/admin/motion/ChartMotion";
-import { Card, CardMetric, CardTitle, DataTable, Empty, MobileListGrid, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
+import { Card, CardMetric, CardTitle, DataTable, Empty, MobileListGrid, MobileStackedList, Pill, ResponsiveTableWrap, Td, Th, WidgetSectionFooter, WidgetSectionTitle } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import type { WidgetId } from "@/lib/admin/dashboard-layout";
@@ -226,7 +226,7 @@ function CalendarWidget() {
           <Empty>{activeLocationName ? `Nenhum atendimento em ${activeLocationName} neste dia.` : "Nenhum atendimento neste dia."}</Empty>
         ) : (
           <>
-            <div className="admin-mobile-only min-w-0">
+            <MobileStackedList>
               {dayItems.map((item) => (
                 <StackedRow
                   key={item.id}
@@ -239,7 +239,7 @@ function CalendarWidget() {
                   meta={<Pill tone="sage">{labelAppointmentStatus(item.status)}</Pill>}
                 />
               ))}
-            </div>
+            </MobileStackedList>
             <ResponsiveTableWrap>
               <DataTable minWidth={640}>
                 <thead>

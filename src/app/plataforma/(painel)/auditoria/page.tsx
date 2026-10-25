@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ListCard from "@/components/admin/mobile/ListCard";
-import { DataTable, Empty, PageTitle, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
+import { DataTable, Empty, MobileListGrid, PageTitle, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { listAudit, type AuditEntry } from "@/lib/saas/platform-store";
 
 export default function AuditPage() {
@@ -25,7 +25,7 @@ export default function AuditPage() {
       {!loading && items.length === 0 && <Empty>Nenhuma ação administrativa registrada.</Empty>}
       {items.length > 0 && (
         <>
-          <div className="grid min-w-0 gap-3 md:hidden">
+          <MobileListGrid className="md:hidden">
             {items.map((item) => (
               <ListCard
                 key={item.id}
@@ -38,7 +38,7 @@ export default function AuditPage() {
                 <p className="mt-1 truncate text-xs text-muted">{item.actorEmail}</p>
               </ListCard>
             ))}
-          </div>
+          </MobileListGrid>
           <ResponsiveTableWrap>
             <DataTable minWidth={760}>
               <thead>

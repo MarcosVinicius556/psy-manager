@@ -160,8 +160,7 @@ export default function ReceitaSaudePage() {
           <Empty>Nenhum pagamento recebido neste mês.</Empty>
         ) : (
           <>
-            <div className="admin-mobile-only min-w-0" data-mobile-list>
-              <MobileListGrid>
+            <MobileListGrid>
                 {rows.map((row) => (
                   <ListCard
                     key={row.paymentId}
@@ -172,8 +171,7 @@ export default function ReceitaSaudePage() {
                     <p className="text-xs text-muted">Beneficiário: {row.cpfBeneficiario ? maskCpf(row.cpfBeneficiario) : "—"}</p>
                   </ListCard>
                 ))}
-              </MobileListGrid>
-            </div>
+            </MobileListGrid>
             <ResponsiveTableWrap>
               <table className="w-full min-w-0 text-left text-sm">
                 <thead>

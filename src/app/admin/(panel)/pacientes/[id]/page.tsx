@@ -15,7 +15,7 @@ import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import ListCard from "@/components/admin/mobile/ListCard";
-import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
+import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, Pill, ResponsiveTableWrap, Td, Th, mobileListRowSurfaceClass } from "@/components/admin/ui";
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
 import PatientTcleEmit from "@/components/admin/PatientTcleEmit";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -38,7 +38,7 @@ import type { Appointment, ClinicAttachment, Payment } from "@/lib/admin/types";
 function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payment: Payment) => void }) {
   return (
     <>
-      <div className="admin-mobile-only min-w-0" data-mobile-list>
+      <MobileStackedList>
         {payments.map((payment) => {
           const remaining = remainingAmount(payment);
           const canReceive = remaining > 0 && payment.status !== "nao_pago";
@@ -65,7 +65,7 @@ function PaymentRows({ payments, onOpen }: { payments: Payment[]; onOpen: (payme
             />
           );
         })}
-      </div>
+      </MobileStackedList>
       <ResponsiveTableWrap>
         <DataTable>
           <thead>
@@ -308,18 +308,17 @@ export default function PatientDetailPage() {
             <Empty>Nenhum atendimento realizado para este paciente.</Empty>
           ) : (
             <>
-              <ol className="admin-mobile-only space-y-3" data-mobile-list>
+              <MobileListGrid>
                 {finished.map((item) => (
-                  <li key={item.id} className="min-w-0">
-                    <ListCard
-                      href={`/admin/atendimentos/${item.id}`}
-                      title={formatDate(item.date)}
-                      subtitle={`${item.startTime}–${item.endTime} · ${labelModality(item.modality)} · ${labelSessionType(item.sessionType)}`}
-                      meta={<Pill>{labelAppointmentStatus(item.status)}</Pill>}
-                    />
-                  </li>
+                  <ListCard
+                    key={item.id}
+                    href={`/admin/atendimentos/${item.id}`}
+                    title={formatDate(item.date)}
+                    subtitle={`${item.startTime}–${item.endTime} · ${labelModality(item.modality)} · ${labelSessionType(item.sessionType)}`}
+                    meta={<Pill>{labelAppointmentStatus(item.status)}</Pill>}
+                  />
                 ))}
-              </ol>
+              </MobileListGrid>
               <ResponsiveTableWrap>
                 <DataTable>
                   <thead>
@@ -372,7 +371,7 @@ export default function PatientDetailPage() {
                     const pack = packages.find((entry) => entry.id === item.packageId);
                     const modalityLine = `${labelModality(item.modality)}${item.locationId ? ` · ${locationName(item.locationId)}` : ""}${item.recurring ? " · recorrente" : ""}`;
                     return (
-                      <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 shadow-[0_8px_24px_rgba(61,82,64,0.06)]">
+                      <div key={item.id} className={`${mobileListRowSurfaceClass} p-4 shadow-[0_8px_24px_rgba(61,82,64,0.06)]`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="font-medium text-ink">{formatDate(item.date)}</p>
@@ -483,7 +482,7 @@ export default function PatientDetailPage() {
                   {credits.map((item) => {
                     const pack = packages.find((entry) => entry.id === item.packageId);
                     return (
-                      <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 text-sm">
+                      <div key={item.id} className={`${mobileListRowSurfaceClass} p-4 text-sm`}>
                         <p className="font-medium text-ink">{pack?.nome || "Pacote"}</p>
                         <p className="mt-1 text-muted">
                           {formatDate(item.date)} · {item.startTime}
@@ -531,7 +530,7 @@ export default function PatientDetailPage() {
                   {feedbacks.map((item) => {
                     const availability = feedbackAvailability(item);
                     return (
-                      <div key={item.id} className="rounded-md border border-[#e7eee8] bg-white p-4 text-sm">
+                      <div key={item.id} className={`${mobileListRowSurfaceClass} p-4 text-sm`}>
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-medium text-ink">
                             {formatDate(item.sessionDate)} · {item.startTime}

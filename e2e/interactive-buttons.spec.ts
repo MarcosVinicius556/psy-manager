@@ -98,7 +98,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
     });
 
     test("mobile menu sheet opens and closes", async ({ page }, testInfo) => {
-      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 1024;
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 960;
       if (!isMobile) {
         test.skip();
         return;
@@ -118,14 +118,14 @@ test.describe("interactive buttons — mobile and desktop", () => {
     });
 
     test("desktop sidebar legal group expands", async ({ page }, testInfo) => {
-      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 1024;
+      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 960;
       if (!isDesktop) {
         test.skip();
         return;
       }
       const errors = attachPageErrorCollector(page);
       await page.goto("/admin", { waitUntil: "domcontentloaded" });
-      const legal = page.locator("aside.md\\:flex").getByRole("button", { name: "Legal" });
+      const legal = page.locator("aside").getByRole("button", { name: "Legal" });
       await expect(legal).toHaveAttribute("aria-expanded", "false");
       await legal.click();
       await expect(legal).toHaveAttribute("aria-expanded", "true");
@@ -134,7 +134,7 @@ test.describe("interactive buttons — mobile and desktop", () => {
     });
 
     test("desktop header action is clickable", async ({ page }, testInfo) => {
-      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 1024;
+      const isDesktop = (testInfo.project.use.viewport?.width ?? 0) >= 960;
       if (!isDesktop) {
         test.skip();
         return;

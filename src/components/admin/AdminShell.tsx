@@ -28,6 +28,10 @@ import {
   type AdminNavLink,
 } from "@/lib/admin/admin-nav";
 import { useCookieConsent } from "@/components/legal/CookieConsentProvider";
+import {
+  ADMIN_MOBILE_TABBAR_MEDIA,
+  isNarrowDeskViewport,
+} from "@/lib/admin/layout-breakpoints";
 
 type NavLinkItem = AdminNavLink;
 type NavGroupItem = AdminNavGroup;
@@ -54,7 +58,7 @@ function groupForPath(menu: NavEntry[], pathname: string) {
 }
 
 function navShellClass(collapsed: boolean, nested = false) {
-  return `relative flex items-center overflow-hidden rounded-xl border border-transparent text-sm font-medium transition-[color,background-color] duration-200 ${
+  return `relative flex items-center overflow-hidden rounded-md border border-transparent text-sm font-medium transition-[color,background-color] duration-200 ${
     collapsed ? "justify-center px-0 py-3" : nested ? "gap-3 py-2.5 pl-9 pr-3" : "gap-3 px-3 py-3"
   }`;
 }
@@ -302,8 +306,10 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const { openPreferences } = useCookieConsent();
 
   useEffect(() => {
-    setCollapsed(window.localStorage.getItem("psy-sidebar") === "1");
-    setOpenGroup(groupForPath(menu, pathname));
+    const storedCollapsed = window.localStorage.getItem("psy-sidebar") === "1";
+    const narrowDesk = isNarrowDeskViewport(window.innerWidth);
+    setCollapsed(narrowDesk ? true : storedCollapsed);
+    setOpenGroup(narrowDesk ? null : groupForPath(menu, pathname));
   }, []);
 
   useEffect(() => {
@@ -316,7 +322,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   }, [pathname, setMeta, actionRef]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023px)").matches) return;
+    if (typeof window === "undefined" || !window.matchMedia(ADMIN_MOBILE_TABBAR_MEDIA).matches) return;
     function onScroll() {
       const y = window.scrollY;
       const delta = y - lastScrollY.current;
@@ -343,8 +349,8 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
       <aside
-        className={`fixed bottom-4 left-4 top-4 z-30 hidden flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-footer pb-4 pt-5 text-white shadow-[0_28px_80px_rgba(23,47,51,0.22)] transition-[width,padding] duration-300 ease-out lg:flex ${
-          collapsed ? "w-[4.75rem] px-2" : "w-72 px-4"
+        className={`fixed bottom-4 left-4 top-4 z-30 hidden max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-white/10 bg-footer pb-4 pt-5 text-white shadow-[0_28px_80px_rgba(23,47,51,0.22)] transition-[width,padding] duration-300 ease-out desk:flex ${
+          collapsed ? "w-[4.75rem] px-2" : "w-64 px-4 min-[64rem]:w-72"
         }`}
       >
         <div className={`flex shrink-0 gap-2 transition-[justify-content] duration-300 ${collapsed ? "flex-col items-center" : "items-center justify-between"}`}>
@@ -427,11 +433,13 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       />
 
       <div
-        className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out lg:pb-8 ${
-          collapsed ? "lg:pl-[calc(1rem+4.75rem+1rem)]" : "lg:pl-[calc(1rem+18rem+1rem)]"
+        className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out desk:pb-8 ${
+          collapsed
+            ? "desk:pl-[calc(1rem+4.75rem+1rem)]"
+            : "desk:pl-[calc(1rem+16rem+1rem)] min-[64rem]:pl-[calc(1rem+18rem+1rem)]"
         }`}
       >
-        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 lg:py-8">
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 desk:py-8">
           <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>
       </div>

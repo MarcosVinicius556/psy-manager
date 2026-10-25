@@ -86,7 +86,7 @@ test.describe("platform routes — no client exceptions", () => {
       await page.goto("/admin", { waitUntil: "load" });
       await page.waitForTimeout(800);
 
-      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 1024;
+      const isMobile = (testInfo.project.use.viewport?.width ?? 0) < 960;
       if (isMobile) {
         await page.getByTestId("mobile-tabbar-menu").click();
       }

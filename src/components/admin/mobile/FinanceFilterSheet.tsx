@@ -37,16 +37,16 @@ export default function FinanceFilterSheet({
         <button type="button" className="btn-chip min-h-11 shrink-0" onClick={() => setOpen(true)} aria-expanded={open}>
           Filtros
         </button>
-        <span className="inline-flex max-w-full min-w-0 truncate rounded-full border border-[#d7e0d8] bg-paper px-3 py-1.5 text-xs text-muted">
+        <span className="inline-flex max-w-full min-w-0 truncate rounded-md border border-[#d7e0d8] bg-paper px-3 py-1.5 text-xs text-muted">
           {monthLabel(month)}
         </span>
         {status !== "todos" ? (
-          <span className="inline-flex shrink-0 rounded-full border border-teal/30 bg-sky-soft px-3 py-1.5 text-xs font-medium text-teal">
+          <span className="inline-flex shrink-0 rounded-md border border-teal/30 bg-sky-soft px-3 py-1.5 text-xs font-medium text-teal">
             {statusLabel}
           </span>
         ) : null}
         {(from || to) && (
-          <span className="inline-flex shrink-0 rounded-full border border-[#d7e0d8] bg-white px-3 py-1.5 text-xs text-muted">
+          <span className="inline-flex shrink-0 rounded-md border border-[#d7e0d8] bg-white px-3 py-1.5 text-xs text-muted">
             Período
           </span>
         )}

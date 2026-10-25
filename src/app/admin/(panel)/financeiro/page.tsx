@@ -18,7 +18,7 @@ import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
-import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
+import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
@@ -182,7 +182,7 @@ function FinanceContent() {
             <Empty>Nenhum lançamento neste filtro.</Empty>
           ) : (
             <>
-            <div className="admin-mobile-only min-w-0" data-mobile-list>
+            <MobileStackedList>
               {filtered.map((payment) => {
                 const remaining = remainingAmount(payment);
                 const received = receivedAmount(payment);
@@ -229,7 +229,7 @@ function FinanceContent() {
                   />
                 );
               })}
-            </div>
+            </MobileStackedList>
             <ResponsiveTableWrap>
             <DataTable minWidth={920}>
               <thead>

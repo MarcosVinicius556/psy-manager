@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import StackedRow from "@/components/admin/mobile/StackedRow";
-import { Card, DataTable, Empty, PageTitle, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
+import { Card, DataTable, Empty, MobileStackedList, PageTitle, ResponsiveTableWrap, Td, Th, fieldClass } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { canSettleExpense, dueLabel, isDueSoon, isExpenseOverdue, isSharedExpense, paidShareCount } from "@/lib/admin/expenses";
@@ -148,7 +148,7 @@ export default function NotificationsPage() {
           <Empty>{notifications.length === 0 ? "Nenhum pagamento aguardando confirmação." : "Nenhuma notificação neste filtro."}</Empty>
         ) : (
           <>
-          <div className="admin-mobile-only min-w-0" data-mobile-list>
+          <MobileStackedList>
             {ordered.map((notification) => {
               const payment = payments.find((item) => item.id === notification.paymentId);
               return (
@@ -160,7 +160,7 @@ export default function NotificationsPage() {
                 />
               );
             })}
-          </div>
+          </MobileStackedList>
           <ResponsiveTableWrap>
           <DataTable>
             <thead>

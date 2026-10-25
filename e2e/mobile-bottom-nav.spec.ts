@@ -27,7 +27,7 @@ test.describe("mobile bottom navigation", () => {
 
   test("tab labels stay visible, FAB centered, Financeiro in menu sheet", async ({ page }, testInfo) => {
     const width = testInfo.project.use.viewport?.width ?? 0;
-    if (width >= 1024) return;
+    if (width >= 960) return;
 
     const routes = ["/admin", "/admin/agenda", "/admin/pacientes", "/admin/financeiro"];
     for (const route of routes) {
@@ -67,7 +67,7 @@ test.describe("mobile bottom navigation", () => {
   });
 
   test("Menu tab opens bottom sheet not side drawer", async ({ page }, testInfo) => {
-    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 1024, "mobile only");
+    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 960, "mobile only");
     await page.goto("/admin", { waitUntil: "networkidle" });
     await expect(page.locator("#admin-mobile-nav")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveCount(0);
@@ -82,7 +82,7 @@ test.describe("mobile bottom navigation", () => {
   });
 
   test("menu sheet items are left-aligned and accordion keeps one group open", async ({ page }, testInfo) => {
-    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 1024, "mobile only");
+    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 960, "mobile only");
     await page.goto("/admin", { waitUntil: "networkidle" });
     await page.getByTestId("mobile-tabbar-menu").click();
     const sheet = page.getByTestId("admin-mobile-menu-sheet");
@@ -107,7 +107,7 @@ test.describe("mobile bottom navigation", () => {
   });
 
   test("dashboard active patients count is stable after refresh", async ({ page }, testInfo) => {
-    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 1024, "mobile only");
+    test.skip((testInfo.project.use.viewport?.width ?? 0) >= 960, "mobile only");
     await page.goto("/admin", { waitUntil: "networkidle" });
     const count = page.getByTestId("dashboard-active-patients-count");
     await expect(count).toBeVisible();

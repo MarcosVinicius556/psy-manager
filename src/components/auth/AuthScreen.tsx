@@ -168,11 +168,11 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   }
 
   const inputClass =
-    "h-12 w-full rounded-full border border-[#d7e0d8] bg-white text-base text-ink outline-none transition placeholder:text-muted focus:border-teal";
+    "h-12 w-full rounded-md border border-[#d7e0d8] bg-white text-base text-ink outline-none transition placeholder:text-muted focus:border-teal";
 
   return (
     <div className="grid min-h-dvh place-items-center bg-[#d7e0d8] px-4 py-4 sm:p-6" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-      <div className="grid w-full max-w-[1080px] overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_rgba(23,47,51,0.18)] lg:min-h-[680px] lg:grid-cols-2">
+      <div className="grid w-full max-w-[1080px] overflow-hidden rounded-lg bg-white shadow-[0_30px_80px_rgba(23,47,51,0.18)] lg:min-h-[680px] lg:grid-cols-2">
         <div className="flex flex-col justify-center bg-[#f6f7f5] px-5 py-8 sm:px-10 sm:py-10">
           <Link href="/" aria-label="Psy Manager" className="inline-flex">
             <BrandLogo height={44} priority className="max-w-[70vw]" />
@@ -190,21 +190,21 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
             <button
               type="button"
               onClick={() => switchMode("login")}
-              className={`h-11 rounded-full text-sm font-semibold transition ${mode === "login" ? "bg-teal text-white" : "border border-[#d5ddd6] bg-white text-teal"}`}
+              className={`h-11 rounded-md border text-sm font-semibold transition ${mode === "login" ? "border-teal bg-teal text-white" : "border-[#d5ddd6] bg-white text-teal"}`}
             >
               Entrar
             </button>
             <button
               type="button"
               onClick={() => switchMode("signup")}
-              className={`h-11 rounded-full text-sm font-semibold transition ${mode === "signup" ? "bg-teal text-white" : "border border-[#d5ddd6] bg-white text-teal"}`}
+              className={`h-11 rounded-md border text-sm font-semibold transition ${mode === "signup" ? "border-teal bg-teal text-white" : "border-[#d5ddd6] bg-white text-teal"}`}
             >
               Criar conta
             </button>
           </div>
 
           {!configured && (
-            <p className="mt-4 rounded-2xl bg-[#f6e6df] px-4 py-3 text-sm text-accent">
+            <p className="mt-4 rounded-md bg-[#f6e6df] px-4 py-3 text-sm text-accent">
               O acesso ainda não está disponível neste ambiente.
             </p>
           )}
@@ -352,7 +352,8 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
             )}
 
             <button
-              className="mt-1 h-12 w-full rounded-full bg-teal text-base font-semibold text-white transition hover:bg-teal-mid disabled:opacity-60"
+              type="submit"
+              className="btn-primary mt-1 h-12 w-full text-base disabled:opacity-60"
               disabled={submitting || !configured || Boolean(mfaResolver) || (mode === "signup" && (!acceptTerms || !acceptDpa))}
             >
               {submitting ? "Aguarde..." : mode === "login" ? "Entrar" : "Começar meus 30 dias"}
@@ -369,7 +370,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
             type="button"
             onClick={onGoogle}
             disabled={submitting || !configured}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#d5ddd6] bg-white text-base font-semibold text-ink transition hover:border-teal disabled:opacity-60"
+            className="btn-text flex h-12 w-full items-center justify-center gap-3 text-base disabled:opacity-60"
           >
             <GoogleMark />
             {mode === "login" ? "Entrar com o Google" : "Criar conta com o Google"}
@@ -385,7 +386,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
         <div className="relative hidden min-h-full lg:block">
           <img src="/images/landing/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#122428]/80 via-[#122428]/15 to-transparent" />
-          <p className="absolute right-5 bottom-5 left-5 max-w-sm rounded-2xl border border-white/25 bg-white/12 px-4 py-3 text-sm leading-relaxed text-white backdrop-blur-md">
+          <p className="absolute right-5 bottom-5 left-5 max-w-sm rounded-md border border-white/25 bg-white/12 px-4 py-3 text-sm leading-relaxed text-white backdrop-blur-md">
             Agenda, pacientes e financeiro no mesmo lugar, com o ritmo do seu consultório.
           </p>
         </div>

@@ -289,7 +289,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
         </div>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <Card className={`max-lg:order-2 ${period === "hoje" || period === "semana" ? "max-md:hidden" : ""}`}>
+        <Card className={`max-desk:order-2 ${period === "hoje" || period === "semana" ? "max-md:hidden" : ""}`}>
           <p className="mb-3 text-sm text-ink">
             Marcações do local <strong>{placeName}</strong>
           </p>
@@ -307,7 +307,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
             }}
           />
         </Card>
-        <Card className={`max-lg:order-1 ${period === "mes" ? "max-md:hidden" : ""}`} data-agenda-day-card>
+        <Card className={`max-desk:order-1 ${period === "mes" ? "max-md:hidden" : ""}`} data-agenda-day-card>
           <h2 className="mb-1 text-2xl font-medium text-teal" data-agenda-selected-date>{formatDate(selected)}</h2>
           <p className="mb-1 text-sm font-medium text-ink">{placeName}</p>
           <p className="mb-4 text-sm text-muted">

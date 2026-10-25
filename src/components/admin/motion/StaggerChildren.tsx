@@ -7,7 +7,7 @@ export default function StaggerChildren({ children }: { children: ReactNode }) {
   return Children.map(children, (child, index) => {
     if (!isValidElement(child)) return child;
     return (
-      <AdminStaggerItem key={child.key ?? `stagger-${index}`}>
+      <AdminStaggerItem key={child.key ?? `stagger-${index}`} className="min-w-0 w-full">
         {child}
       </AdminStaggerItem>
     );
