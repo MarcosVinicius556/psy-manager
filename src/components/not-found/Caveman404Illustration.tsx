@@ -59,87 +59,105 @@ export default function Caveman404Illustration() {
     >
       <svg
         className="cave-404-svg"
-        viewBox="0 0 360 200"
+        viewBox="0 0 480 268"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-label={ILLUSTRATION_LABEL}
       >
         <title>{ILLUSTRATION_LABEL}</title>
 
-        <line x1="24" y1="168" x2="336" y2="168" stroke="var(--color-border-subtle)" strokeWidth="2" />
+        <line x1="32" y1="228" x2="448" y2="228" stroke="var(--color-border-subtle)" strokeWidth="2.5" />
 
         <ellipse
           className="cave-404__shadow"
-          cx="182"
-          cy="172"
-          rx="34"
-          ry="7"
+          cx="242"
+          cy="232"
+          rx="46"
+          ry="9"
           fill="var(--color-teal)"
-          opacity="0.18"
+          opacity="0.22"
         />
 
         <g aria-hidden="true">
-          <ellipse cx="58" cy="166" rx="14" ry="4" fill="var(--color-sage-light)" opacity="0.85" />
-          <ellipse cx="72" cy="164" rx="10" ry="3.5" fill="var(--color-sage-light)" opacity="0.75" />
-          <rect x="62" y="128" width="26" height="10" rx="5" fill="#b8c4ba" />
-          <rect x="66" y="116" width="20" height="10" rx="5" fill="#c5cec6" />
-          <rect x="70" y="104" width="14" height="10" rx="5" fill="#d2d9d3" />
+          <ellipse cx="88" cy="224" rx="18" ry="5" fill="var(--color-sage-light)" opacity="0.9" />
+          <ellipse cx="108" cy="222" rx="14" ry="4" fill="var(--color-sage-light)" opacity="0.75" />
+          <ellipse cx="98" cy="214" rx="34" ry="11" fill="#b8c4ba" />
+          <ellipse cx="98" cy="198" rx="28" ry="10" fill="#c5cec6" />
+          <ellipse cx="98" cy="184" rx="22" ry="9" fill="#d5dcd6" />
 
-          <ellipse cx="298" cy="166" rx="12" ry="4" fill="var(--color-sage-light)" opacity="0.85" />
+          <ellipse cx="418" cy="224" rx="16" ry="5" fill="var(--color-sage-light)" opacity="0.9" />
+          <ellipse cx="392" cy="222" rx="12" ry="4" fill="var(--color-sage-light)" opacity="0.8" />
+          <ellipse cx="368" cy="214" rx="22" ry="18" fill="#c5cec6" />
           <path
-            d="M286 168 L286 92 Q286 78 302 78 Q318 78 318 92 L318 168 Z"
+            d="M388 228 L388 118 Q388 96 412 96 Q436 96 436 118 L436 228 Z"
             fill="#c5cec6"
           />
-          <path d="M292 168 L292 100 Q292 88 304 88 Q316 88 316 100 L316 168 Z" fill="#d2d9d3" opacity="0.45" />
+          <path
+            d="M396 228 L396 128 Q396 110 412 110 Q428 110 428 128 L428 228 Z"
+            fill="#d8ded9"
+            opacity="0.55"
+          />
         </g>
 
         <g className="cave-404__figure" onAnimationEnd={onFigureAnimationEnd}>
           <g className="cave-404__leg-left">
-            <path d="M168 148 L158 168 L172 168 L176 148 Z" fill="#8b5e3c" />
-            <rect x="154" y="166" width="20" height="6" rx="2" fill="#5c4033" />
+            <path d="M224 196 L212 228 L232 228 L236 196 Z" fill="#e5c49a" />
+            <ellipse cx="222" cy="228" rx="14" ry="5" fill="#d4b48a" />
           </g>
           <g className="cave-404__leg-right">
-            <path d="M196 148 L206 168 L192 168 L188 148 Z" fill="#8b5e3c" />
-            <rect x="186" y="166" width="20" height="6" rx="2" fill="#5c4033" />
+            <path d="M260 196 L272 228 L252 228 L248 196 Z" fill="#e5c49a" />
+            <ellipse cx="262" cy="228" rx="14" ry="5" fill="#d4b48a" />
           </g>
 
           <path
-            d="M162 118 Q182 108 202 118 L198 150 Q182 156 166 150 Z"
+            d="M218 152 Q242 142 266 152 L262 200 Q242 208 222 200 Z"
             fill="var(--color-accent)"
           />
-          <circle cx="174" cy="132" r="3" fill="#a85f42" opacity="0.55" />
-          <circle cx="188" cy="138" r="2.5" fill="#a85f42" opacity="0.5" />
-          <circle cx="180" cy="142" r="2" fill="#a85f42" opacity="0.45" />
+          <ellipse cx="232" cy="172" rx="4" ry="3.5" fill="#a85f42" opacity="0.65" />
+          <ellipse cx="252" cy="178" rx="3.5" ry="3" fill="#a85f42" opacity="0.55" />
+          <ellipse cx="244" cy="188" rx="3" ry="2.5" fill="#9a563f" opacity="0.5" />
 
           <g className="cave-404__arm-left">
-            <path d="M164 122 L148 128 L146 134 L162 130 Z" fill="#e8c4a0" />
+            <path d="M218 158 L196 168 L194 176 L216 170 Z" fill="#e5c49a" />
+            <circle cx="193" cy="177" r="7" fill="#e5c49a" />
           </g>
 
-          <circle cx="182" cy="98" r="22" fill="#e8c4a0" />
+          <g className="cave-404__arm-right">
+            <path d="M266 158 L284 166 L282 174 L264 168 Z" fill="#e5c49a" />
+            <circle cx="268" cy="168" r="7.5" fill="#e5c49a" />
+          </g>
+
+          <circle cx="242" cy="128" r="30" fill="#e5c49a" />
           <path
-            d="M162 92 Q182 72 202 92 Q198 108 182 110 Q166 108 162 92 Z"
+            d="M214 118 Q218 88 242 82 Q268 86 272 112 Q268 124 242 126 Q216 124 214 118 Z"
             fill="#5c4033"
           />
-          <ellipse cx="182" cy="100" rx="16" ry="12" fill="#5c4033" />
-          <circle cx="174" cy="96" r="2.2" fill="#243028" />
-          <circle cx="190" cy="96" r="2.2" fill="#243028" />
-          <path d="M176 104 Q182 108 188 104" stroke="#8b5e3c" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M220 104 Q228 92 248 94 Q262 98 268 110 Q252 102 236 104 Q224 106 220 104 Z"
+            fill="#6b4a35"
+          />
+          <path
+            d="M228 138 Q242 152 256 138 Q252 148 242 150 Q232 148 228 138 Z"
+            fill="#5c4033"
+          />
+          <ellipse cx="242" cy="132" rx="17" ry="14" fill="#e5c49a" />
+          <circle cx="232" cy="126" r="3" fill="#243028" />
+          <circle cx="252" cy="126" r="3" fill="#243028" />
+          <circle cx="242" cy="132" r="2.2" fill="#c9a07a" />
+          <path d="M236 140 Q242 143 248 140" stroke="#8b5e3c" strokeWidth="2" fill="none" strokeLinecap="round" />
 
-          <g className="cave-404__lasso-arm">
-            <g className="cave-404__arm-right">
-              <path d="M200 122 L216 118 L218 124 L202 130 Z" fill="#e8c4a0" />
-            </g>
+          <g className="cave-404__lasso">
             <path
-              d="M214 120 C228 108 248 88 268 72 C278 64 290 58 302 52"
+              d="M268 168 L268 202"
               fill="none"
               stroke="#1a1a1a"
-              strokeWidth="4"
+              strokeWidth="5"
               strokeLinecap="round"
             />
-            <g transform="translate(298 48)">
-              <rect x="0" y="6" width="14" height="10" rx="2" fill="#1a1a1a" />
-              <rect x="3" y="0" width="3.5" height="6" rx="1" fill="#1a1a1a" />
-              <rect x="7.5" y="0" width="3.5" height="6" rx="1" fill="#1a1a1a" />
+            <g transform="translate(258 202)">
+              <rect x="0" y="10" width="20" height="14" rx="2" fill="#1a1a1a" />
+              <rect x="4" y="0" width="4.5" height="9" rx="1" fill="#1a1a1a" />
+              <rect x="11.5" y="0" width="4.5" height="9" rx="1" fill="#1a1a1a" />
             </g>
           </g>
         </g>

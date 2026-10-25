@@ -1,6 +1,6 @@
 .cave-404-interactive {
   display: block;
-  width: min(100%, 22rem);
+  width: min(100%, 21.25rem);
   margin-inline: auto;
   padding: 0;
   border: none;
@@ -8,6 +8,12 @@
   cursor: default;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .cave-404-interactive {
+    width: min(100%, 30rem);
+  }
 }
 
 .cave-404-interactive--playful {
@@ -24,62 +30,74 @@
   display: block;
   width: 100%;
   height: auto;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .cave-404__shadow {
   transform-origin: center;
 }
 
-.cave-404__lasso-arm {
-  transform-origin: 182px 108px;
+.cave-404__lasso {
+  transform-origin: 268px 168px;
   transform-box: view-box;
 }
 
 .cave-404__figure {
-  transform-origin: 182px 148px;
+  transform-origin: 242px 224px;
   transform-box: view-box;
 }
 
-.cave-404__leg-left,
-.cave-404__leg-right,
-.cave-404__arm-left,
+.cave-404__leg-left {
+  transform-box: fill-box;
+  transform-origin: 80% 20%;
+}
+
+.cave-404__leg-right {
+  transform-box: fill-box;
+  transform-origin: 20% 20%;
+}
+
+.cave-404__arm-left {
+  transform-box: fill-box;
+  transform-origin: 90% 30%;
+}
+
 .cave-404__arm-right {
   transform-box: fill-box;
-  transform-origin: center bottom;
+  transform-origin: 10% 30%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .cave-404-interactive--playful:not(.cave-404-interactive--jump) .cave-404__lasso-arm {
-    animation: cave-404-lasso 2.8s linear infinite;
+  .cave-404-interactive--playful:not(.cave-404-interactive--jump) .cave-404__lasso {
+    animation: cave-404-lasso 2.2s linear infinite;
   }
 
-  .cave-404-interactive--jump .cave-404__lasso-arm {
+  .cave-404-interactive--jump .cave-404__lasso {
     animation: none;
   }
 
   .cave-404-interactive--jump .cave-404__figure {
-    animation: cave-404-yank 1.85s ease-in-out forwards;
+    animation: cave-404-yank 2s ease-in-out forwards;
   }
 
   .cave-404-interactive--jump .cave-404__arm-left {
-    animation: cave-404-arm-left 1.85s ease-in-out forwards;
+    animation: cave-404-arm-left 2s ease-in-out forwards;
   }
 
   .cave-404-interactive--jump .cave-404__arm-right {
-    animation: cave-404-arm-right 1.85s ease-in-out forwards;
+    animation: cave-404-arm-right 2s ease-in-out forwards;
   }
 
   .cave-404-interactive--jump .cave-404__leg-left {
-    animation: cave-404-leg-left 1.85s ease-in-out forwards;
+    animation: cave-404-leg-left 2s ease-in-out forwards;
   }
 
   .cave-404-interactive--jump .cave-404__leg-right {
-    animation: cave-404-leg-right 1.85s ease-in-out forwards;
+    animation: cave-404-leg-right 2s ease-in-out forwards;
   }
 
   .cave-404-interactive--jump .cave-404__shadow {
-    animation: cave-404-shadow 1.85s ease-in-out forwards;
+    animation: cave-404-shadow 2s ease-in-out forwards;
   }
 }
 
@@ -97,22 +115,22 @@
   100% {
     transform: translateY(0) scale(1, 1);
   }
-  10% {
-    transform: translateY(-58px) scale(1, 1);
+  8% {
+    transform: translateY(-98px) scale(1, 1);
   }
-  28% {
-    transform: translateY(-58px) scale(1, 1);
+  26% {
+    transform: translateY(-98px) scale(1, 1);
   }
-  58% {
+  56% {
     transform: translateY(0) scale(1, 1);
   }
-  66% {
-    transform: translateY(4px) scale(1.1, 0.78);
+  64% {
+    transform: translateY(6px) scale(1.14, 0.72);
   }
-  78% {
-    transform: translateY(0) scale(1.02, 0.94);
+  76% {
+    transform: translateY(0) scale(1.04, 0.92);
   }
-  90% {
+  88% {
     transform: translateY(0) scale(1, 1);
   }
 }
@@ -120,69 +138,69 @@
 @keyframes cave-404-arm-left {
   0%,
   100%,
-  88% {
+  86% {
     transform: rotate(0deg);
   }
-  10%,
-  58% {
-    transform: rotate(-72deg) translate(-4px, -2px);
+  8%,
+  56% {
+    transform: rotate(-82deg);
   }
 }
 
 @keyframes cave-404-arm-right {
   0%,
   100%,
-  88% {
+  86% {
     transform: rotate(0deg);
   }
-  10%,
-  58% {
-    transform: rotate(68deg) translate(4px, -2px);
+  8%,
+  56% {
+    transform: rotate(78deg);
   }
 }
 
 @keyframes cave-404-leg-left {
   0%,
   100%,
-  88% {
+  86% {
     transform: rotate(0deg);
   }
-  10%,
-  58% {
-    transform: rotate(-38deg);
+  8%,
+  56% {
+    transform: rotate(-48deg);
   }
 }
 
 @keyframes cave-404-leg-right {
   0%,
   100%,
-  88% {
+  86% {
     transform: rotate(0deg);
   }
-  10%,
-  58% {
-    transform: rotate(42deg);
+  8%,
+  56% {
+    transform: rotate(52deg);
   }
 }
 
 @keyframes cave-404-shadow {
   0%,
   100%,
-  88% {
+  86% {
     transform: scaleX(1);
-    opacity: 0.35;
+    opacity: 0.32;
   }
-  10%,
-  28% {
-    transform: scaleX(0.45);
-    opacity: 0.12;
+  8%,
+  26% {
+    transform: scaleX(0.35);
+    opacity: 0.1;
   }
-  58% {
+  56% {
     transform: scaleX(1);
-    opacity: 0.35;
+    opacity: 0.32;
   }
-  66% {
-    transform: scaleX(1.35);
-    opacity: 0.5;
+  64% {
+    transform: scaleX(1.45);
+    opacity: 0.55;
   }
 }
