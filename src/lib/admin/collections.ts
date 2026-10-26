@@ -36,11 +36,17 @@ import { singleFlight } from "./single-flight";
 import { getFirebaseAuth, getFirebaseDb } from "./firebase";
 import {
   emptyPatientPrivate,
-  patientPrivateDocId,
   pickPatientPrivateFields,
   stripPatientPrivateFields,
 } from "./patient-private";
-import { effectiveOwnerUid } from "@/lib/team/workspace-owner";
+import { effectiveOwnerUid, isDelegatedTenantAccess } from "@/lib/team/workspace-owner";
+import {
+  fetchPatientPrivateApi,
+  fetchTenantCollectionDocs,
+  savePatientPrivateApi,
+  tenantCreateDoc,
+  tenantPatchDoc,
+} from "./tenant-api-client";
 import {
   contractVersionSummary,
   type ContractTemplate,
@@ -356,6 +362,10 @@ function currentOwnerUid() {
 }
 
 async function listCollection<T>(name: string, map: (id: string, data: DocumentData) => T) {
+  if (isDelegatedTenantAccess()) {
+    const docs = await fetchTenantCollectionDocs(name);
+    return docs.map((item) => map(item.id, item.data as DocumentData));
+  }
   const uid = currentOwnerUid();
   const snapshot = await getDocs(query(collection(getFirebaseDb(), name), where("ownerUid", "==", uid)));
   trackFirestoreReads(snapshot.size);
@@ -462,7 +472,14 @@ function filterPaymentsInDueWindow<T extends { dueDate: string }>(items: T[], st
 }
 
 export async function listAppointmentsInWindow(startMillis: number, endMillis: number) {
-  const uid = getFirebaseAuth().currentUser?.uid;
+  if (isDelegatedTenantAccess()) {
+    const docs = await fetchTenantCollectionDocs("appointments", {
+      startMillis: String(startMillis),
+      endMillis: String(endMillis),
+    });
+    return docs.map((item) => mapAppointment(item.id, item.data as DocumentData));
+  }
+  const uid = currentOwnerUid();
   if (!uid) return [];
   const base = collection(getFirebaseDb(), "appointments");
   const constraints = [
@@ -484,7 +501,14 @@ export async function listAppointmentsInWindow(startMillis: number, endMillis: n
 }
 
 export async function listPaymentsInDueWindow(startMillis: number, endMillis: number) {
-  const uid = getFirebaseAuth().currentUser?.uid;
+  if (isDelegatedTenantAccess()) {
+    const docs = await fetchTenantCollectionDocs("payments", {
+      startMillis: String(startMillis),
+      endMillis: String(endMillis),
+    });
+    return docs.map((item) => mapPayment(item.id, item.data as DocumentData));
+  }
+  const uid = currentOwnerUid();
   if (!uid) return [];
   const base = collection(getFirebaseDb(), "payments");
   try {
@@ -723,7 +747,11 @@ async function loadMemberPrivateForUid(uid: string) {
 }
 
 export async function listMembers(): Promise<ClinicMember[]> {
-  const uid = getFirebaseAuth().currentUser?.uid;
+  if (isDelegatedTenantAccess()) {
+    const docs = await fetchTenantCollectionDocs("members");
+    return docs.map((item) => mapMember(item.id, item.data as DocumentData, emptyMemberPrivateFields()));
+  }
+  const uid = currentOwnerUid();
   if (!uid) return [];
   const privateForSelf = await loadMemberPrivateForUid(uid);
   const snapshot = await getDocs(query(collection(getFirebaseDb(), "members"), where("ownerUid", "==", uid)));
@@ -749,6 +777,7 @@ export async function saveMemberPrivateProfile(uid: string, fields: ReturnType<t
 }
 
 export function listExpenses() {
+  if (isDelegatedTenantAccess()) return Promise.resolve([]);
   return listShared("expenses", "accessUids", mapExpense);
 }
 
@@ -766,6 +795,7 @@ function mapLocation(id: string, data: DocumentData): CareLocation {
 }
 
 export function listLocations() {
+  if (isDelegatedTenantAccess()) return Promise.resolve([]);
   return listShared("locations", "memberUids", mapLocation);
 }
 
@@ -860,41 +890,25 @@ export async function removeExpense(id: string) {
 }
 
 export async function loadPatientPrivate(patientId: string) {
-  const ownerUid = currentOwnerUid();
-  const authUid = getFirebaseAuth().currentUser?.uid;
-  if (!authUid || authUid !== ownerUid) return emptyPatientPrivate();
-  const snap = await getDoc(doc(getFirebaseDb(), "patientPrivate", patientPrivateDocId(ownerUid, patientId)));
-  if (!snap.exists()) return emptyPatientPrivate();
-  return pickPatientPrivateFields(snap.data() as Record<string, unknown>);
-}
-
-async function savePatientPrivateFields(patientId: string, fields: ReturnType<typeof pickPatientPrivateFields>) {
-  const ownerUid = currentOwnerUid();
-  const authUid = getFirebaseAuth().currentUser?.uid;
-  if (!authUid || authUid !== ownerUid) return;
-  await setDoc(
-    doc(getFirebaseDb(), "patientPrivate", patientPrivateDocId(ownerUid, patientId)),
-    {
-      ownerUid,
-      patientId,
-      ...fields,
-      updatedAt: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+  if (isDelegatedTenantAccess()) return emptyPatientPrivate();
+  return fetchPatientPrivateApi(patientId);
 }
 
 export async function createPatient(input: PatientInput) {
   assertClinicWrite();
-  const ownerUid = currentOwnerUid();
   const privateFields = pickPatientPrivateFields(input as Record<string, unknown>);
   const publicFields = stripPatientPrivateFields({ ...input } as Record<string, unknown>);
+  if (isDelegatedTenantAccess()) {
+    const id = await tenantCreateDoc("patients", publicFields as Record<string, unknown>);
+    return id;
+  }
+  const ownerUid = currentOwnerUid();
   const ref = await addDoc(collection(getFirebaseDb(), "patients"), {
     ...publicFields,
     ownerUid,
     createdAt: new Date().toISOString(),
   });
-  await savePatientPrivateFields(ref.id, privateFields);
+  await savePatientPrivateApi(ref.id, privateFields);
   return ref.id;
 }
 
@@ -902,8 +916,12 @@ export async function updatePatient(id: string, input: PatientInput) {
   assertClinicWrite();
   const privateFields = pickPatientPrivateFields(input as Record<string, unknown>);
   const publicFields = stripPatientPrivateFields({ ...input } as Record<string, unknown>);
+  if (isDelegatedTenantAccess()) {
+    await tenantPatchDoc("patients", id, publicFields as Record<string, unknown>);
+    return;
+  }
   await updateDoc(doc(getFirebaseDb(), "patients", id), publicFields);
-  await savePatientPrivateFields(id, privateFields);
+  await savePatientPrivateApi(id, privateFields);
 }
 
 export async function setPatientSignedContract(id: string, file: ClinicAttachment | null) {
@@ -921,6 +939,14 @@ export async function createAppointment(input: AppointmentInput, accessUids: str
   const now = new Date().toISOString();
   const ownerUid = currentOwnerUid();
   const payload = stripClinicalFromAppointmentInput(input);
+  if (isDelegatedTenantAccess()) {
+    return tenantCreateDoc("appointments", {
+      ...payload,
+      accessUids: Array.from(new Set([ownerUid, ...accessUids])),
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
   const ref = await addDoc(collection(getFirebaseDb(), "appointments"), {
     ...payload,
     ownerUid,
@@ -950,10 +976,12 @@ export async function updateAppointment(id: string, patch: Partial<AppointmentIn
   assertClinicWrite();
   const { clinical: _clinical, ...rest } = patch;
   const payload = stripClinicalFromAppointmentInput(rest as AppointmentInput);
-  await updateDoc(doc(getFirebaseDb(), "appointments", id), {
-    ...payload,
-    updatedAt: new Date().toISOString(),
-  });
+  const body = { ...payload, updatedAt: new Date().toISOString() };
+  if (isDelegatedTenantAccess()) {
+    await tenantPatchDoc("appointments", id, body);
+    return;
+  }
+  await updateDoc(doc(getFirebaseDb(), "appointments", id), body);
 }
 
 export async function updateAppointmentMeetLink(id: string, googleMeetLink: string | null) {
@@ -1026,6 +1054,14 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
 export async function createPayment(input: PaymentInput) {
   assertClinicWrite();
   const now = new Date().toISOString();
+  if (isDelegatedTenantAccess()) {
+    const { paymentPixTxid } = await import("@/lib/pix/payment-txid");
+    const tempId = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
+    return tenantCreateDoc("payments", {
+      ...paymentRecord(input, now),
+      pixTxid: paymentPixTxid(tempId),
+    });
+  }
   const ref = doc(collection(getFirebaseDb(), "payments"));
   const id = ref.id;
   const { paymentPixTxid } = await import("@/lib/pix/payment-txid");
@@ -1061,6 +1097,10 @@ export async function updatePayment(id: string, patch: Partial<Payment>) {
   if (typeof patch.dueDate === "string") {
     const millis = dueDateMillis(patch.dueDate);
     data.dueDateMillis = millis || null;
+  }
+  if (isDelegatedTenantAccess()) {
+    await tenantPatchDoc("payments", id, data);
+    return;
   }
   await updateDoc(doc(getFirebaseDb(), "payments", id), data);
 }
@@ -1242,6 +1282,7 @@ function mapInvite(id: string, data: DocumentData): LocationInvite {
 }
 
 export async function listLocationInvites() {
+  if (isDelegatedTenantAccess()) return [];
   const uid = getFirebaseAuth().currentUser?.uid;
   if (!uid) return [];
   const base = collection(getFirebaseDb(), "locationInvites");
@@ -1304,6 +1345,7 @@ function mapFeedback(id: string, data: DocumentData): SessionFeedback {
 }
 
 export function listSessionFeedbacks() {
+  if (isDelegatedTenantAccess()) return Promise.resolve([]);
   return listCollection("sessionFeedbacks", mapFeedback);
 }
 

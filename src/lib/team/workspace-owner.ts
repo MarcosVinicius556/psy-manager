@@ -16,3 +16,8 @@ export function effectiveOwnerUid() {
   if (!authUid) throw new Error("Faça login para continuar.");
   return tenantOwnerUid ?? authUid;
 }
+
+export function isDelegatedTenantAccess() {
+  const authUid = getFirebaseAuth().currentUser?.uid;
+  return Boolean(tenantOwnerUid && authUid && tenantOwnerUid !== authUid);
+}
