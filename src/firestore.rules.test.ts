@@ -123,6 +123,18 @@ describe("clinicalNoteTemplates", () => {
   });
 });
 
+describe("tenantRead", () => {
+  it("denies read when ownerUid is missing", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "patients", "patient-sem-owner"), {
+        nome: "Sem dono",
+      });
+    });
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(getDoc(doc(db, "patients", "patient-sem-owner")));
+  });
+});
+
 describe("clinicalRecords", () => {
   it("owner reads own clinical record", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();

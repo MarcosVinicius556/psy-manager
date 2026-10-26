@@ -30,7 +30,7 @@ export default function DeviceFrame({ shot, variant, className = "", priority }:
       className={`landing-device overflow-hidden ${variant === "phone" ? "max-w-[280px] rounded-[28px] border border-[#d7e0d8] p-2" : ""} ${className}`}
     >
       {chrome}
-      <div className={variant === "phone" ? "overflow-hidden rounded-[22px]" : ""}>
+      <div className={variant === "phone" ? "overflow-hidden radius-surface" : ""}>
         <LandingScreenshot shot={shot} priority={priority} className="w-full" sizes={variant === "phone" ? "280px" : "(max-width: 768px) 100vw, 640px"} />
       </div>
     </div>

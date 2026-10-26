@@ -19,7 +19,7 @@ export default function PlansSection() {
           A avaliação não pede cartão. Quando quiser seguir com o uso pago, conversamos no WhatsApp ou por e-mail — sem checkout automático nesta página.
         </p>
         <div className="mt-12 grid gap-5 md:grid-cols-2">
-          <article className="landing-card-v2 rounded-[22px] border border-[#e8e4dc] bg-white p-6 sm:p-8">
+          <article className="landing-card-v2 radius-surface border border-leaf bg-white p-6 sm:p-8">
             <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-accent">Gratuito</p>
             <h3 className="mt-3 text-[1.7rem]">Avaliação</h3>
             <p className="mt-3 font-num text-2xl text-teal">R$ 0</p>
@@ -33,7 +33,7 @@ export default function PlansSection() {
               ))}
             </ul>
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <Link href="/cadastro" className="btn-primary landing-pill-cta w-full sm:w-auto">
+              <Link href="/cadastro" className="btn-primary w-full sm:w-auto">
                 Testar grátis
               </Link>
               <Link href="/admin/login" className="btn-text w-full sm:w-auto">
@@ -42,7 +42,7 @@ export default function PlansSection() {
             </div>
           </article>
 
-          <article className="landing-card-v2 rounded-[22px] border border-[#e8e4dc] bg-white p-6 sm:p-8">
+          <article className="landing-card-v2 radius-surface border border-leaf bg-white p-6 sm:p-8">
             <p className="text-[0.78rem] font-medium uppercase tracking-[0.16em] text-accent">Uso contínuo</p>
             <h3 className="mt-3 text-[1.7rem]">Fale com um consultor</h3>
             <p className="mt-3 font-num text-2xl text-teal">Sob consulta</p>

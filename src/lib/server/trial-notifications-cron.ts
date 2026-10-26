@@ -27,16 +27,21 @@ export async function runTrialNotificationsCron(db: Firestore, now = Date.now())
   const snapshot = await db
     .collection("users")
     .where("role", "==", "psicologo")
+    .where("subscriptionStatus", "in", ["trial_ativo", "trial_expirado"])
     .get();
 
   for (const docSnap of snapshot.docs) {
     const account = mapAccount(docSnap.id, docSnap.data());
     if (account.role === "super_admin") continue;
     const tracked =
-      account.billingAccess === "trial" ||
       account.subscriptionStatus === "trial_ativo" ||
-      account.subscriptionStatus === "trial_expirado";
+      account.subscriptionStatus === "trial_expirado" ||
+      account.billingAccess === "trial";
     if (!tracked) continue;
+    if (account.subscriptionStatus === "trial_ativo" && account.trialEndsAtMillis > now + 8 * 24 * 60 * 60 * 1000) {
+      result.skipped += 1;
+      continue;
+    }
 
     result.scanned += 1;
     const markerSnapshot = await db.collection("trialNoticeMarkers").where("accountId", "==", account.uid).get();

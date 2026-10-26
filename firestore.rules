@@ -213,10 +213,9 @@ service cloud.firestore {
     }
 
     function tenantRead() {
-      return signedIn() && (
-        resource.data.ownerUid == request.auth.uid
-        || !resource.data.keys().hasAny(["ownerUid"])
-      );
+      return signedIn()
+        && resource.data.keys().hasAny(["ownerUid"])
+        && resource.data.ownerUid == request.auth.uid;
     }
 
     function tenantCreate() {
@@ -227,10 +226,8 @@ service cloud.firestore {
       return signedIn()
         && clinicWritesOpen()
         && request.resource.data.ownerUid == request.auth.uid
-        && (
-          resource.data.ownerUid == request.auth.uid
-          || !resource.data.keys().hasAny(["ownerUid"])
-        );
+        && resource.data.keys().hasAny(["ownerUid"])
+        && resource.data.ownerUid == request.auth.uid;
     }
 
     function tenantDelete() {
@@ -650,6 +647,10 @@ service cloud.firestore {
     match /trialNoticeMarkers/{markerId} {
       allow read: if isSuperAdmin();
       allow write: if false;
+    }
+
+    match /cronRuns/{runId} {
+      allow read, write: if false;
     }
   }
 }

@@ -40,13 +40,14 @@ import {
 import { addMonths, formatDate, formatMoney, labelPaymentMethod, labelPaymentStatus, todayISO } from "@/lib/admin/format";
 import { maskPhone } from "@/lib/masks";
 import type { Payment, PaymentStatus } from "@/lib/admin/types";
+import { monthDueWindow } from "@/lib/admin/clinic-load-windows";
 
 function FinanceContent() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { patients, payments, members, locations, loading, patientName } = useClinic();
+  const { patients, payments, members, locations, loading, patientName, ensurePaymentsDueWindow } = useClinic();
   const currentMember = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const presetPatientId = params.get("patientId") || "";
   const drawerOpen = params.get("novo") === "1" || Boolean(presetPatientId);
@@ -63,6 +64,12 @@ function FinanceContent() {
   const today = todayISO();
   const currentMonth = today.slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
+
+  useEffect(() => {
+    if (loading) return;
+    const { startMillis, endMillis } = monthDueWindow(month);
+    void ensurePaymentsDueWindow(startMillis, endMillis);
+  }, [ensurePaymentsDueWindow, loading, month]);
 
   const filtered = useMemo(() => {
     return payments.filter((payment) => {

@@ -24,10 +24,10 @@ export default function SecuritySection() {
           ))}
         </ul>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/seguranca" className="btn-text landing-pill-ghost min-h-11">
+          <Link href="/seguranca" className="btn-text min-h-11">
             Página de segurança
           </Link>
-          <Link href="/privacidade" className="btn-text landing-pill-ghost min-h-11">
+          <Link href="/privacidade" className="btn-text min-h-11">
             Política de privacidade
           </Link>
         </div>

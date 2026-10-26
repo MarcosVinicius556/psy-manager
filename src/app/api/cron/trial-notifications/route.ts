@@ -1,23 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { runTrialNotificationsCron } from "@/lib/server/trial-notifications-cron";
+import { trialNotificationsJob } from "@/lib/server/cron/jobs/trial-notifications";
+import { authorizeCron, runDailyJob } from "@/lib/server/cron/runner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function authorized(request: Request) {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) {
-    console.warn("trial_notifications_cron: CRON_SECRET ausente");
-    return false;
-  }
-  const header = request.headers.get("authorization") || "";
-  const expected = `Bearer ${secret}`;
-  return header === expected;
-}
-
+/** Mantido por compatibilidade; o dispatcher oficial é `/api/cron/daily`. */
 export async function GET(request: Request) {
-  if (!authorized(request)) {
+  if (!authorizeCron(request)) {
     return NextResponse.json({ ok: false, reason: "nao_autorizado" }, { status: 401 });
   }
   const db = getAdminDb();
@@ -26,8 +17,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, reason: "admin_indisponivel" }, { status: 503 });
   }
   try {
-    const result = await runTrialNotificationsCron(db);
-    return NextResponse.json({ ok: true, ...result });
+    const summary = await runDailyJob(db, trialNotificationsJob);
+    return NextResponse.json({ ok: true, ...summary });
   } catch (error) {
     console.error("trial_notifications_cron", error);
     return NextResponse.json({ ok: false, reason: "falha_processamento" }, { status: 500 });
