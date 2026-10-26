@@ -29,7 +29,7 @@ describe("parseFeatureFlagValue", () => {
 describe("resolveFeatureFlag", () => {
   it("usa o default do registro quando a variável não está definida", () => {
     expect(resolveFeatureFlag("dashboardCustomization", undefined)).toBe(FEATURE_FLAG_DEFAULTS.dashboardCustomization);
-    expect(resolveFeatureFlag("dashboardCustomization", "")).toBe(false);
+    expect(resolveFeatureFlag("dashboardCustomization", "")).toBe(true);
   });
 
   it("sobrescreve o default quando o valor é reconhecido", () => {

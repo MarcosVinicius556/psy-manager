@@ -1,5 +1,7 @@
 export type PatientStatus = "ativo" | "inativo";
 
+export type AppointmentConfirmationStatus = "pendente" | "confirmada" | "remarcar";
+
 export type AppointmentStatus =
   | "agendado"
   | "em_andamento"
@@ -17,6 +19,8 @@ export type PaymentStatus = "agendado" | "em_haver" | "pago" | "nao_pago";
 export type PaymentOrigin = "paciente" | "externo";
 
 export type PaymentMethod = "pix" | "dinheiro" | "cartao" | "transferencia" | "outro";
+
+export type PixKeyType = "cpf" | "cnpj" | "email" | "telefone" | "aleatoria" | "";
 export type PaymentEventType = "lancamento" | "pagamento" | "situacao";
 
 import type { CloudinaryAsset } from "@/lib/cloudinary/asset";
@@ -79,6 +83,9 @@ export interface Patient {
   contratoAssinado: ClinicAttachment | null;
   tcleAceite: TcleAcceptance | null;
   status: PatientStatus;
+  demo?: boolean;
+  /** Opt-in para lembretes automáticos por e-mail (padrão: ligado). */
+  lembretesEmail?: boolean;
   createdAt: string;
 }
 
@@ -155,6 +162,10 @@ export interface Appointment {
   googleEventId: string | null;
   googleLocationEventId: string | null;
   googleMeetLink: string | null;
+  sessionStartMillis?: number;
+  demo?: boolean;
+  confirmacao?: AppointmentConfirmationStatus | null;
+  confirmadaEm?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -179,11 +190,16 @@ export interface ClinicMember {
   enderecoCidade: string;
   enderecoUf: string;
   enderecoCep: string;
+  pixChave: string;
+  pixTipo: PixKeyType;
+  pixNome: string;
+  pixCidade: string;
   reciboSequencia: number;
   valorBase: number;
   valorSocial: number;
   workHours: WorkShift[];
   contratoModelo: string;
+  politicaFalta?: { horas: number; percentual: number };
   ativo: boolean;
   createdAt: string;
 }
@@ -266,6 +282,9 @@ export interface Payment {
   formaPagamento: PaymentMethod;
   historico: PaymentEvent[];
   reciboFiscal: FiscalReceiptRecord | null;
+  pixTxid: string;
+  comprovantePaciente: ClinicAttachment | null;
+  demo?: boolean;
   createdAt: string;
 }
 
@@ -341,7 +360,19 @@ export type MemberInput = Pick<ClinicMember, "nome" | "email">;
 export type PackageInput = Omit<SessionPackage, "id" | "createdAt" | "updatedAt" | "versao" | "historico" | "arquivado" | "arquivadoEm">;
 export type PaymentInput = Omit<
   Payment,
-  "id" | "createdAt" | "paidAt" | "status" | "packageId" | "valorAcordado" | "historico" | "origem" | "recorrente" | "seriesId" | "reciboFiscal"
+  | "id"
+  | "createdAt"
+  | "paidAt"
+  | "status"
+  | "packageId"
+  | "valorAcordado"
+  | "historico"
+  | "origem"
+  | "recorrente"
+  | "seriesId"
+  | "reciboFiscal"
+  | "pixTxid"
+  | "comprovantePaciente"
 > & {
   status?: PaymentStatus;
   packageId?: string | null;
@@ -384,5 +415,6 @@ export function emptyPatient(): PatientInput {
     foto: "",
     fotoAsset: null,
     status: "ativo",
+    lembretesEmail: true,
   };
 }

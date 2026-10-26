@@ -23,6 +23,7 @@ const adminRoutes = [
   "/admin/pacientes",
   "/admin/pacientes/pat-ana",
   "/admin/financeiro",
+  "/admin/financeiro/receita-saude",
   "/admin/configuracoes",
   "/admin/notificacoes",
   "/admin/locais",

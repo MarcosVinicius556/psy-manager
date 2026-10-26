@@ -13,6 +13,7 @@ import { useClinic } from "@/lib/admin/clinic-context";
 import { adminGroupForPath, adminTitleForPath, buildAdminMenu } from "@/lib/admin/admin-nav";
 import { useCookieConsent } from "@/components/legal/CookieConsentProvider";
 import { ADMIN_MOBILE_TABBAR_MEDIA, isNarrowDeskViewport } from "@/lib/admin/layout-breakpoints";
+import PwaBootstrap from "@/components/admin/PwaBootstrap";
 
 function AdminShellInner({ children }: { children: React.ReactNode }) {
   const { meta, actionRef, setMeta } = useAdminPageMeta();
@@ -82,6 +83,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
+      <PwaBootstrap />
       <AdminDeskSidebar
         menu={menu}
         pathname={pathname}

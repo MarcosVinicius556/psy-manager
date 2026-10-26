@@ -13,6 +13,7 @@ import type { EmailAttachmentKind, EmailLogEntry, EmailTemplateTrigger } from "@
 
 const TRIGGER_OPTIONS: { value: EmailTemplateTrigger; label: string }[] = [
   { value: "confirmacao_pagamento", label: "Confirmação de pagamento" },
+  { value: "cobranca_pix", label: "Cobrança com Pix" },
   { value: "copia_contrato", label: "Cópia do contrato" },
   { value: "envio_recibo", label: "Envio de recibo" },
   { value: "lembrete_sessao", label: "Lembrete de sessão" },

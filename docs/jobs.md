@@ -36,7 +36,8 @@ export const meuJob: DailyCronJob = {
 | ID | Descrição |
 | --- | --- |
 | `trial_notifications` | Avisos de fim de trial (contas `trial_ativo` / `trial_expirado`). |
-| `cleanup_expired` | Remove `sessionFeedbacks` com `expiresAtMillis` no passado (substituto de TTL pago). |
+| `session_reminders` | Lembretes de sessão do dia seguinte (e-mail com confirmação em um clique). |
+| `cleanup_expired` | Remove `sessionFeedbacks` e `sessionConfirmations` expirados (substituto de TTL pago). |
 
 ## Compatibilidade
 

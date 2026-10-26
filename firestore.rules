@@ -32,6 +32,20 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    function integralWritesOpen(user) {
+      return user.billingAccess == "integral"
+        && (
+          !("cancelAtPeriodEnd" in user)
+          || user.cancelAtPeriodEnd != true
+          || ("accessUntilMillis" in user && user.accessUntilMillis > request.time.toMillis())
+        )
+        && (
+          !("paidUntilMillis" in user)
+          || user.paidUntilMillis == 0
+          || user.paidUntilMillis > request.time.toMillis()
+        );
+    }
+
     function clinicWritesOpen() {
       let user = accountData();
       return !("billingAccess" in user)
@@ -39,7 +53,7 @@ service cloud.firestore {
           (!("accountStatus" in user) || (user.accountStatus != "suspensa" && user.accountStatus != "desativada"))
           && (
             user.billingAccess == "legado"
-            || user.billingAccess == "integral"
+            || integralWritesOpen(user)
             || (
               user.billingAccess == "trial"
               && user.subscriptionStatus == "trial_ativo"
@@ -132,6 +146,23 @@ service cloud.firestore {
       return resource.data.subscriptionStatus in ["trial_ativo", "cortesia"]
         && request.resource.data.subscriptionStatus == "cancelada"
         && request.resource.data.billingAccess == "restrito"
+        && planSame()
+        && accountStatusSame()
+        && trialEndSame()
+        && roleStable()
+        && checkoutSame();
+    }
+
+    function selfCancelPaid() {
+      return resource.data.subscriptionStatus == "ativa"
+        && resource.data.billingAccess == "integral"
+        && request.resource.data.subscriptionStatus == "ativa"
+        && request.resource.data.billingAccess == "integral"
+        && request.resource.data.cancelAtPeriodEnd == true
+        && (!("cancelAtPeriodEnd" in resource.data) || resource.data.cancelAtPeriodEnd != true)
+        && request.resource.data.accessUntilMillis is int
+        && request.resource.data.accessUntilMillis >= request.time.toMillis()
+        && request.resource.data.accessUntilMillis == resource.data.paidUntilMillis
         && planSame()
         && accountStatusSame()
         && trialEndSame()
@@ -243,6 +274,16 @@ service cloud.firestore {
         && resource.data.sessionStartMillis > request.time.toMillis();
     }
 
+    function appointmentConfirmationFieldsStable() {
+      return (
+        !("confirmacao" in request.resource.data)
+        || request.resource.data.confirmacao == resource.data.confirmacao
+      ) && (
+        !("confirmadaEm" in request.resource.data)
+        || request.resource.data.confirmadaEm == resource.data.confirmadaEm
+      );
+    }
+
     function locationInviteAccepted(locationId) {
       return exists(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid))
         && get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.status == "aceito";
@@ -255,6 +296,18 @@ service cloud.firestore {
         && request.resource.data.answeredAtMillis == null;
     }
 
+    function politicaFaltaValid(data) {
+      return !("politicaFalta" in data)
+        || (
+          data.politicaFalta.horas is int
+          && data.politicaFalta.horas >= 0
+          && data.politicaFalta.horas <= 168
+          && data.politicaFalta.percentual is int
+          && data.politicaFalta.percentual >= 0
+          && data.politicaFalta.percentual <= 100
+        );
+    }
+
     function memberPrivateFieldKeys() {
       return [
         "cpf",
@@ -264,7 +317,22 @@ service cloud.firestore {
         "enderecoCidade",
         "enderecoUf",
         "enderecoCep",
+        "pixChave",
+        "pixTipo",
+        "pixNome",
+        "pixCidade",
       ];
+    }
+
+    function validPixTipo(value) {
+      return value == "" || value in ["cpf", "cnpj", "email", "telefone", "aleatoria"];
+    }
+
+    function validMemberPrivatePix() {
+      return (!("pixChave" in request.resource.data) || request.resource.data.pixChave is string && request.resource.data.pixChave.size() <= 120)
+        && (!("pixTipo" in request.resource.data) || validPixTipo(request.resource.data.pixTipo))
+        && (!("pixNome" in request.resource.data) || request.resource.data.pixNome is string && request.resource.data.pixNome.size() <= 80)
+        && (!("pixCidade" in request.resource.data) || request.resource.data.pixCidade is string && request.resource.data.pixCidade.size() <= 40);
     }
 
     function noMemberPrivateOnMember() {
@@ -290,7 +358,7 @@ service cloud.firestore {
           )
         );
       allow update: if signedIn() && request.auth.uid == userId && roleStable() && (
-        billingUntouched() || selfExpireTrial() || selfAdoptLegacy() || selfCancel() || selfCheckout()
+        billingUntouched() || selfExpireTrial() || selfAdoptLegacy() || selfCancel() || selfCancelPaid() || selfCheckout()
       );
       allow update: if isSuperAdmin()
         && request.resource.data.uid == resource.data.uid
@@ -302,7 +370,7 @@ service cloud.firestore {
         allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
         allow create: if signedIn()
           && request.auth.uid == userId
-          && messageId in ["boas_vindas", "trial_7", "trial_3", "trial_1", "trial_expirado"]
+          && messageId in ["boas_vindas", "trial_7", "trial_3", "trial_1", "trial_expirado", "ativacao_d2", "ativacao_d5"]
           && request.resource.data.kind == messageId
           && request.resource.data.categoria == "operacional"
           && request.resource.data.titulo is string
@@ -368,11 +436,13 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.ownerUid == request.auth.uid
+        && validMemberPrivatePix();
       allow update: if signedIn()
         && request.auth.uid == uid
         && resource.data.ownerUid == request.auth.uid
-        && request.resource.data.ownerUid == resource.data.ownerUid;
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && validMemberPrivatePix();
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
     }
 
@@ -391,7 +461,7 @@ service cloud.firestore {
           && request.resource.data.email is string
         )
       );
-      allow update: if tenantUpdate() && noMemberPrivateOnMember();
+      allow update: if tenantUpdate() && noMemberPrivateOnMember() && politicaFaltaValid(request.resource.data);
       allow delete: if tenantDelete();
     }
 
@@ -489,6 +559,7 @@ service cloud.firestore {
       allow update: if ownsExisting()
         && clinicWritesOpen()
         && noClinicalOnAppointment()
+        && appointmentConfirmationFieldsStable()
         && request.resource.data.ownerUid == resource.data.ownerUid;
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
@@ -523,8 +594,10 @@ service cloud.firestore {
 
     match /patients/{patientId} {
       allow read: if patientOwnerRead();
-      allow create: if tenantCreate();
-      allow update: if tenantUpdate();
+      allow create: if tenantCreate()
+        && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
+      allow update: if tenantUpdate()
+        && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
       allow delete: if tenantDelete();
     }
 
@@ -596,6 +669,16 @@ service cloud.firestore {
       allow delete: if tenantDelete();
     }
 
+    match /fechamentos/{closingId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.month is string
+        && request.resource.data.month.size() == 7
+        && request.resource.data.closedAt is string;
+      allow delete: if false;
+    }
+
     match /emailLog/{logId} {
       allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow create, update, delete: if false;
@@ -610,6 +693,24 @@ service cloud.firestore {
       allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn() && ownsNew() && clinicWritesOpen() && feedbackAnswerFieldsUnset();
       allow update, delete: if false;
+    }
+
+    match /sessionConfirmations/{token} {
+      allow read, write: if false;
+    }
+
+    match /pushTokens/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+
+      match /devices/{deviceId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.subscription is map;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
     }
 
     match /apiEmailRateLimits/{docId} {

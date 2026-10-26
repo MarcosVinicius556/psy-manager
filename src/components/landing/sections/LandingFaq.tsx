@@ -14,7 +14,7 @@ export default function LandingFaq() {
             </h2>
             <div className="mt-8 grid gap-4">
               {faqItems.map(([question, answer]) => (
-                <details key={question} className="landing-card-v2 rounded-[18px] border border-[#e8e4dc] bg-white p-5">
+                <details key={question} className="landing-card-v2 radius-surface border border-[var(--color-border-subtle)] bg-white p-5">
                   <summary className="flex min-h-11 cursor-pointer items-center text-lg font-semibold text-teal">{question}</summary>
                   <p className="mt-3 leading-relaxed text-muted">{answer}</p>
                 </details>
