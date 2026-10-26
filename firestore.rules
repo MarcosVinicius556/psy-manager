@@ -32,6 +32,20 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    function integralWritesOpen(user) {
+      return user.billingAccess == "integral"
+        && (
+          !("cancelAtPeriodEnd" in user)
+          || user.cancelAtPeriodEnd != true
+          || ("accessUntilMillis" in user && user.accessUntilMillis > request.time.toMillis())
+        )
+        && (
+          !("paidUntilMillis" in user)
+          || user.paidUntilMillis == 0
+          || user.paidUntilMillis > request.time.toMillis()
+        );
+    }
+
     function clinicWritesOpen() {
       let user = accountData();
       return !("billingAccess" in user)
@@ -39,7 +53,7 @@ service cloud.firestore {
           (!("accountStatus" in user) || (user.accountStatus != "suspensa" && user.accountStatus != "desativada"))
           && (
             user.billingAccess == "legado"
-            || user.billingAccess == "integral"
+            || integralWritesOpen(user)
             || (
               user.billingAccess == "trial"
               && user.subscriptionStatus == "trial_ativo"
@@ -132,6 +146,23 @@ service cloud.firestore {
       return resource.data.subscriptionStatus in ["trial_ativo", "cortesia"]
         && request.resource.data.subscriptionStatus == "cancelada"
         && request.resource.data.billingAccess == "restrito"
+        && planSame()
+        && accountStatusSame()
+        && trialEndSame()
+        && roleStable()
+        && checkoutSame();
+    }
+
+    function selfCancelPaid() {
+      return resource.data.subscriptionStatus == "ativa"
+        && resource.data.billingAccess == "integral"
+        && request.resource.data.subscriptionStatus == "ativa"
+        && request.resource.data.billingAccess == "integral"
+        && request.resource.data.cancelAtPeriodEnd == true
+        && (!("cancelAtPeriodEnd" in resource.data) || resource.data.cancelAtPeriodEnd != true)
+        && request.resource.data.accessUntilMillis is int
+        && request.resource.data.accessUntilMillis >= request.time.toMillis()
+        && request.resource.data.accessUntilMillis == resource.data.paidUntilMillis
         && planSame()
         && accountStatusSame()
         && trialEndSame()
@@ -290,7 +321,7 @@ service cloud.firestore {
           )
         );
       allow update: if signedIn() && request.auth.uid == userId && roleStable() && (
-        billingUntouched() || selfExpireTrial() || selfAdoptLegacy() || selfCancel() || selfCheckout()
+        billingUntouched() || selfExpireTrial() || selfAdoptLegacy() || selfCancel() || selfCancelPaid() || selfCheckout()
       );
       allow update: if isSuperAdmin()
         && request.resource.data.uid == resource.data.uid
@@ -302,7 +333,7 @@ service cloud.firestore {
         allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
         allow create: if signedIn()
           && request.auth.uid == userId
-          && messageId in ["boas_vindas", "trial_7", "trial_3", "trial_1", "trial_expirado"]
+          && messageId in ["boas_vindas", "trial_7", "trial_3", "trial_1", "trial_expirado", "ativacao_d2", "ativacao_d5"]
           && request.resource.data.kind == messageId
           && request.resource.data.categoria == "operacional"
           && request.resource.data.titulo is string

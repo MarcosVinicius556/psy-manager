@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "cloudinary": "^2.11.0",
+    "fflate": "^0.8.3",
     "firebase": "^13.0.0",
     "firebase-admin": "^13.10.0",
     "jspdf": "^4.2.1",

@@ -27,6 +27,13 @@ import {
 } from "@/lib/admin/finance";
 import { addMonths, formatDate, formatMoney, isPatientActive, labelAppointmentPlace, labelAppointmentStatus, todayISO } from "@/lib/admin/format";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
+import {
+  averageSessionRating,
+  averageTicket,
+  forecastVsReceived,
+  noShowRate,
+  retention90Days,
+} from "@/lib/admin/practice-kpis";
 
 function useClinicPayments() {
   const { payments } = useClinic();
@@ -380,12 +387,64 @@ function DebtorsListWidget() {
   );
 }
 
+function KpiCard({ title, value, hint }: { title: string; value: string; hint?: string }) {
+  return (
+    <Card>
+      <CardTitle>{title}</CardTitle>
+      <CardMetric className="mt-3">{value}</CardMetric>
+      {hint ? <p className="mt-2 text-xs text-muted">{hint}</p> : null}
+    </Card>
+  );
+}
+
+function NoShowWidget() {
+  const { appointments } = useClinic();
+  const rate = noShowRate(appointments);
+  return <KpiCard title="Taxa de faltas (90 dias)" value={`${rate}%`} hint="Sessões marcadas como falta no período." />;
+}
+
+function RetentionWidget() {
+  const { patients, appointments } = useClinic();
+  const rate = retention90Days(patients, appointments);
+  return <KpiCard title="Retenção em 90 dias" value={`${rate}%`} hint="Pacientes com sessão recente entre os cadastrados há mais de 90 dias." />;
+}
+
+function AvgTicketWidget() {
+  const clinicPayments = useClinicPayments();
+  const value = averageTicket(clinicPayments);
+  return <KpiCard title="Ticket médio" value={formatMoney(value)} hint="Média dos pagamentos quitados nos últimos 90 dias." />;
+}
+
+function ForecastWidget() {
+  const clinicPayments = useClinicPayments();
+  const month = todayISO().slice(0, 7);
+  const { receivable, received } = forecastVsReceived(clinicPayments, month, todayISO());
+  return (
+    <KpiCard
+      title="Previsto x recebido"
+      value={`${formatMoney(received)} / ${formatMoney(receivable + received)}`}
+      hint="Mês corrente: recebido sobre previsto (aberto + recebido)."
+    />
+  );
+}
+
+function AvgRatingWidget() {
+  const { sessionFeedbacks } = useClinic();
+  const avg = averageSessionRating(sessionFeedbacks);
+  return <KpiCard title="Nota média das avaliações" value={avg == null ? "—" : `${avg} estrelas`} hint="Avaliações públicas respondidas pelos pacientes." />;
+}
+
 /** Component that renders each dashboard widget. Every widget owns its own state. */
 export const DASHBOARD_WIDGET_COMPONENTS: Record<WidgetId, ComponentType> = {
   receivable: ReceivableWidget,
   overdue: OverdueWidget,
   received: ReceivedWidget,
   activePatients: ActivePatientsWidget,
+  noShowRate: NoShowWidget,
+  retention90: RetentionWidget,
+  avgTicket: AvgTicketWidget,
+  forecastReceived: ForecastWidget,
+  avgSessionRating: AvgRatingWidget,
   futureCount: FutureCountWidget,
   debtorsCount: DebtorsCountWidget,
   calendar: CalendarWidget,

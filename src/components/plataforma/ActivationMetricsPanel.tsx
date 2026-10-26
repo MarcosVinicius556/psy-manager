@@ -28,7 +28,7 @@ export function ActivationMetricsPanel({ events, accounts }: Props) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStaggerItem>
           <Card>
             <CardTitle>Conversão trial → paga</CardTitle>
@@ -47,6 +47,15 @@ export function ActivationMetricsPanel({ events, accounts }: Props) {
               {summary.medianDaysToFirstSession == null ? "—" : `${summary.medianDaysToFirstSession.toFixed(1)} d`}
             </CardMetric>
             <p className="mt-1 text-xs text-muted">Entre cadastro e evento de sessão concluída</p>
+          </Card>
+        </AdminStaggerItem>
+        <AdminStaggerItem>
+          <Card>
+            <CardTitle>Mediana até 1º recibo</CardTitle>
+            <CardMetric className="mt-2 text-3xl sm:text-4xl">
+              {summary.medianDaysToFirstReceipt == null ? "—" : `${summary.medianDaysToFirstReceipt.toFixed(1)} d`}
+            </CardMetric>
+            <p className="mt-1 text-xs text-muted">Entre cadastro e emissão do primeiro recibo fiscal</p>
           </Card>
         </AdminStaggerItem>
         <AdminStaggerItem>

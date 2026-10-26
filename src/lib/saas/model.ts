@@ -1,3 +1,4 @@
+import { PUBLIC_BILLING } from "../billing/plans";
 import { TERMS_VERSION as LEGAL_TERMS_VERSION } from "../legal/config";
 
 export const TRIAL_DAYS = 30;
@@ -43,6 +44,9 @@ export type PlanDefinition = {
   periodicidade: PlanPeriod;
   trialDias: number;
   recursos: string[];
+  itensInclusos?: string[];
+  descontoAnualPct?: number | null;
+  destaque?: boolean;
   limiteProfissionais: number | null;
   disponivel: boolean;
   ordem: number;
@@ -65,9 +69,14 @@ export type AccountRecord = {
   termsAcceptedAt: string;
   termsVersion: string;
   privacyAcknowledgedAt: string;
-  checkoutStatus: "" | "aguardando_provedor";
+  checkoutStatus: "" | "aguardando_provedor" | "aguardando_confirmacao_pix";
   checkoutPlanId: string;
   checkoutRequestedAt: string;
+  cancelAtPeriodEnd: boolean;
+  accessUntilMillis: number;
+  canceledAt: string;
+  cancelReason: string;
+  paidUntilMillis: number;
   onboardingDismissed: boolean;
   operationalEmail: boolean;
   productEmail: boolean;
@@ -86,7 +95,14 @@ export type AdminAction =
   | "conceder_cortesia"
   | "encerrar_cortesia";
 
-export type NoticeKind = "boas_vindas" | "trial_7" | "trial_3" | "trial_1" | "trial_expirado";
+export type NoticeKind =
+  | "boas_vindas"
+  | "trial_7"
+  | "trial_3"
+  | "trial_1"
+  | "trial_expirado"
+  | "ativacao_d2"
+  | "ativacao_d5";
 
 const RESOURCES = ["Agenda", "Pacientes", "Locais", "Financeiro", "Contratos", "Relatórios"];
 
@@ -107,15 +123,33 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
   {
     id: "consultorio",
     nome: "Consultório",
-    descricao: "Uso contínuo do painel depois da avaliação. O valor ainda não foi definido e nenhuma cobrança é feita por aqui.",
-    precoCentavos: null,
+    descricao: "Uso contínuo do painel com tudo incluso. Cancele quando quiser em Assinatura.",
+    precoCentavos: PUBLIC_BILLING.monthlyCents,
     moeda: "BRL",
     periodicidade: "mensal",
     trialDias: 0,
     recursos: RESOURCES,
+    itensInclusos: PUBLIC_BILLING.includedItems,
+    destaque: false,
     limiteProfissionais: null,
     disponivel: true,
     ordem: 1,
+  },
+  {
+    id: "consultorio_anual",
+    nome: "Consultório anual",
+    descricao: `Plano anual com ${PUBLIC_BILLING.annualSavingsLabel}. Mesmos recursos do mensal.`,
+    precoCentavos: PUBLIC_BILLING.annualCents,
+    moeda: "BRL",
+    periodicidade: "anual",
+    trialDias: 0,
+    recursos: RESOURCES,
+    itensInclusos: PUBLIC_BILLING.includedItems,
+    descontoAnualPct: Math.round((1 - PUBLIC_BILLING.annualCents / (PUBLIC_BILLING.monthlyCents * 12)) * 100),
+    destaque: true,
+    limiteProfissionais: null,
+    disponivel: true,
+    ordem: 2,
   },
 ];
 
@@ -190,6 +224,11 @@ export function emptyAccount(uid: string, email: string): AccountRecord {
     checkoutStatus: "",
     checkoutPlanId: "",
     checkoutRequestedAt: "",
+    cancelAtPeriodEnd: false,
+    accessUntilMillis: 0,
+    canceledAt: "",
+    cancelReason: "",
+    paidUntilMillis: 0,
     onboardingDismissed: false,
     operationalEmail: true,
     productEmail: true,
@@ -225,6 +264,11 @@ export function buildTrialAccount(input: {
     checkoutStatus: "" as const,
     checkoutPlanId: "",
     checkoutRequestedAt: "",
+    cancelAtPeriodEnd: false,
+    accessUntilMillis: 0,
+    canceledAt: "",
+    cancelReason: "",
+    paidUntilMillis: 0,
     onboardingDismissed: false,
     operationalEmail: true,
     productEmail: true,
@@ -265,6 +309,11 @@ export function buildReplayDeniedAccount(input: { uid: string; email: string; no
     checkoutStatus: "" as const,
     checkoutPlanId: "",
     checkoutRequestedAt: "",
+    cancelAtPeriodEnd: false,
+    accessUntilMillis: 0,
+    canceledAt: "",
+    cancelReason: "",
+    paidUntilMillis: 0,
     onboardingDismissed: false,
     operationalEmail: true,
     productEmail: true,
@@ -282,12 +331,37 @@ export function expirePatch(nowIso: string) {
   };
 }
 
-export function resolveAccess(account: Pick<AccountRecord, "accountStatus" | "billingAccess" | "subscriptionStatus" | "trialEndsAtMillis">, now: number): AccessDecision {
+type AccessFields = Pick<
+  AccountRecord,
+  | "accountStatus"
+  | "billingAccess"
+  | "subscriptionStatus"
+  | "trialEndsAtMillis"
+  | "cancelAtPeriodEnd"
+  | "accessUntilMillis"
+  | "paidUntilMillis"
+>;
+
+function integralAccessOpen(account: AccessFields, now: number) {
+  if (account.cancelAtPeriodEnd && account.accessUntilMillis > 0) {
+    return now < account.accessUntilMillis;
+  }
+  if (account.paidUntilMillis > 0) {
+    return now < account.paidUntilMillis;
+  }
+  return true;
+}
+
+export function resolveAccess(account: AccessFields, now: number): AccessDecision {
   if (account.accountStatus === "suspensa") return { mode: "blocked", reason: "suspensa" };
   if (account.accountStatus === "desativada") return { mode: "blocked", reason: "desativada" };
   if (!account.billingAccess) return { mode: "full", reason: "sem_cobranca_registrada" };
-  if (account.billingAccess === "legado" || account.billingAccess === "integral") {
-    return { mode: "full", reason: account.billingAccess };
+  if (account.billingAccess === "legado") {
+    return { mode: "full", reason: "legado" };
+  }
+  if (account.billingAccess === "integral") {
+    if (integralAccessOpen(account, now)) return { mode: "full", reason: "integral" };
+    return { mode: "restricted", reason: "periodo_encerrado" };
   }
   if (
     account.billingAccess === "trial" &&
@@ -299,7 +373,7 @@ export function resolveAccess(account: Pick<AccountRecord, "accountStatus" | "bi
   return { mode: "restricted", reason: "assinatura_inativa" };
 }
 
-export function writesAllowed(account: Pick<AccountRecord, "accountStatus" | "billingAccess" | "subscriptionStatus" | "trialEndsAtMillis">, now: number) {
+export function writesAllowed(account: AccessFields, now: number) {
   return resolveAccess(account, now).mode === "full";
 }
 
@@ -327,6 +401,24 @@ export function validateSignup(input: {
   if (!input.acceptTerms) return { ok: false as const, message: "Para continuar, aceite os termos e confirme que leu a política de privacidade." };
   if (!input.acceptDpa) return { ok: false as const, message: "Para continuar, aceite o Acordo de Tratamento de Dados (DPA)." };
   return { ok: true as const, value: { nome, email, role: "psicologo" as const } };
+}
+
+export function activationNoticesDue(
+  account: Pick<AccountRecord, "billingAccess" | "subscriptionStatus" | "createdAt" | "productEmail">,
+  now: number,
+  existingIds: string[],
+  onboardingComplete: boolean
+) {
+  const due: NoticeKind[] = [];
+  if (!account.productEmail) return due;
+  if (account.subscriptionStatus !== "trial_ativo" || account.billingAccess !== "trial") return due;
+  if (onboardingComplete) return due;
+  const started = Date.parse(account.createdAt);
+  if (!Number.isFinite(started)) return due;
+  const days = (now - started) / MS_DAY;
+  if (days >= 2 && days < 3 && !existingIds.includes("ativacao_d2")) due.push("ativacao_d2");
+  if (days >= 5 && days < 6 && !existingIds.includes("ativacao_d5")) due.push("ativacao_d5");
+  return due;
 }
 
 export function noticesDue(account: Pick<AccountRecord, "billingAccess" | "subscriptionStatus" | "trialEndsAtMillis">, now: number, existingIds: string[]) {
@@ -359,6 +451,20 @@ export function noticeContent(kind: NoticeKind, account: Pick<AccountRecord, "no
       categoria: "operacional" as const,
       titulo: "Seu período de avaliação terminou",
       corpo: "Novos lançamentos ficam pausados. Pacientes, agenda e financeiro já cadastrados continuam salvos. A contratação só avança quando houver confirmação de pagamento — hoje o provedor ainda não está ligado.",
+    };
+  }
+  if (kind === "ativacao_d2") {
+    return {
+      categoria: "produto" as const,
+      titulo: "Precisa de um empurrão no cadastro?",
+      corpo: `${nome}, muitos colegas começam cadastrando um paciente só com o nome e agendando a primeira sessão. O checklist em Início mostra o caminho — e você pode carregar dados de exemplo para explorar sem risco.`,
+    };
+  }
+  if (kind === "ativacao_d5") {
+    return {
+      categoria: "produto" as const,
+      titulo: "Falta pouco para ver valor no painel",
+      corpo: `${nome}, concluir uma sessão e emitir o primeiro recibo costuma ser o momento em que o Psy Manager “clica”. Se travar em algum passo, abra um chamado em Suporte — respondemos por aqui, com histórico.`,
     };
   }
   const days = kind === "trial_1" ? "1 dia" : kind === "trial_3" ? "3 dias" : "7 dias";
@@ -449,16 +555,39 @@ export function applyAdminAction(
   throw new Error("Ação administrativa desconhecida.");
 }
 
-export function userCancelPatch(account: AccountRecord, nowIso: string) {
+export function userCancelPatch(account: AccountRecord, nowIso: string, options?: { reason?: string }) {
+  const now = Date.parse(nowIso);
   const cancellable: Array<SubscriptionStatus | ""> = ["trial_ativo", "cortesia"];
-  if (!cancellable.includes(account.subscriptionStatus)) {
-    throw new Error("Não há uma avaliação ou cortesia ativa para cancelar. Nenhuma cobrança foi localizada.");
+  if (cancellable.includes(account.subscriptionStatus)) {
+    return {
+      subscriptionStatus: "cancelada" as const,
+      billingAccess: "restrito" as const,
+      cancelAtPeriodEnd: false,
+      accessUntilMillis: 0,
+      canceledAt: nowIso,
+      cancelReason: options?.reason?.trim() || "",
+      updatedAt: nowIso,
+    };
   }
-  return {
-    subscriptionStatus: "cancelada" as const,
-    billingAccess: "restrito" as const,
-    updatedAt: nowIso,
-  };
+  if (account.subscriptionStatus === "ativa" && account.billingAccess === "integral") {
+    if (account.cancelAtPeriodEnd) {
+      throw new Error("O cancelamento já está agendado para o fim do período pago.");
+    }
+    const until = account.paidUntilMillis > now ? account.paidUntilMillis : account.accessUntilMillis;
+    if (!until || until <= now) {
+      throw new Error("Não há período pago em aberto para cancelar com acesso até o fim do ciclo.");
+    }
+    return {
+      subscriptionStatus: "ativa" as const,
+      billingAccess: "integral" as const,
+      cancelAtPeriodEnd: true,
+      accessUntilMillis: until,
+      canceledAt: nowIso,
+      cancelReason: options?.reason?.trim() || "",
+      updatedAt: nowIso,
+    };
+  }
+  throw new Error("Não há assinatura ativa para cancelar nesta conta.");
 }
 
 export function checkoutPatch(planId: string, nowIso: string) {

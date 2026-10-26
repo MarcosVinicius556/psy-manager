@@ -8,6 +8,7 @@ export type OnboardingStepId =
   | "sessao_agendada"
   | "sessao_concluida"
   | "pagamento"
+  | "recibo_emitido"
   | "google_calendar";
 
 export type OnboardingStep = {
@@ -40,6 +41,7 @@ export function buildOnboardingSteps(input: {
   const scheduledDone = appointments.some((item) => item.status === "agendado" || item.status === "em_andamento");
   const finishedDone = appointments.some((item) => item.status === "concluido");
   const paymentDone = payments.some((item) => item.status === "pago");
+  const receiptDone = payments.some((item) => Boolean(item.reciboFiscal?.numero));
 
   const steps: OnboardingStep[] = [
     {
@@ -76,6 +78,12 @@ export function buildOnboardingSteps(input: {
       id: "pagamento",
       label: "Primeiro pagamento registrado",
       done: paymentDone,
+      href: "/admin/financeiro",
+    },
+    {
+      id: "recibo_emitido",
+      label: "Primeiro recibo emitido",
+      done: receiptDone,
       href: "/admin/financeiro",
     },
     {

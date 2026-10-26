@@ -79,6 +79,7 @@ export interface Patient {
   contratoAssinado: ClinicAttachment | null;
   tcleAceite: TcleAcceptance | null;
   status: PatientStatus;
+  demo?: boolean;
   createdAt: string;
 }
 
@@ -155,6 +156,8 @@ export interface Appointment {
   googleEventId: string | null;
   googleLocationEventId: string | null;
   googleMeetLink: string | null;
+  sessionStartMillis?: number;
+  demo?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -266,6 +269,7 @@ export interface Payment {
   formaPagamento: PaymentMethod;
   historico: PaymentEvent[];
   reciboFiscal: FiscalReceiptRecord | null;
+  demo?: boolean;
   createdAt: string;
 }
 

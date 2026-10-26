@@ -9,8 +9,10 @@ import { saveProfile } from "@/lib/saas/account-store";
 import { useSaas } from "@/lib/saas/context";
 import { AdminStaggerItem } from "@/components/admin/motion/AdminPageMotion";
 import { CardTitle } from "@/components/admin/ui";
+import { loadDemoClinic, removeDemoClinic } from "@/lib/admin/demo-clinic";
 import { buildOnboardingSteps } from "@/lib/saas/onboarding";
 import { ACCOUNT_LABEL, daysRemaining, STATUS_LABEL, type AccountRecord } from "@/lib/saas/model";
+import { toast } from "react-toastify";
 
 export function TrialBanner() {
   const { account, access } = useSaas();
@@ -103,8 +105,9 @@ export function AdminAccountNotices() {
 
 export function OnboardingCard() {
   const { account, access, refresh } = useSaas();
-  const { patients, appointments, payments, members } = useClinic();
+  const { patients, appointments, payments, members, refresh: refreshClinic } = useClinic();
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [demoBusy, setDemoBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -177,6 +180,44 @@ export function OnboardingCard() {
           <button type="button" className="btn-text shrink-0" onClick={() => void dismiss()}>Dispensar</button>
         ) : null}
       </div>
+      {!snapshot.complete && member ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn-text"
+            disabled={demoBusy}
+            onClick={() => {
+              setDemoBusy(true);
+              loadDemoClinic(member.uid || account!.uid)
+                .then((result) => {
+                  toast.success(result.created ? "Dados de exemplo carregados." : "Já existem dados de exemplo.");
+                  return refreshClinic();
+                })
+                .catch((error) => toast.error(error instanceof Error ? error.message : "Não foi possível carregar o exemplo."))
+                .finally(() => setDemoBusy(false));
+            }}
+          >
+            Carregar exemplo
+          </button>
+          <button
+            type="button"
+            className="btn-text"
+            disabled={demoBusy}
+            onClick={() => {
+              setDemoBusy(true);
+              removeDemoClinic(member.uid || account!.uid)
+                .then((count) => {
+                  toast.success(count ? `Removidos ${count} registros de exemplo.` : "Nenhum exemplo para remover.");
+                  return refreshClinic();
+                })
+                .catch((error) => toast.error(error instanceof Error ? error.message : "Não foi possível remover o exemplo."))
+                .finally(() => setDemoBusy(false));
+            }}
+          >
+            Remover exemplo
+          </button>
+        </div>
+      ) : null}
       <ol className="mt-4 grid gap-2">
         {snapshot.steps.map((step) => (
           <li

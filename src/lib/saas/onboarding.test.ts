@@ -31,7 +31,7 @@ describe("onboarding checklist", () => {
         { id: "a1", status: "agendado" } as never,
         { id: "a2", status: "concluido" } as never,
       ],
-      payments: [{ id: "pay1", status: "pago" } as never],
+      payments: [{ id: "pay1", status: "pago", reciboFiscal: { numero: 1 } } as never],
       member: { workHours: [{ weekday: 1, startTime: "09:00", endTime: "10:00" }] } as never,
       googleCalendarConnected: false,
     });

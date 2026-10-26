@@ -45,6 +45,7 @@ export default function PatientForm({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [contractId, setContractId] = useState("");
   const [emitOnSave, setEmitOnSave] = useState(false);
+  const [showDetails, setShowDetails] = useState(Boolean(patient));
   const photoRef = useRef<HTMLInputElement>(null);
   const nextStep = useRef<"save" | "appointment">("save");
 
@@ -122,6 +123,15 @@ export default function PatientForm({
       <Field label="Nome">
         <input className={fieldClass} value={form.nome} onChange={(event) => set("nome", event.target.value)} required />
       </Field>
+      {!patient ? (
+        <div className="md:col-span-2">
+          <button type="button" className="btn-text" onClick={() => setShowDetails((value) => !value)}>
+            {showDetails ? "Usar cadastro rápido (só nome)" : "Mostrar dados completos do paciente"}
+          </button>
+        </div>
+      ) : null}
+      {(showDetails || patient) && (
+        <>
       <Field label="CPF do paciente (beneficiário padrão)">
         <input
           className={fieldClass}
@@ -259,6 +269,8 @@ export default function PatientForm({
           )}
         </Field>
       </div>
+        </>
+      )}
       <div className="flex flex-wrap gap-3 md:col-span-2">
         <button
           className="btn-primary"
