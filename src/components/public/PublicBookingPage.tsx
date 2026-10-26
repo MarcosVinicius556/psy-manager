@@ -28,6 +28,29 @@ export default function PublicBookingPage({ slug, initial, unavailable }: Props)
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const response = await fetch(`/api/public/booking/${encodeURIComponent(slug)}`);
+        if (!active) return;
+        if (response.status === 404) {
+          setView(null);
+          return;
+        }
+        if (!response.ok) return;
+        const data = (await response.json()) as PublicBookingView;
+        setView(data);
+        if (data.modalities?.length === 1) setModality(data.modalities[0]);
+      } catch {
+        if (active) setView(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  useEffect(() => {
     if (initial?.modalities?.length === 1) {
       setModality(initial.modalities[0]);
     }
@@ -96,7 +119,7 @@ export default function PublicBookingPage({ slug, initial, unavailable }: Props)
     }
   }
 
-  if (unavailable || !view) {
+  if (unavailable) {
     return (
       <div className="grid min-h-screen place-items-center bg-paper px-4">
         <section className="w-full max-w-lg rounded-surface bg-white p-5 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-8">
@@ -105,6 +128,12 @@ export default function PublicBookingPage({ slug, initial, unavailable }: Props)
           <p className="mt-3 text-muted">Este link de agendamento não está ativo no momento.</p>
         </section>
       </div>
+    );
+  }
+
+  if (!view) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-paper text-muted">Carregando...</div>
     );
   }
 

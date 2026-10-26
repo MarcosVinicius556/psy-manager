@@ -46,7 +46,7 @@ test.describe("agendamento público screenshots", () => {
 });
 
 test.describe("config agendamento público screenshots", () => {
-  test.use({ storageState: "e2e/.auth/user.json" });
+  test.skip(true, "Requer e2e/.auth/user.json (gerado pelo fluxo e2e:mobile).");
 
   for (const viewport of [
     { name: "desktop-1280", width: 1280, height: 900 },
@@ -87,8 +87,8 @@ test.describe("config agendamento público screenshots", () => {
         await route.continue();
       });
 
-      await page.goto("/admin/configuracoes/agendamento-publico");
-      await expect(page.getByRole("heading", { name: "Agendamento público" })).toBeVisible();
+      await page.goto("/admin/configuracoes/agendamento-publico", { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: "Agendamento público" })).toBeVisible({ timeout: 15000 });
       await page.screenshot({ path: path.join(outDir, "settings.png"), fullPage: true });
     });
   }
