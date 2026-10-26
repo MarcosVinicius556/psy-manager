@@ -17,5 +17,5 @@ export async function POST(request: Request) {
     nome,
   });
   if (!result.ok) return NextResponse.json({ reason: result.reason }, { status: 400 });
-  return NextResponse.json({ success: true, clinicId: result.clinicId });
+  return NextResponse.json({ success: true, clinicId: result.clinicId, locationId: result.locationId });
 }

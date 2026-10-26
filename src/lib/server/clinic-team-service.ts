@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { ClinicAccount, ClinicInvite, ClinicMemberRole } from "@/lib/team/types";
+import { addLocationMemberFromClinicAccept } from "./clinic-location-service";
 import { mergeTeamClaims } from "./team-claims";
 
 const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -102,5 +103,14 @@ export async function acceptClinicInvite(input: {
   });
 
   await mergeTeamClaims(input.uid, { clinicId: invite.clinicId, clinicRole: invite.role });
-  return { ok: true as const, clinicId: invite.clinicId, role: invite.role };
+  await addLocationMemberFromClinicAccept(invite.clinicId, input.uid);
+  const dbAfter = getAdminDb();
+  const locationId =
+    dbAfter && (await dbAfter.collection("clinics").doc(invite.clinicId).get()).data()?.locationId;
+  return {
+    ok: true as const,
+    clinicId: invite.clinicId,
+    role: invite.role,
+    locationId: typeof locationId === "string" ? locationId : null,
+  };
 }
