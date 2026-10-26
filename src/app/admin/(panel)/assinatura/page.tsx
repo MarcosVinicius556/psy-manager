@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { Card, Empty, PageTitle, Pill } from "@/components/admin/ui";
 import AccountDataExport from "@/components/admin/AccountDataExport";
 import ConsultantActions from "@/components/ConsultantActions";
+import SubscriptionPixCheckout from "@/components/admin/SubscriptionPixCheckout";
 import { PUBLIC_BILLING, formatPublicPrice } from "@/lib/billing/plans";
 import { describeCheckoutState } from "@/lib/billing/subscription-checkout";
 import { cancelOwnPlan, markInboxRead, saveProfile } from "@/lib/saas/account-store";
@@ -106,7 +107,7 @@ export default function SubscriptionPage() {
             Mensal {formatPublicPrice(PUBLIC_BILLING.monthlyCents)} · Anual {formatPublicPrice(PUBLIC_BILLING.annualCents)} ({PUBLIC_BILLING.annualSavingsLabel}).{" "}
             <Link href="/planos" className="font-semibold text-teal">Ver detalhes públicos</Link>
           </p>
-          <p className="mt-2 text-sm text-muted">A assinatura paga por Pix será habilitada em breve. Até lá, um consultor pode ajudar — sem cartão guardado no sistema.</p>
+          <SubscriptionPixCheckout account={account} onUpdated={refresh} />
           <div className="mt-4">
             <ConsultantActions />
           </div>

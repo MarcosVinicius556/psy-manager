@@ -32,7 +32,7 @@ Conta e assinatura são campos separados:
 - `subscriptionStatus`: `trial_ativo`, `trial_expirado`, `ativa`, `pagamento_pendente`, `pagamento_atrasado`, `cancelada`, `encerrada`, `cortesia`, `legado`
 - `billingAccess`: `trial`, `integral`, `restrito`, `legado`
 
-`ativa`, `pagamento_pendente` e `pagamento_atrasado` não são gravados pelo cadastro nem pelo painel do proprietário. Eles ficam reservados para um provedor de pagamento real. Cortesia é acesso concedido à mão e aparece como cortesia, não como pagamento.
+`ativa`, `pagamento_pendente` e `pagamento_atrasado` não são gravados pelo próprio profissional no Firestore. A assinatura paga por Pix é confirmada pelo `super_admin` na plataforma (rota servidor com Admin SDK). Cortesia é acesso concedido à mão e aparece como cortesia, não como pagamento.
 
 Quem já tinha documento de usuário, e quem é cadastrado em `/admin/usuarios`, recebe `legado` e continua lançando. O proprietário (`super_admin`) não entra nesse fluxo.
 
@@ -44,9 +44,11 @@ Não há cron. O prazo vale na regra pelo timestamp, e o status é atualizado qu
 
 ## Pagamento
 
-Não há gateway. “Quero contratar” grava `checkoutStatus: aguardando_provedor` e um evento em `users/{uid}/billingEvents`. A assinatura não vira paga. O preço do plano começa vazio e só passa a aparecer se o proprietário publicar um valor em `/plataforma/planos`. Receita recorrente no painel soma apenas assinaturas `ativa` com preço definido. Pagamento recebido fica em zero enquanto não existir confirmação de provedor.
+Não há gateway automático. Em **Assinatura**, o profissional escolhe mensal ou anual, gera o Pix da plataforma (chave em `PSY_BILLING_PIX_KEY`, `PSY_BILLING_PIX_NAME`, `PSY_BILLING_PIX_CITY`) e informa “Já paguei”. O checkout grava `checkoutStatus: aguardando_confirmacao_pix`, `pixTxid` e eventos `checkout_solicitado` / `pix_informado`. O `super_admin` confirma em `/plataforma/contas/[uid]`; o servidor grava `ativa`, `integral`, `paidUntilMillis` e `pix_confirmado` em `billingEvents`.
 
-Cartão não é armazenado.
+O job diário `billing_renewals` envia avisos de renovação (D-5 e D-0), marca `pagamento_pendente` após o vencimento e `pagamento_atrasado` depois da carência (`BILLING_GRACE_DAYS` em `subscription-pix.ts`). `clinicWritesOpen` já considera `paidUntilMillis`.
+
+Cartão não é armazenado. Cobranças a pacientes com lembrete automático usam o job `payment_reminders` (modelo `cobranca_pix` com envio automático, até 2 e-mails por lançamento).
 
 ## Plataforma
 

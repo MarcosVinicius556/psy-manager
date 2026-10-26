@@ -106,8 +106,9 @@ describe("trial", () => {
 
 describe("assinatura e administração", () => {
   it("não marca checkout como pago", () => {
-    const patch = checkoutPatch("consultorio", new Date(NOW).toISOString());
-    expect(patch.checkoutStatus).toBe("aguardando_provedor");
+    const patch = checkoutPatch("consultorio", new Date(NOW).toISOString(), "PSYSUBTEST");
+    expect(patch.checkoutStatus).toBe("aguardando_confirmacao_pix");
+    expect(patch.pixTxid).toBe("PSYSUBTEST");
     expect("subscriptionStatus" in patch).toBe(false);
   });
 

@@ -283,6 +283,7 @@ export interface Payment {
   historico: PaymentEvent[];
   reciboFiscal: FiscalReceiptRecord | null;
   pixTxid: string;
+  lembretesEnviados: number;
   comprovantePaciente: ClinicAttachment | null;
   demo?: boolean;
   createdAt: string;
@@ -373,6 +374,7 @@ export type PaymentInput = Omit<
   | "reciboFiscal"
   | "pixTxid"
   | "comprovantePaciente"
+  | "lembretesEnviados"
 > & {
   status?: PaymentStatus;
   packageId?: string | null;

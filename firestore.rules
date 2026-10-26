@@ -113,11 +113,21 @@ service cloud.firestore {
         ("checkoutPlanId" in resource.data)
           ? request.resource.data.checkoutPlanId == resource.data.checkoutPlanId
           : !("checkoutPlanId" in request.resource.data)
+      ) && (
+        ("pixTxid" in resource.data)
+          ? request.resource.data.pixTxid == resource.data.pixTxid
+          : !("pixTxid" in request.resource.data)
       );
     }
 
+    function paidUntilSame() {
+      return ("paidUntilMillis" in resource.data)
+        ? request.resource.data.paidUntilMillis == resource.data.paidUntilMillis
+        : !("paidUntilMillis" in request.resource.data);
+    }
+
     function billingUntouched() {
-      return billingAccessSame() && subscriptionSame() && planSame() && accountStatusSame() && trialEndSame() && trialStartSame() && checkoutSame();
+      return billingAccessSame() && subscriptionSame() && planSame() && accountStatusSame() && trialEndSame() && trialStartSame() && checkoutSame() && paidUntilSame();
     }
 
     function selfExpireTrial() {
@@ -171,16 +181,28 @@ service cloud.firestore {
     }
 
     function selfCheckout() {
-      return request.resource.data.checkoutStatus == "aguardando_provedor"
+      return request.resource.data.checkoutStatus == "aguardando_confirmacao_pix"
         && request.resource.data.checkoutPlanId is string
         && request.resource.data.checkoutPlanId.size() > 0
         && request.resource.data.checkoutPlanId != "avaliacao"
+        && request.resource.data.pixTxid is string
+        && request.resource.data.pixTxid.size() > 0
         && subscriptionSame()
         && billingAccessSame()
         && planSame()
         && accountStatusSame()
         && trialEndSame()
+        && paidUntilSame()
         && roleStable();
+    }
+
+    function paymentReminderCountStable() {
+      return !("lembretesEnviados" in request.resource.data)
+        || (
+          ("lembretesEnviados" in resource.data)
+            ? request.resource.data.lembretesEnviados == resource.data.lembretesEnviados
+            : request.resource.data.lembretesEnviados == 0
+        );
     }
 
     function emailMatches() {
@@ -604,7 +626,7 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if tenantRead();
       allow create: if tenantCreate();
-      allow update: if tenantUpdate();
+      allow update: if tenantUpdate() && paymentReminderCountStable();
       allow delete: if tenantDelete();
     }
 
