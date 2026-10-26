@@ -287,7 +287,7 @@ function launchEvent(input: PaymentInput, createdAt: string): PaymentEvent {
   };
 }
 
-function mapPayment(id: string, data: DocumentData): Payment {
+export function mapPayment(id: string, data: DocumentData): Payment {
   const status = text(data.status) as PaymentStatus;
   const method = paymentMethod(data.formaPagamento);
   const valor = Number(data.valor) || 0;
@@ -311,6 +311,7 @@ function mapPayment(id: string, data: DocumentData): Payment {
       : [],
     reciboFiscal: mapFiscalReceipt(data.reciboFiscal),
     pixTxid: text(data.pixTxid),
+    lembretesEnviados: typeof data.lembretesEnviados === "number" ? data.lembretesEnviados : 0,
     comprovantePaciente: mapAttachment(data.comprovantePaciente),
     createdAt: text(data.createdAt),
   };
@@ -955,6 +956,7 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
     paidAt: null,
     reciboFiscal: null,
     pixTxid: "",
+    lembretesEnviados: 0,
     comprovantePaciente: null,
     ownerUid: currentOwnerUid(),
     createdAt,

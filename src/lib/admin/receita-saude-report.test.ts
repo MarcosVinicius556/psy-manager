@@ -53,6 +53,7 @@ function paidPayment(overrides: Partial<Payment> = {}): Payment {
     ],
     reciboFiscal: null,
     pixTxid: "PSYPAY1",
+    lembretesEnviados: 0,
     comprovantePaciente: null,
     createdAt: "2026-03-01T10:00:00.000Z",
     ...overrides,

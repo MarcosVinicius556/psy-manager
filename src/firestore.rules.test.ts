@@ -474,6 +474,32 @@ describe("platform and rate limits", () => {
     await assertSucceeds(getDoc(doc(db, "supportTickets", "ticket-b")));
   });
 
+  it("psychologist cannot self-activate paid subscription", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "users", ownerUid), {
+        uid: ownerUid,
+        role: "psicologo",
+        billingAccess: "trial",
+        subscriptionStatus: "trial_ativo",
+        accountStatus: "ativa",
+        trialEndsAtMillis: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        checkoutStatus: "aguardando_confirmacao_pix",
+        checkoutPlanId: "consultorio",
+        pixTxid: "PSYSUBTEST",
+        paidUntilMillis: 0,
+      });
+    });
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      updateDoc(doc(db, "users", ownerUid), {
+        subscriptionStatus: "ativa",
+        billingAccess: "integral",
+        paidUntilMillis: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      })
+    );
+  });
+
   it("clients cannot write support ticket documents", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
     await assertFails(

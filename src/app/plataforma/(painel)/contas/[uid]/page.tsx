@@ -6,7 +6,15 @@ import { useParams } from "next/navigation";
 import { Card, Empty, PageTitle, fieldClass } from "@/components/admin/ui";
 import { readAccount } from "@/lib/saas/account-store";
 import { ACCOUNT_LABEL, applyAdminAction, STATUS_LABEL, type AccountRecord, type AdminAction } from "@/lib/saas/model";
-import { commitAdminAction, listAccountInbox, listAudit, listBillingEvents, type AuditEntry, type BillingEntry } from "@/lib/saas/platform-store";
+import {
+  commitAdminAction,
+  confirmSubscriptionPixPayment,
+  listAccountInbox,
+  listAudit,
+  listBillingEvents,
+  type AuditEntry,
+  type BillingEntry,
+} from "@/lib/saas/platform-store";
 import type { InboxItem } from "@/lib/saas/account-store";
 
 const actions: { id: AdminAction; label: string; consequence: string }[] = [
@@ -31,6 +39,7 @@ export default function AccountDetailPage() {
   const [pending, setPending] = useState<AdminAction | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [confirmPixBusy, setConfirmPixBusy] = useState(false);
 
   async function load() {
     const [nextAccount, nextEvents, nextAudit, nextInbox] = await Promise.all([
@@ -75,6 +84,31 @@ export default function AccountDetailPage() {
         <Card><p className="text-sm text-muted">Assinatura</p><p className="mt-2">{account.subscriptionStatus ? STATUS_LABEL[account.subscriptionStatus] : "—"}</p></Card>
         <Card><p className="text-sm text-muted">Conta</p><p className="mt-2">{account.accountStatus ? ACCOUNT_LABEL[account.accountStatus] : "—"}</p></Card>
       </div>
+      {account.checkoutStatus === "aguardando_confirmacao_pix" && (
+        <Card className="mt-4">
+          <h2 className="text-2xl text-teal">Pix aguardando confirmação</h2>
+          <p className="mt-2 text-sm text-muted">
+            Plano solicitado: <strong>{account.checkoutPlanId}</strong>
+            {account.pixTxid ? ` · TxID ${account.pixTxid}` : ""}
+            {account.paidUntilMillis ? ` · Pago até ${new Date(account.paidUntilMillis).toLocaleString("pt-BR")}` : ""}
+          </p>
+          <p className="mt-2 text-sm">Confirme somente após validar o Pix no banco. Isso ativa a assinatura e estende o período pago.</p>
+          <button
+            type="button"
+            className="btn-primary mt-4"
+            disabled={confirmPixBusy}
+            onClick={() => {
+              setConfirmPixBusy(true);
+              void confirmSubscriptionPixPayment(account.uid)
+                .then(() => load().then(() => setMessage("Pagamento Pix confirmado.")))
+                .catch((error) => setMessage(error instanceof Error ? error.message : "Falha ao confirmar."))
+                .finally(() => setConfirmPixBusy(false));
+            }}
+          >
+            Confirmar pagamento Pix
+          </button>
+        </Card>
+      )}
       <Card className="mt-4">
         <h2 className="text-2xl text-teal">Ações</h2>
         <p className="mt-2 text-sm text-muted">Nenhuma ação apaga prontuário. Alterar plano não dispara cobrança.</p>

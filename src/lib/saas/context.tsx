@@ -196,6 +196,7 @@ function emptyAccessAccount(): AccountRecord {
     canceledAt: "",
     cancelReason: "",
     paidUntilMillis: 0,
+    pixTxid: "",
     onboardingDismissed: true,
     operationalEmail: true,
     productEmail: true,
