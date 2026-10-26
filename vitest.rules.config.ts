@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/firestore.rules.test.ts"],
+    include: ["src/firestore.rules.test.ts", "src/firestore.rules.compat.test.ts"],
     fileParallelism: false,
   },
 });

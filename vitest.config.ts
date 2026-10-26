@@ -10,6 +10,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "scripts/landing/**/*.test.mjs"],
-    exclude: ["src/firestore.rules.test.ts"],
+    exclude: ["src/firestore.rules.test.ts", "src/firestore.rules.compat.test.ts"],
   },
 });
