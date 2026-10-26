@@ -90,6 +90,7 @@ const payment: Payment = {
   ],
   reciboFiscal: null,
   pixTxid: "PSYPAYLANDING",
+  lembretesEnviados: 0,
   comprovantePaciente: null,
   createdAt: new Date().toISOString(),
 };

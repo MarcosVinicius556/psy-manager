@@ -77,6 +77,7 @@ export type AccountRecord = {
   canceledAt: string;
   cancelReason: string;
   paidUntilMillis: number;
+  pixTxid: string;
   onboardingDismissed: boolean;
   operationalEmail: boolean;
   productEmail: boolean;
@@ -229,6 +230,7 @@ export function emptyAccount(uid: string, email: string): AccountRecord {
     canceledAt: "",
     cancelReason: "",
     paidUntilMillis: 0,
+    pixTxid: "",
     onboardingDismissed: false,
     operationalEmail: true,
     productEmail: true,
@@ -269,6 +271,7 @@ export function buildTrialAccount(input: {
     canceledAt: "",
     cancelReason: "",
     paidUntilMillis: 0,
+    pixTxid: "",
     onboardingDismissed: false,
     operationalEmail: true,
     productEmail: true,
@@ -314,6 +317,7 @@ export function buildReplayDeniedAccount(input: { uid: string; email: string; no
     canceledAt: "",
     cancelReason: "",
     paidUntilMillis: 0,
+    pixTxid: "",
     onboardingDismissed: false,
     operationalEmail: true,
     productEmail: true,
@@ -590,13 +594,34 @@ export function userCancelPatch(account: AccountRecord, nowIso: string, options?
   throw new Error("Não há assinatura ativa para cancelar nesta conta.");
 }
 
-export function checkoutPatch(planId: string, nowIso: string) {
+export function checkoutPatch(planId: string, nowIso: string, pixTxid: string) {
   if (!planId || planId === "avaliacao" || planId === "legado") throw new Error("Escolha o plano de uso contínuo.");
+  if (!pixTxid.trim()) throw new Error("Não foi possível gerar o identificador do Pix.");
   return {
-    checkoutStatus: "aguardando_provedor" as const,
+    checkoutStatus: "aguardando_confirmacao_pix" as const,
     checkoutPlanId: planId,
     checkoutRequestedAt: nowIso,
+    pixTxid: pixTxid.trim(),
     updatedAt: nowIso,
+  };
+}
+
+export function renewalNoticeContent(kind: "renovacao_d5" | "renovacao_d0", account: Pick<AccountRecord, "nome" | "paidUntilMillis">) {
+  const nome = account.nome.trim() || "olá";
+  const quando = account.paidUntilMillis
+    ? new Date(account.paidUntilMillis).toLocaleString("pt-BR")
+    : "a data registrada na conta";
+  if (kind === "renovacao_d5") {
+    return {
+      categoria: "operacional" as const,
+      titulo: "Renovação da assinatura em 5 dias",
+      corpo: `${nome}, o período pago do Psy Manager termina em ${quando}. Renove em Assinatura com Pix para manter os lançamentos liberados.`,
+    };
+  }
+  return {
+    categoria: "operacional" as const,
+    titulo: "Renovação da assinatura hoje",
+    corpo: `${nome}, hoje é o último dia do período pago (${quando}). Gere o Pix em Assinatura para continuar sem interrupção.`,
   };
 }
 
@@ -647,7 +672,9 @@ export function summarizeAccounts(accounts: AccountRecord[], plans: PlanDefiniti
     if (periodStart == null || (Number.isFinite(created) && created >= periodStart)) metrics.novosNoPeriodo += 1;
     if (account.accountStatus === "suspensa") metrics.suspensas += 1;
     if (account.accountStatus === "desativada") metrics.desativadas += 1;
-    if (account.checkoutStatus === "aguardando_provedor") metrics.checkoutsAbertos += 1;
+    if (account.checkoutStatus === "aguardando_provedor" || account.checkoutStatus === "aguardando_confirmacao_pix") {
+      metrics.checkoutsAbertos += 1;
+    }
     if (account.subscriptionStatus === "legado" || account.billingAccess === "legado") metrics.legado += 1;
     if (account.subscriptionStatus === "cortesia") metrics.cortesias += 1;
     if (account.subscriptionStatus === "cancelada") metrics.canceladas += 1;
@@ -710,7 +737,14 @@ export function matchesAccountFilter(account: AccountRecord, filter: string, now
   if (filter === "trials_ativos") return account.subscriptionStatus === "trial_ativo" && account.trialEndsAtMillis > now;
   if (filter === "trials_expirados") return account.subscriptionStatus === "trial_expirado" || (account.subscriptionStatus === "trial_ativo" && account.trialEndsAtMillis <= now);
   if (filter === "pagantes") return account.subscriptionStatus === "ativa";
-  if (filter === "pagamento") return account.subscriptionStatus === "pagamento_pendente" || account.subscriptionStatus === "pagamento_atrasado" || account.checkoutStatus === "aguardando_provedor";
+  if (filter === "pagamento") {
+    return (
+      account.subscriptionStatus === "pagamento_pendente" ||
+      account.subscriptionStatus === "pagamento_atrasado" ||
+      account.checkoutStatus === "aguardando_provedor" ||
+      account.checkoutStatus === "aguardando_confirmacao_pix"
+    );
+  }
   if (filter === "canceladas") return account.subscriptionStatus === "cancelada" || account.subscriptionStatus === "encerrada";
   if (filter === "suspensas") return account.accountStatus === "suspensa" || account.accountStatus === "desativada";
   return true;
