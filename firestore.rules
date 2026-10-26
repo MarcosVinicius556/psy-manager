@@ -664,6 +664,19 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /bookingProfiles/{slug} {
+      allow read, write: if false;
+    }
+
+    match /bookingAvailability/{uid} {
+      allow read, write: if false;
+    }
+
+    match /bookingRequests/{requestId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
     match /apiSupportRateLimits/{docId} {
       allow read, write: if false;
     }

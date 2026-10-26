@@ -15,6 +15,7 @@ const publicRoutes = [
   "/suboperadores",
   "/dpa",
   `/feedback/${e2eFeedbackDocId(1)}`,
+  "/agendar/marina-costa",
 ] as const;
 
 const adminRoutes = [
@@ -24,6 +25,7 @@ const adminRoutes = [
   "/admin/pacientes/pat-ana",
   "/admin/financeiro",
   "/admin/configuracoes",
+  "/admin/configuracoes/agendamento-publico",
   "/admin/notificacoes",
   "/admin/locais",
   "/admin/pacotes",

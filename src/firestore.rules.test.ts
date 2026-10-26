@@ -200,6 +200,37 @@ describe("appointments", () => {
   });
 });
 
+describe("bookingRequests", () => {
+  it("owner can read own requests but cannot create", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "bookingRequests", "req-1"), {
+        ownerUid,
+        slug: "demo",
+        status: "pendente",
+        patientName: "Paciente Demo",
+        patientEmail: "demo@example.com",
+        patientPhone: "11999990000",
+        modality: "online",
+        date: "2099-06-01",
+        startTime: "10:00",
+        endTime: "10:50",
+        consentimentoEm: new Date().toISOString(),
+        createdAtMillis: Date.now(),
+      });
+    });
+
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(getDoc(doc(db, "bookingRequests", "req-1")));
+    await assertFails(
+      setDoc(doc(db, "bookingRequests", "req-2"), {
+        ownerUid,
+        slug: "demo",
+        status: "pendente",
+      })
+    );
+  });
+});
+
 describe("sessionConfirmations", () => {
   it("client cannot read or write tokens", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();

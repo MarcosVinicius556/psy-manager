@@ -137,6 +137,7 @@ const routeTitles: { prefix: string; title: string }[] = [
   { prefix: "/admin/pacientes", title: "Pacientes" },
   { prefix: "/admin/financeiro", title: "Financeiro" },
   { prefix: "/admin/despesas", title: "Contas a pagar" },
+  { prefix: "/admin/configuracoes/agendamento-publico", title: "Agendamento público" },
   { prefix: "/admin/configuracoes", title: "Configurações" },
   { prefix: "/admin/notificacoes", title: "Notificações" },
   { prefix: "/admin/assinatura", title: "Assinatura" },

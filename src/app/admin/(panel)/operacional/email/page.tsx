@@ -22,6 +22,7 @@ const TRIGGER_LABEL: Record<string, string> = {
   copia_contrato: "Cópia do contrato",
   envio_recibo: "Recibo",
   lembrete_sessao: "Lembrete de sessão",
+  confirmacao_agendamento: "Confirmação de agendamento",
   link_avaliacao: "Link de avaliação",
   livre: "Livre",
 };
