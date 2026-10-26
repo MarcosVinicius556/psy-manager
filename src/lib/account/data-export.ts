@@ -1,80 +1,32 @@
-import { zipSync, strToU8 } from "fflate";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { getFirebaseDb } from "@/lib/admin/firebase";
-
-const PAGE = 500;
-
-function csvEscape(value: unknown) {
-  const text = value == null ? "" : String(value);
-  if (/[",\n]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
-  return text;
-}
-
-function toCsv(rows: Record<string, unknown>[]) {
-  if (!rows.length) return "";
-  const keys = Object.keys(rows[0]);
-  const lines = [keys.join(",")];
-  for (const row of rows) {
-    lines.push(keys.map((key) => csvEscape(row[key])).join(","));
-  }
-  return lines.join("\n");
-}
-
 export type ExportProgress = { phase: string; done: number; total: number | null };
 
 export async function buildAccountExportZip(
-  ownerUid: string,
+  _ownerUid: string,
   onProgress?: (progress: ExportProgress) => void
 ) {
-  const db = getFirebaseDb();
-  const report = (phase: string, done: number, total: number | null = null) => onProgress?.({ phase, done, total });
+  const { authorizedHeaders } = await import("@/lib/admin/api-auth");
+  report(onProgress, "Pacientes", 0, null);
+  const headers = await authorizedHeaders();
+  report(onProgress, "Sessões", 0, null);
+  report(onProgress, "Financeiro", 0, null);
+  report(onProgress, "Prontuários", 0, null);
 
-  report("Pacientes", 0, null);
-  const patientsSnap = await getDocs(query(collection(db, "patients"), where("ownerUid", "==", ownerUid), limit(PAGE)));
-  const patients = patientsSnap.docs.map((snap) => ({ id: snap.id, ...snap.data() }));
+  const response = await fetch("/api/account/data-export", { headers });
+  if (response.status === 403) {
+    throw new Error("A exportação completa de dados clínicos é permitida apenas ao titular da conta.");
+  }
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { reason?: string };
+    throw new Error(payload.reason || "Não foi possível exportar os dados.");
+  }
 
-  report("Sessões", 0, null);
-  const appointmentsSnap = await getDocs(query(collection(db, "appointments"), where("ownerUid", "==", ownerUid), limit(PAGE)));
-  const appointments = appointmentsSnap.docs
-    .map((snap) => ({ id: snap.id, ...snap.data() }))
-    .sort(
-      (a, b) =>
-        Number((b as { sessionStartMillis?: number }).sessionStartMillis || 0) -
-        Number((a as { sessionStartMillis?: number }).sessionStartMillis || 0)
-    );
+  report(onProgress, "Compactando", 1, 1);
+  const buffer = await response.arrayBuffer();
+  return new Blob([buffer], { type: "application/zip" });
+}
 
-  report("Financeiro", 0, null);
-  const paymentsSnap = await getDocs(query(collection(db, "payments"), where("ownerUid", "==", ownerUid), limit(PAGE)));
-  const payments = paymentsSnap.docs.map((snap) => ({ id: snap.id, ...snap.data() }));
-
-  report("Prontuários", 0, null);
-  const clinicalSnap = await getDocs(query(collection(db, "clinicalRecords"), where("ownerUid", "==", ownerUid), limit(PAGE)));
-  const clinical = clinicalSnap.docs.map((snap) => ({ id: snap.id, ...snap.data() }));
-
-  const manifest = {
-    exportedAt: new Date().toISOString(),
-    ownerUid,
-    counts: {
-      patients: patients.length,
-      appointments: appointments.length,
-      payments: payments.length,
-      clinicalRecords: clinical.length,
-    },
-  };
-
-  const files: Record<string, Uint8Array> = {
-    "manifest.json": strToU8(JSON.stringify(manifest, null, 2)),
-    "pacientes.json": strToU8(JSON.stringify(patients, null, 2)),
-    "sessoes.json": strToU8(JSON.stringify(appointments, null, 2)),
-    "pagamentos.json": strToU8(JSON.stringify(payments, null, 2)),
-    "prontuarios.json": strToU8(JSON.stringify(clinical, null, 2)),
-    "pacientes.csv": strToU8(toCsv(patients as Record<string, unknown>[])),
-    "pagamentos.csv": strToU8(toCsv(payments as Record<string, unknown>[])),
-  };
-
-  report("Compactando", 1, 1);
-  const zipped = zipSync(files, { level: 6 });
-  return new Blob([zipped], { type: "application/zip" });
+function report(onProgress?: (progress: ExportProgress) => void, phase?: string, done?: number, total?: number | null) {
+  if (phase != null) onProgress?.({ phase, done: done ?? 0, total: total ?? null });
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

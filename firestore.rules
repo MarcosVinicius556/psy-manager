@@ -126,8 +126,32 @@ service cloud.firestore {
         : !("paidUntilMillis" in request.resource.data);
     }
 
+    function cancelAtPeriodEndSame() {
+      return ("cancelAtPeriodEnd" in resource.data)
+        ? request.resource.data.cancelAtPeriodEnd == resource.data.cancelAtPeriodEnd
+        : !("cancelAtPeriodEnd" in request.resource.data);
+    }
+
+    function accessUntilSame() {
+      return ("accessUntilMillis" in resource.data)
+        ? request.resource.data.accessUntilMillis == resource.data.accessUntilMillis
+        : !("accessUntilMillis" in request.resource.data);
+    }
+
+    // cancelAtPeriodEnd/accessUntilMillis keep integral access open after a scheduled
+    // cancellation (integralWritesOpen), so the user cannot edit them outside selfCancelPaid.
+    function cancelWindowSame() {
+      return cancelAtPeriodEndSame() && accessUntilSame();
+    }
+
+    // Trial/courtesy cancellation may only clear the window (false / 0), never extend it.
+    function cancelWindowClearedOrSame() {
+      return (cancelAtPeriodEndSame() || request.resource.data.cancelAtPeriodEnd == false)
+        && (accessUntilSame() || request.resource.data.accessUntilMillis == 0);
+    }
+
     function billingUntouched() {
-      return billingAccessSame() && subscriptionSame() && planSame() && accountStatusSame() && trialEndSame() && trialStartSame() && checkoutSame() && paidUntilSame();
+      return billingAccessSame() && subscriptionSame() && planSame() && accountStatusSame() && trialEndSame() && trialStartSame() && checkoutSame() && paidUntilSame() && cancelWindowSame();
     }
 
     function selfExpireTrial() {
@@ -140,7 +164,9 @@ service cloud.firestore {
         && trialEndSame()
         && trialStartSame()
         && roleStable()
-        && checkoutSame();
+        && checkoutSame()
+        && paidUntilSame()
+        && cancelWindowSame();
     }
 
     function selfAdoptLegacy() {
@@ -160,7 +186,9 @@ service cloud.firestore {
         && accountStatusSame()
         && trialEndSame()
         && roleStable()
-        && checkoutSame();
+        && checkoutSame()
+        && paidUntilSame()
+        && cancelWindowClearedOrSame();
     }
 
     function selfCancelPaid() {
@@ -193,6 +221,31 @@ service cloud.firestore {
         && accountStatusSame()
         && trialEndSame()
         && paidUntilSame()
+        && cancelWindowSame()
+        && roleStable();
+    }
+
+    // compat: master client path, remove after promote.
+    // master's checkoutPatch() writes checkoutStatus "aguardando_provedor" without pixTxid.
+    // It only records the request; access fields stay locked.
+    function selfCheckoutLegacyMaster() {
+      return request.resource.data.checkoutStatus == "aguardando_provedor"
+        && request.resource.data.checkoutPlanId is string
+        && request.resource.data.checkoutPlanId.size() > 0
+        && !(request.resource.data.checkoutPlanId in ["avaliacao", "legado"])
+        && (
+          ("pixTxid" in resource.data)
+            ? request.resource.data.pixTxid == resource.data.pixTxid
+            : !("pixTxid" in request.resource.data)
+        )
+        && subscriptionSame()
+        && billingAccessSame()
+        && planSame()
+        && accountStatusSame()
+        && trialEndSame()
+        && trialStartSame()
+        && paidUntilSame()
+        && cancelWindowSame()
         && roleStable();
     }
 
@@ -424,6 +477,79 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(["observacoes", "contatoEmergencia"]);
     }
 
+    // compat: master client path, remove after promote.
+    // master keeps observacoes/contatoEmergencia on patients (develop moved them to
+    // patientPrivate). Only the tenant owner writing directly may keep them; staff writes
+    // still need noPatientPrivateOnPatient().
+    function ownerKeepsLegacyPatientFields() {
+      return signedIn() && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    function masterClinicalKeys() {
+      return [
+        "mood",
+        "clinicalEvolution",
+        "notes",
+        "aspectosCognitivos",
+        "aspectosEmocionais",
+        "intervencoes",
+        "objetivos",
+        "evolucaoSessao",
+        "anamneseArquivos",
+        "atividadesArquivos",
+      ];
+    }
+
+    // compat: master client path, remove after promote.
+    // master stores the session record inside appointments.clinical, always with the full
+    // shape built by mapClinical()/emptyClinical(). Owner-only; develop clients never send it.
+    function masterClinicalShape(clinical) {
+      return clinical is map
+        && clinical.keys().hasAll(masterClinicalKeys())
+        && clinical.keys().hasOnly(masterClinicalKeys())
+        && clinical.anamneseArquivos is list
+        && clinical.atividadesArquivos is list;
+    }
+
+    function appointmentClinicalOkOnCreate() {
+      return noClinicalOnAppointment()
+        || (ownsNew() && masterClinicalShape(request.resource.data.clinical));
+    }
+
+    // Updates that do not touch `clinical` are fine even on legacy docs that already carry it
+    // (both master and develop edit status/date on those docs).
+    function appointmentClinicalOkOnUpdate() {
+      return noClinicalOnAppointment()
+        || !request.resource.data.diff(resource.data).affectedKeys().hasAny(["clinical"])
+        || masterClinicalShape(request.resource.data.clinical);
+    }
+
+    // The user's own roster row in members (uid == ownerUid == caller). Login (upsertPsychologist,
+    // master and develop) creates/syncs it before or regardless of the billing state, so it does
+    // not depend on clinicWritesOpen(). Only identity fields may change through this path.
+    function selfMemberRowNew() {
+      return signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    function selfMemberRowSync() {
+      return signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["uid", "ownerUid", "email", "nome", "foto", "ativo"]);
+    }
+
+    // compat: master client path, remove after promote.
+    // master appointments have no sessionStartMillis, so appointmentFuture() can never hold.
+    // An invitee may still add only itself when the owner listed the appointment in the
+    // accepted invite (createLocationInvite stores appointmentIds).
+    function masterInviteListsAppointment(locationId, appointmentId) {
+      return !("sessionStartMillis" in resource.data)
+        && appointmentId in get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.appointmentIds;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isSuperAdmin());
       allow create: if signedIn()
@@ -440,6 +566,7 @@ service cloud.firestore {
         );
       allow update: if signedIn() && request.auth.uid == userId && roleStable() && (
         billingUntouched() || selfExpireTrial() || selfAdoptLegacy() || selfCancel() || selfCancelPaid() || selfCheckout()
+        || selfCheckoutLegacyMaster()
       );
       allow update: if isSuperAdmin()
         && request.resource.data.uid == resource.data.uid
@@ -514,6 +641,8 @@ service cloud.firestore {
     }
 
     match /memberPrivate/{uid} {
+      // listMembers() (develop) reads the caller's own doc even when it does not exist yet.
+      allow get: if signedIn() && request.auth.uid == uid && (resource == null || resource.data.ownerUid == request.auth.uid);
       allow read: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn()
         && request.auth.uid == uid
@@ -528,13 +657,16 @@ service cloud.firestore {
     }
 
     match /members/{memberId} {
+      // No "unowned doc" branch: it let any signed-in user list every tenant's roster.
       allow read: if signedIn() && (
         resource.data.ownerUid == request.auth.uid
         || resource.data.uid == request.auth.uid
-        || !resource.data.keys().hasAny(["ownerUid"])
       );
+      // develop upsertPsychologist() reads the canonical members/{uid} doc before it exists.
+      allow get: if signedIn() && memberId == request.auth.uid && resource == null;
       allow create: if noMemberPrivateOnMember() && (
         tenantCreate()
+        || selfMemberRowNew()
         || (
           isSuperAdmin()
           && request.resource.data.uid is string
@@ -543,6 +675,7 @@ service cloud.firestore {
         )
       );
       allow update: if tenantUpdate() && noMemberPrivateOnMember() && politicaFaltaValid(request.resource.data);
+      allow update: if selfMemberRowSync() && noMemberPrivateOnMember() && politicaFaltaValid(request.resource.data);
       allow delete: if tenantDelete();
     }
 
@@ -572,9 +705,24 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.locationId == resource.data.locationId
         && request.resource.data.status in ["aceito", "recusado"];
+      // createLocationInvite() (master and develop): the location owner invites another user.
+      allow create: if signedIn()
+        && clinicWritesOpen()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.inviteeUid is string
+        && request.resource.data.inviteeUid != request.auth.uid
+        && request.resource.data.locationId is string
+        && inviteId == request.resource.data.locationId + "_" + request.resource.data.inviteeUid
+        && request.resource.data.status == "pendente"
+        && exists(/databases/$(database)/documents/locations/$(request.resource.data.locationId))
+        && get(/databases/$(database)/documents/locations/$(request.resource.data.locationId)).data.ownerUid == request.auth.uid
+        && (!("appointmentIds" in request.resource.data) || request.resource.data.appointmentIds is list)
+        && (!("expenseIds" in request.resource.data) || request.resource.data.expenseIds is list);
     }
 
     match /locations/{locationId} {
+      // Owner listing (listShared owned query, not wrapped in try/catch on master).
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
       allow create: if tenantCreate();
       allow update: if signedIn()
@@ -633,13 +781,15 @@ service cloud.firestore {
     }
 
     match /appointments/{appointmentId} {
+      // Owner listing (listShared owned query, data export, demo cleanup).
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow read: if signedIn() && request.auth.uid in resource.data.accessUids;
       allow create: if tenantCreate()
-        && noClinicalOnAppointment()
+        && appointmentClinicalOkOnCreate()
         && request.auth.uid in request.resource.data.accessUids;
       allow update: if ownsExisting()
         && clinicWritesOpen()
-        && noClinicalOnAppointment()
+        && appointmentClinicalOkOnUpdate()
         && appointmentConfirmationFieldsStable()
         && request.resource.data.ownerUid == resource.data.ownerUid;
       allow update: if signedIn()
@@ -647,12 +797,14 @@ service cloud.firestore {
         && request.resource.data.accessUids.hasAll(resource.data.accessUids)
         && request.resource.data.accessUids.hasOnly(resource.data.accessUids.concat([request.auth.uid]))
         && resource.data.locationId is string
-        && appointmentFuture()
-        && locationInviteAccepted(resource.data.locationId);
+        && locationInviteAccepted(resource.data.locationId)
+        && (appointmentFuture() || masterInviteListsAppointment(resource.data.locationId, appointmentId));
       allow delete: if tenantDelete();
     }
 
     match /expenses/{expenseId} {
+      // Owner listing (listShared owned query).
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow read: if signedIn() && request.auth.uid in resource.data.accessUids;
       allow create: if tenantCreate() && request.auth.uid in request.resource.data.accessUids;
       allow update: if signedIn()
@@ -669,7 +821,7 @@ service cloud.firestore {
         && request.resource.data.shares.size() == resource.data.shares.size()
         && shareMoneyLocked(0) && shareMoneyLocked(1) && shareMoneyLocked(2) && shareMoneyLocked(3)
         && shareMoneyLocked(4) && shareMoneyLocked(5) && shareMoneyLocked(6) && shareMoneyLocked(7);
-      allow update: if ownsExisting() && clinicWritesOpen();
+      allow update: if ownsExisting() && clinicWritesOpen() && request.resource.data.ownerUid == resource.data.ownerUid;
       allow delete: if tenantDelete();
     }
 
@@ -687,10 +839,10 @@ service cloud.firestore {
     match /patients/{patientId} {
       allow read: if patientReadAllowed();
       allow create: if tenantCreate()
-        && noPatientPrivateOnPatient()
+        && (noPatientPrivateOnPatient() || ownerKeepsLegacyPatientFields())
         && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
       allow update: if tenantUpdate()
-        && noPatientPrivateOnPatient()
+        && (noPatientPrivateOnPatient() || (ownerKeepsLegacyPatientFields() && resource.data.ownerUid == request.auth.uid))
         && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
       allow delete: if tenantDelete();
     }
@@ -765,6 +917,8 @@ service cloud.firestore {
 
     match /fechamentos/{closingId} {
       allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      // getMonthClosing() reads `${uid}_${YYYYMM}` before the month is closed.
+      allow get: if signedIn() && resource == null && closingId.matches(request.auth.uid + "_[0-9]{6}");
       allow create, update: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.month is string
@@ -786,7 +940,23 @@ service cloud.firestore {
     match /sessionFeedbacks/{token} {
       allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn() && ownsNew() && clinicWritesOpen() && feedbackAnswerFieldsUnset();
-      allow update, delete: if false;
+      // compat: master client path, remove after promote.
+      // master's public /feedback/[token] page reads and answers the feedback with the client SDK
+      // (no login). The token is a random UUID; only single-doc get (no list), and a single
+      // answer before expiry. develop answers through /api/public/feedback (Admin SDK).
+      allow get: if true;
+      allow update: if resource.data.answeredAtMillis == null
+        && resource.data.expiresAtMillis is int
+        && resource.data.expiresAtMillis > request.time.toMillis()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stars", "comment", "answeredAt", "answeredAtMillis"])
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 2000
+        && request.resource.data.answeredAt is string
+        && request.resource.data.answeredAtMillis is int;
+      allow delete: if false;
     }
 
     match /sessionConfirmations/{token} {
@@ -868,11 +1038,17 @@ service cloud.firestore {
         || name == "primeiro_paciente"
         || name == "primeira_sessao_concluida"
         || name == "primeiro_pagamento"
+        || name == "primeiro_recibo"
         || name == "ativo_7_dias";
     }
 
     match /activationEvents/{eventId} {
       allow read: if isSuperAdmin();
+      // recordActivationEvent() checks that its own `${uid}_${event}` doc does not exist yet
+      // before writing it. Existing events stay platform-only (the denied read is caught).
+      allow get: if signedIn()
+        && resource == null
+        && eventId.matches(request.auth.uid + "_[a-z0-9_]+");
       allow create: if signedIn()
         && request.resource.data.accountId == request.auth.uid
         && activationEventNameAllowed(request.resource.data.event)

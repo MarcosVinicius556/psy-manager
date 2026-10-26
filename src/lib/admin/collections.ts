@@ -546,24 +546,14 @@ export async function getClinicalRecordForAppointment(appointmentId: string) {
     const response = await fetch(`/api/clinical/${encodeURIComponent(appointmentId)}`, { headers });
     if (response.status === 404) return emptyClinical();
     if (!response.ok) {
-      console.warn("getClinicalRecordForAppointment: API falhou, tentando leitura direta.", response.status);
-      throw new Error("api_clinical_failed");
+      console.warn("getClinicalRecordForAppointment: API indisponível; prontuário via servidor.", response.status);
+      return emptyClinical();
     }
     const payload = (await response.json()) as { clinical?: unknown };
     return mapClinical(payload.clinical);
   } catch (error) {
-    if (error instanceof Error && error.message === "api_clinical_failed") {
-      const snapshot = await getDoc(doc(getFirebaseDb(), "clinicalRecords", appointmentId));
-      trackFirestoreReads(snapshot.exists() ? 1 : 0);
-      if (!snapshot.exists()) return emptyClinical();
-      const data = snapshot.data();
-      if (data?.enc) {
-        console.warn("Prontuário cifrado: configure CLINICAL_FIELD_ENC_KEY no servidor.");
-        return emptyClinical();
-      }
-      return mapClinical(data.clinical);
-    }
-    throw error;
+    console.warn("getClinicalRecordForAppointment: falha ao carregar prontuário.", error);
+    return emptyClinical();
   }
 }
 
