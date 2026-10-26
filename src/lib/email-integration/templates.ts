@@ -117,6 +117,21 @@ Para não receber lembretes por e-mail: {{link_descadastro}}
     anexo: "nenhum",
   },
   {
+    nome: "Confirmação de agendamento",
+    trigger: "confirmacao_agendamento",
+    assunto: "Sessão confirmada — {{data_sessao}} às {{hora_sessao}}",
+    corpo: `Olá, {{paciente_nome}}.
+
+Sua sessão com {{profissional_nome}} foi confirmada para **{{data_sessao}}** às **{{hora_sessao}}**.
+
+{{local_sessao}}
+
+Atenciosamente,
+{{profissional_nome}}
+{{clinica_nome}}`,
+    anexo: "nenhum",
+  },
+  {
     nome: "Cobrança com Pix",
     trigger: "cobranca_pix",
     assunto: "Cobrança — {{descricao}} (vence {{vencimento}})",

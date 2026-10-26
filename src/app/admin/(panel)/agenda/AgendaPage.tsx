@@ -33,6 +33,7 @@ import { fromMinutes, rangesOverlap, SLOT_STEP, sessionStartMillis, timelineSlot
 import { weekAppointmentWindow } from "@/lib/admin/clinic-load-windows";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
 import CompleteSessionFlow from "@/components/admin/CompleteSessionFlow";
+import BookingRequestsPanel from "@/components/admin/BookingRequestsPanel";
 import type { Appointment } from "@/lib/admin/types";
 import { getFirebaseAuth } from "@/lib/admin/firebase";
 
@@ -136,6 +137,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   }, [locationId]);
 
   const creating = params.get("novo") === "1";
+  const bookingRequestHighlight = params.get("bookingRequest");
   const editId = params.get("edit");
   const editing = appointments.find((item) => item.id === editId);
   const drawerOpen = creating || Boolean(editing);
@@ -265,6 +267,8 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           action={newButton}
         />
       )}
+
+      {!locationId ? <BookingRequestsPanel highlightId={bookingRequestHighlight} /> : null}
       {!locationId && workplaces.length > 1 && (
         <div className="mb-4 max-w-md">
           <Select

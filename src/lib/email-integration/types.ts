@@ -26,6 +26,7 @@ export type EmailTemplateTrigger =
   | "copia_contrato"
   | "envio_recibo"
   | "lembrete_sessao"
+  | "confirmacao_agendamento"
   | "link_avaliacao"
   | "cobranca_pix"
   | "livre";
