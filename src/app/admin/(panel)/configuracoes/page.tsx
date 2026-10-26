@@ -15,7 +15,9 @@ import { CRP_REGIONS, formatCrp } from "@/lib/admin/crp";
 import { maskCep, maskCpf, maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
 import IntegrationsSettingsCard from "@/components/admin/IntegrationsSettingsCard";
+import PushNotificationsCard from "@/components/admin/PushNotificationsCard";
 import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
+import { DEFAULT_POLITICA_FALTA, normalizePoliticaFalta } from "@/lib/admin/no-show-policy";
 
 export default function SettingsPage() {
   const { user, sendPasswordReset } = useAuth();
@@ -34,6 +36,8 @@ export default function SettingsPage() {
   const [foto, setFoto] = useState("");
   const [valorBase, setValorBase] = useState("");
   const [valorSocial, setValorSocial] = useState("");
+  const [politicaHoras, setPoliticaHoras] = useState(String(DEFAULT_POLITICA_FALTA.horas));
+  const [politicaPercentual, setPoliticaPercentual] = useState(String(DEFAULT_POLITICA_FALTA.percentual));
   const [openSlots, setOpenSlots] = useState<string[]>([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [nextPassword, setNextPassword] = useState("");
@@ -65,6 +69,9 @@ export default function SettingsPage() {
     setValorBase(moneyInput(me?.valorBase || 0));
     setValorSocial(moneyInput(me?.valorSocial || 0));
     setOpenSlots(shiftsToSlotKeys(me?.workHours || []));
+    const policy = normalizePoliticaFalta(me?.politicaFalta);
+    setPoliticaHoras(String(policy.horas));
+    setPoliticaPercentual(String(policy.percentual));
   }, [me, user]);
 
   const hours = timelineSlots();
@@ -85,6 +92,10 @@ export default function SettingsPage() {
       valorBase: parseMoney(valorBase),
       valorSocial: parseMoney(valorSocial),
       workHours: slotKeysToShifts(openSlots),
+      politicaFalta: normalizePoliticaFalta({
+        horas: Number.parseInt(politicaHoras, 10),
+        percentual: Number.parseInt(politicaPercentual, 10),
+      }),
     };
   }
 
@@ -372,6 +383,27 @@ export default function SettingsPage() {
               placeholder="0,00"
             />
           </Field>
+          <Field label="Política de falta — aviso mínimo (horas)">
+            <input
+              className={fieldClass}
+              inputMode="numeric"
+              value={politicaHoras}
+              onChange={(event) => setPoliticaHoras(event.target.value.replace(/\D/g, "").slice(0, 3))}
+              placeholder="24"
+            />
+          </Field>
+          <Field label="Política de falta — percentual da sessão (%)">
+            <input
+              className={fieldClass}
+              inputMode="numeric"
+              value={politicaPercentual}
+              onChange={(event) => setPoliticaPercentual(event.target.value.replace(/\D/g, "").slice(0, 3))}
+              placeholder="100"
+            />
+          </Field>
+          <p className="text-sm text-muted sm:col-span-2">
+            Usada na sugestão de cobrança ao marcar falta e na variável {"{{POLITICA_FALTA}}"} do contrato.
+          </p>
           <button className="btn-primary justify-self-start" disabled={savingValues}>
             {savingValues ? "Salvando..." : "Salvar valores"}
           </button>
@@ -394,6 +426,7 @@ export default function SettingsPage() {
       </Card>
 
       <IntegrationsSettingsCard />
+      <PushNotificationsCard />
 
       <SecuritySettingsCard />
 

@@ -40,6 +40,7 @@ export default function PatientForm({
     foto: patient?.foto ?? "",
     fotoAsset: patient?.fotoAsset ?? null,
     status: patient?.status ?? "ativo",
+    lembretesEmail: patient?.lembretesEmail ?? true,
   });
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -172,6 +173,17 @@ export default function PatientForm({
       <Field label="E-mail">
         <input type="email" className={fieldClass} value={form.email} onChange={(event) => set("email", event.target.value)} />
       </Field>
+      <div className="md:col-span-2">
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={form.lembretesEmail}
+            onChange={(event) => set("lembretesEmail", event.target.checked)}
+          />
+          <span>Enviar lembretes automáticos de sessão por e-mail (com link de confirmação).</span>
+        </label>
+      </div>
       <Field label="Status">
         <Select
           value={form.status}

@@ -83,6 +83,10 @@ export type TemplateRenderContext = {
   data_pagamento?: string;
   descricao?: string;
   link_avaliacao?: string;
+  link_confirmar?: string;
+  link_remarcar?: string;
+  link_descadastro?: string;
+  local_sessao?: string;
 };
 
 export type OutboundAttachment = {

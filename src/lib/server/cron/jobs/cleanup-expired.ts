@@ -29,11 +29,27 @@ export const cleanupExpiredJob: DailyCronJob = {
       if (processed >= BATCH_LIMIT) break;
     }
 
+    let confirmationsDeleted = 0;
+    try {
+      const confirmations = await db
+        .collection("sessionConfirmations")
+        .where("expiresAtMillis", "<", now)
+        .orderBy("expiresAtMillis")
+        .limit(BATCH_LIMIT)
+        .get();
+      for (const docSnap of confirmations.docs) {
+        await docSnap.ref.delete();
+        confirmationsDeleted += 1;
+      }
+    } catch (error) {
+      console.warn("cleanup_expired: sessionConfirmations ignorado.", error);
+    }
+
     const partial = snapshot.size >= BATCH_LIMIT;
     return {
-      processed,
+      processed: processed + confirmationsDeleted,
       cursor: partial ? lastId : null,
-      details: { collection: "sessionFeedbacks" },
+      details: { collection: "sessionFeedbacks", sessionConfirmationsDeleted: confirmationsDeleted },
     };
   },
 };

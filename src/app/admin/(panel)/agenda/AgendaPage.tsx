@@ -28,6 +28,7 @@ import {
   startOfWeek,
   todayISO,
 } from "@/lib/admin/format";
+import { labelAppointmentConfirmation } from "@/lib/admin/format";
 import { fromMinutes, rangesOverlap, SLOT_STEP, sessionStartMillis, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
 import { weekAppointmentWindow } from "@/lib/admin/clinic-load-windows";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
@@ -392,9 +393,16 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
                       title={visiblePatient(item.patientId)}
                       subtitle={`${formatDate(item.date)} · ${item.startTime}–${item.endTime}`}
                       meta={
-                        <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
-                          {labelAppointmentStatus(item.status)}
-                        </Pill>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
+                            {labelAppointmentStatus(item.status)}
+                          </Pill>
+                          {item.status === "agendado" && item.confirmacao ? (
+                            <Pill tone={item.confirmacao === "confirmada" ? "teal" : item.confirmacao === "remarcar" ? "accent" : "sage"}>
+                              {labelAppointmentConfirmation(item.confirmacao)}
+                            </Pill>
+                          ) : null}
+                        </div>
                       }
                     />
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -451,9 +459,16 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
                       {item.recurring ? " · recorrente" : ""}
                     </Td>
                     <Td>
-                      <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
-                        {labelAppointmentStatus(item.status)}
-                      </Pill>
+                      <div className="flex flex-wrap gap-2">
+                        <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
+                          {labelAppointmentStatus(item.status)}
+                        </Pill>
+                        {item.status === "agendado" && item.confirmacao ? (
+                          <Pill tone={item.confirmacao === "confirmada" ? "teal" : item.confirmacao === "remarcar" ? "accent" : "sage"}>
+                            {labelAppointmentConfirmation(item.confirmacao)}
+                          </Pill>
+                        ) : null}
+                      </div>
                     </Td>
                     <Td className="text-right">
                       <button type="button" className="btn-row" onClick={() => replaceQuery({ edit: item.id, novo: null })}>

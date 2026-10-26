@@ -1,4 +1,5 @@
 import type {
+  AppointmentConfirmationStatus,
   AppointmentStatus,
   Modality,
   Mood,
@@ -117,6 +118,17 @@ export function normalizePatientStatus(data: { status?: unknown; ativo?: unknown
 
 export function isPatientActive(patient: { status: PatientStatus }): boolean {
   return patient.status === "ativo";
+}
+
+const appointmentConfirmationLabel: Record<AppointmentConfirmationStatus, string> = {
+  pendente: "Aguardando confirmação",
+  confirmada: "Confirmada",
+  remarcar: "Pediu remarcação",
+};
+
+export function labelAppointmentConfirmation(status: AppointmentConfirmationStatus | null | undefined) {
+  if (!status) return null;
+  return appointmentConfirmationLabel[status] ?? null;
 }
 
 const appointmentStatusLabel: Record<AppointmentStatus, string> = {
