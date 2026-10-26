@@ -206,6 +206,8 @@ function mapPatient(id: string, data: DocumentData): Patient {
     tcleAceite: mapTcleAcceptance(data.tcleAceite),
     status: normalizePatientStatus(data),
     lembretesEmail: data.lembretesEmail !== false,
+    portalAtivo: data.portalAtivo === true,
+    patientAuthUid: typeof data.patientAuthUid === "string" ? data.patientAuthUid : null,
     createdAt: text(data.createdAt),
   };
 }

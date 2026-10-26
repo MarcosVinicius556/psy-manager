@@ -2,7 +2,7 @@ import type { DailyCronJob } from "../runner";
 
 const BATCH_LIMIT = 200;
 
-const EXPIRED_COLLECTIONS = ["sessionFeedbacks", "signatureRequests", "formRequests"] as const;
+const EXPIRED_COLLECTIONS = ["sessionFeedbacks", "signatureRequests", "formRequests", "portalInvites"] as const;
 
 export const cleanupExpiredJob: DailyCronJob = {
   id: "cleanup_expired",

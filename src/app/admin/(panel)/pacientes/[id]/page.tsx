@@ -22,6 +22,7 @@ import PatientTcleEmit from "@/components/admin/PatientTcleEmit";
 import SignatureShare from "@/components/admin/SignatureShare";
 import FormRequestShare from "@/components/admin/FormRequestShare";
 import FormResponsesPanel from "@/components/admin/FormResponsesPanel";
+import PatientPortalPanel from "@/components/patient/PatientPortalPanel";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, isUnpaid, paymentReceipts, remainingAmount } from "@/lib/admin/finance";
 import {
@@ -332,6 +333,8 @@ export default function PatientDetailPage() {
           <SignatureShare patient={patient} />
         </Card>
       )}
+
+      {tab === "prontuario" && <PatientPortalPanel patient={patient} />}
 
       {tab === "prontuario" && (
         <Card className="mb-6">
