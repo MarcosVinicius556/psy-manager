@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { loadPatientPrivate } from "@/lib/admin/collections";
+import { useWorkspace } from "@/lib/team/workspace-context";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { uploadClinicFile } from "@/lib/admin/attachments";
@@ -24,6 +26,8 @@ export default function PatientForm({
   const router = useRouter();
   const { user } = useAuth();
   const { savePatient, members } = useClinic();
+  const { workspace } = useWorkspace();
+  const showPrivateNotes = workspace?.isClinicalAllowed ?? true;
   const me = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const { templates } = useContractTemplates();
   const [form, setForm] = useState<PatientInput>({
@@ -47,6 +51,19 @@ export default function PatientForm({
   const [emitOnSave, setEmitOnSave] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
   const nextStep = useRef<"save" | "appointment">("save");
+
+  useEffect(() => {
+    if (!patient?.id || !showPrivateNotes) return;
+    loadPatientPrivate(patient.id)
+      .then((privateFields) => {
+        setForm((current) => ({
+          ...current,
+          observacoes: privateFields.observacoes || current.observacoes,
+          contatoEmergencia: privateFields.contatoEmergencia || current.contatoEmergencia,
+        }));
+      })
+      .catch(() => undefined);
+  }, [patient?.id, showPrivateNotes]);
 
   function set<K extends keyof PatientInput>(key: K, value: PatientInput[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -187,16 +204,28 @@ export default function PatientForm({
           <input className={fieldClass} value={form.endereco} onChange={(event) => set("endereco", event.target.value)} />
         </Field>
       </div>
-      <div className="md:col-span-2">
-        <Field label="Contato de emergência">
-          <input className={fieldClass} value={form.contatoEmergencia} onChange={(event) => set("contatoEmergencia", event.target.value)} />
-        </Field>
-      </div>
-      <div className="md:col-span-2">
-        <Field label="Observações">
-          <textarea className={`${fieldClass} min-h-28`} value={form.observacoes} onChange={(event) => set("observacoes", event.target.value)} />
-        </Field>
-      </div>
+      {showPrivateNotes ? (
+        <>
+          <div className="md:col-span-2">
+            <Field label="Contato de emergência">
+              <input
+                className={fieldClass}
+                value={form.contatoEmergencia}
+                onChange={(event) => set("contatoEmergencia", event.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="md:col-span-2">
+            <Field label="Observações">
+              <textarea
+                className={`${fieldClass} min-h-28`}
+                value={form.observacoes}
+                onChange={(event) => set("observacoes", event.target.value)}
+              />
+            </Field>
+          </div>
+        </>
+      ) : null}
       <div className="md:col-span-2">
         <Field label="Foto do paciente">
           <div className="flex flex-wrap items-center gap-4">

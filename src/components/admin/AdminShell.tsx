@@ -11,6 +11,8 @@ import { isExpenseAlert } from "@/lib/admin/expenses";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { adminGroupForPath, adminTitleForPath, buildAdminMenu } from "@/lib/admin/admin-nav";
+import { filterAdminNav } from "@/lib/team/admin-nav";
+import { useWorkspace } from "@/lib/team/workspace-context";
 import { useCookieConsent } from "@/components/legal/CookieConsentProvider";
 import { ADMIN_MOBILE_TABBAR_MEDIA, isNarrowDeskViewport } from "@/lib/admin/layout-breakpoints";
 
@@ -19,7 +21,8 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user, role } = useAuth();
-  const menu = buildAdminMenu(role);
+  const { workspace } = useWorkspace();
+  const menu = filterAdminNav(buildAdminMenu(role), workspace);
   const { notifications, members, locationInvites, expenses } = useClinic();
   const me = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const profileName = me?.nome || user?.displayName || user?.email || "Conta";

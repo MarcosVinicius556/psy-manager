@@ -30,6 +30,13 @@ import { trialEligibleFromUserDoc } from "./google-auth-flow";
 import { singleFlight } from "./single-flight";
 import { getFirebaseAuth, getFirebaseDb } from "./firebase";
 import {
+  emptyPatientPrivate,
+  patientPrivateDocId,
+  pickPatientPrivateFields,
+  stripPatientPrivateFields,
+} from "./patient-private";
+import { effectiveOwnerUid } from "@/lib/team/workspace-owner";
+import {
   contractVersionSummary,
   type ContractTemplate,
   type ContractTemplateVersion,
@@ -331,14 +338,11 @@ function stripClinicalFromAppointmentInput<T extends { clinical?: ClinicalRecord
 }
 
 function currentOwnerUid() {
-  const uid = getFirebaseAuth().currentUser?.uid;
-  if (!uid) throw new Error("Faça login para continuar.");
-  return uid;
+  return effectiveOwnerUid();
 }
 
 async function listCollection<T>(name: string, map: (id: string, data: DocumentData) => T) {
-  const uid = getFirebaseAuth().currentUser?.uid;
-  if (!uid) return [];
+  const uid = currentOwnerUid();
   const snapshot = await getDocs(query(collection(getFirebaseDb(), name), where("ownerUid", "==", uid)));
   return snapshot.docs.map((item) => map(item.id, item.data()));
 }
@@ -348,7 +352,7 @@ async function listShared<T extends { id: string }>(
   shareField: string,
   map: (id: string, data: DocumentData) => T
 ) {
-  const uid = getFirebaseAuth().currentUser?.uid;
+  const uid = currentOwnerUid();
   if (!uid) return [];
   const base = collection(getFirebaseDb(), name);
   let ownedDocs: Awaited<ReturnType<typeof getDocs>>["docs"] = [];
@@ -709,19 +713,51 @@ export async function removeExpense(id: string) {
   await deleteDoc(doc(getFirebaseDb(), "expenses", id));
 }
 
+export async function loadPatientPrivate(patientId: string) {
+  const ownerUid = currentOwnerUid();
+  const authUid = getFirebaseAuth().currentUser?.uid;
+  if (!authUid || authUid !== ownerUid) return emptyPatientPrivate();
+  const snap = await getDoc(doc(getFirebaseDb(), "patientPrivate", patientPrivateDocId(ownerUid, patientId)));
+  if (!snap.exists()) return emptyPatientPrivate();
+  return pickPatientPrivateFields(snap.data() as Record<string, unknown>);
+}
+
+async function savePatientPrivateFields(patientId: string, fields: ReturnType<typeof pickPatientPrivateFields>) {
+  const ownerUid = currentOwnerUid();
+  const authUid = getFirebaseAuth().currentUser?.uid;
+  if (!authUid || authUid !== ownerUid) return;
+  await setDoc(
+    doc(getFirebaseDb(), "patientPrivate", patientPrivateDocId(ownerUid, patientId)),
+    {
+      ownerUid,
+      patientId,
+      ...fields,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
+}
+
 export async function createPatient(input: PatientInput) {
   assertClinicWrite();
+  const ownerUid = currentOwnerUid();
+  const privateFields = pickPatientPrivateFields(input as Record<string, unknown>);
+  const publicFields = stripPatientPrivateFields({ ...input } as Record<string, unknown>);
   const ref = await addDoc(collection(getFirebaseDb(), "patients"), {
-    ...input,
-    ownerUid: currentOwnerUid(),
+    ...publicFields,
+    ownerUid,
     createdAt: new Date().toISOString(),
   });
+  await savePatientPrivateFields(ref.id, privateFields);
   return ref.id;
 }
 
 export async function updatePatient(id: string, input: PatientInput) {
   assertClinicWrite();
-  await updateDoc(doc(getFirebaseDb(), "patients", id), input);
+  const privateFields = pickPatientPrivateFields(input as Record<string, unknown>);
+  const publicFields = stripPatientPrivateFields({ ...input } as Record<string, unknown>);
+  await updateDoc(doc(getFirebaseDb(), "patients", id), publicFields);
+  await savePatientPrivateFields(id, privateFields);
 }
 
 export async function setPatientSignedContract(id: string, file: ClinicAttachment | null) {
