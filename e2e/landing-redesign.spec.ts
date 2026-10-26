@@ -45,6 +45,7 @@ test.describe("landing conversion sections", () => {
     });
 
     await page.locator("#planos").scrollIntoViewIfNeeded();
+    await expect(page.getByText(/R\$\s*89,90|89,90/)).toBeVisible();
     await page.screenshot({
       path: path.join(artifactRoot, `${prefix}-planos.png`),
       fullPage: false,

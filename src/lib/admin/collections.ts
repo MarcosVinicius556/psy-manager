@@ -14,6 +14,11 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { isPaymentMethod, normalizePatientStatus } from "./format";
+import { normalizePoliticaFalta } from "./no-show-policy";
+import { dueDateMillis } from "./due-date-millis";
+import type { MonthClosingRecord, ReceitaSaudeMonthSummary } from "./receita-saude-report";
+import { monthClosingDocId } from "./receita-saude-report";
+import { trackFirestoreReads } from "./firestore-reads";
 import { sessionStartMillis } from "./schedule";
 import {
   emptyMemberPrivateFields,
@@ -207,6 +212,7 @@ function mapPatient(id: string, data: DocumentData): Patient {
     contratoAssinado: mapAttachment(data.contratoAssinado),
     tcleAceite: mapTcleAcceptance(data.tcleAceite),
     status: normalizePatientStatus(data),
+    lembretesEmail: data.lembretesEmail !== false,
     createdAt: text(data.createdAt),
   };
 }
@@ -242,6 +248,11 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
     googleEventId: data.googleEventId ? text(data.googleEventId) : null,
     googleLocationEventId: data.googleLocationEventId ? text(data.googleLocationEventId) : null,
     googleMeetLink: data.googleMeetLink ? text(data.googleMeetLink) : null,
+    confirmacao:
+      data.confirmacao === "confirmada" || data.confirmacao === "remarcar" || data.confirmacao === "pendente"
+        ? data.confirmacao
+        : null,
+    confirmadaEm: data.confirmadaEm ? text(data.confirmadaEm) : null,
     createdAt: text(data.createdAt),
     updatedAt: text(data.updatedAt),
   };
@@ -283,7 +294,7 @@ function launchEvent(input: PaymentInput, createdAt: string): PaymentEvent {
   };
 }
 
-function mapPayment(id: string, data: DocumentData): Payment {
+export function mapPayment(id: string, data: DocumentData): Payment {
   const status = text(data.status) as PaymentStatus;
   const method = paymentMethod(data.formaPagamento);
   const valor = Number(data.valor) || 0;
@@ -306,6 +317,9 @@ function mapPayment(id: string, data: DocumentData): Payment {
       ? data.historico.map(mapPaymentEvent).filter((event): event is PaymentEvent => Boolean(event))
       : [],
     reciboFiscal: mapFiscalReceipt(data.reciboFiscal),
+    pixTxid: text(data.pixTxid),
+    lembretesEnviados: typeof data.lembretesEnviados === "number" ? data.lembretesEnviados : 0,
+    comprovantePaciente: mapAttachment(data.comprovantePaciente),
     createdAt: text(data.createdAt),
   };
 }
@@ -344,6 +358,7 @@ function currentOwnerUid() {
 async function listCollection<T>(name: string, map: (id: string, data: DocumentData) => T) {
   const uid = currentOwnerUid();
   const snapshot = await getDocs(query(collection(getFirebaseDb(), name), where("ownerUid", "==", uid)));
+  trackFirestoreReads(snapshot.size);
   return snapshot.docs.map((item) => map(item.id, item.data()));
 }
 
@@ -358,12 +373,16 @@ async function listShared<T extends { id: string }>(
   let ownedDocs: Awaited<ReturnType<typeof getDocs>>["docs"] = [];
   let sharedDocs: Awaited<ReturnType<typeof getDocs>>["docs"] = [];
   try {
-    ownedDocs = (await getDocs(query(base, where("ownerUid", "==", uid)))).docs;
+    const owned = await getDocs(query(base, where("ownerUid", "==", uid)));
+    trackFirestoreReads(owned.size);
+    ownedDocs = owned.docs;
   } catch (error) {
     console.error(error);
   }
   try {
-    sharedDocs = (await getDocs(query(base, where(shareField, "array-contains", uid)))).docs;
+    const shared = await getDocs(query(base, where(shareField, "array-contains", uid)));
+    trackFirestoreReads(shared.size);
+    sharedDocs = shared.docs;
   } catch (error) {
     console.error(error);
   }
@@ -411,6 +430,132 @@ export function listAppointments() {
 
 export function listPayments() {
   return listCollection("payments", mapPayment);
+}
+
+function firestoreNeedsIndex(error: unknown) {
+  const code = (error as { code?: string })?.code;
+  return code === "failed-precondition" || code === "unimplemented";
+}
+
+function mergeById<T extends { id: string }>(items: T[]) {
+  const byId = new Map<string, T>();
+  for (const item of items) byId.set(item.id, item);
+  return [...byId.values()];
+}
+
+function filterAppointmentsInWindow<T extends { date: string; startTime: string }>(
+  items: T[],
+  startMillis: number,
+  endMillis: number
+) {
+  return items.filter((item) => {
+    const millis = sessionStartMillis(item.date, item.startTime);
+    return millis >= startMillis && millis <= endMillis;
+  });
+}
+
+function filterPaymentsInDueWindow<T extends { dueDate: string }>(items: T[], startMillis: number, endMillis: number) {
+  return items.filter((item) => {
+    const millis = dueDateMillis(item.dueDate);
+    return millis >= startMillis && millis <= endMillis;
+  });
+}
+
+export async function listAppointmentsInWindow(startMillis: number, endMillis: number) {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const base = collection(getFirebaseDb(), "appointments");
+  const constraints = [
+    where("sessionStartMillis", ">=", startMillis),
+    where("sessionStartMillis", "<=", endMillis),
+  ] as const;
+  try {
+    const owned = await getDocs(query(base, where("ownerUid", "==", uid), ...constraints));
+    const shared = await getDocs(query(base, where("accessUids", "array-contains", uid), ...constraints));
+    trackFirestoreReads(owned.size + shared.size);
+    const items = [...owned.docs, ...shared.docs].map((item) => mapAppointment(item.id, item.data()));
+    return mergeById(items);
+  } catch (error) {
+    if (!firestoreNeedsIndex(error)) throw error;
+    console.warn("listAppointmentsInWindow: índice ausente, filtrando em memória (leitura completa).");
+    const all = await listAppointments();
+    return filterAppointmentsInWindow(all, startMillis, endMillis);
+  }
+}
+
+export async function listPaymentsInDueWindow(startMillis: number, endMillis: number) {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid) return [];
+  const base = collection(getFirebaseDb(), "payments");
+  try {
+    const snapshot = await getDocs(
+      query(
+        base,
+        where("ownerUid", "==", uid),
+        where("dueDateMillis", ">=", startMillis),
+        where("dueDateMillis", "<=", endMillis)
+      )
+    );
+    trackFirestoreReads(snapshot.size);
+    return snapshot.docs.map((item) => mapPayment(item.id, item.data()));
+  } catch (error) {
+    if (!firestoreNeedsIndex(error)) throw error;
+    console.warn("listPaymentsInDueWindow: índice ausente, filtrando em memória (leitura completa).");
+    const all = await listPayments();
+    return filterPaymentsInDueWindow(all, startMillis, endMillis);
+  }
+}
+
+export async function getAppointmentById(id: string) {
+  const snapshot = await getDoc(doc(getFirebaseDb(), "appointments", id));
+  trackFirestoreReads(snapshot.exists() ? 1 : 0);
+  if (!snapshot.exists()) return null;
+  return mapAppointment(snapshot.id, snapshot.data());
+}
+
+export async function getClinicalRecordForAppointment(appointmentId: string) {
+  const { authorizedHeaders } = await import("./api-auth");
+  try {
+    const headers = await authorizedHeaders();
+    const response = await fetch(`/api/clinical/${encodeURIComponent(appointmentId)}`, { headers });
+    if (response.status === 404) return emptyClinical();
+    if (!response.ok) {
+      console.warn("getClinicalRecordForAppointment: API falhou, tentando leitura direta.", response.status);
+      throw new Error("api_clinical_failed");
+    }
+    const payload = (await response.json()) as { clinical?: unknown };
+    return mapClinical(payload.clinical);
+  } catch (error) {
+    if (error instanceof Error && error.message === "api_clinical_failed") {
+      const snapshot = await getDoc(doc(getFirebaseDb(), "clinicalRecords", appointmentId));
+      trackFirestoreReads(snapshot.exists() ? 1 : 0);
+      if (!snapshot.exists()) return emptyClinical();
+      const data = snapshot.data();
+      if (data?.enc) {
+        console.warn("Prontuário cifrado: configure CLINICAL_FIELD_ENC_KEY no servidor.");
+        return emptyClinical();
+      }
+      return mapClinical(data.clinical);
+    }
+    throw error;
+  }
+}
+
+export async function listClinicalRecordsForPatient(patientId: string) {
+  const uid = getFirebaseAuth().currentUser?.uid;
+  if (!uid || !patientId) return [];
+  const snapshot = await getDocs(
+    query(
+      collection(getFirebaseDb(), "clinicalRecords"),
+      where("ownerUid", "==", uid),
+      where("patientId", "==", patientId)
+    )
+  );
+  trackFirestoreReads(snapshot.size);
+  return snapshot.docs.map((item) => ({
+    appointmentId: text(item.data().appointmentId) || item.id,
+    clinical: mapClinical(item.data().clinical),
+  }));
 }
 
 function mapPackageType(data: DocumentData): PackageType {
@@ -536,6 +681,7 @@ function mapMember(id: string, data: DocumentData, privateFields = emptyMemberPr
       ? data.workHours.map(mapWorkShift).filter((item): item is WorkShift => Boolean(item))
       : [],
     contratoModelo: text(data.contratoModelo),
+    politicaFalta: data.politicaFalta ? normalizePoliticaFalta(data.politicaFalta) : undefined,
     ativo: data.ativo !== false,
     createdAt: text(data.createdAt),
   };
@@ -818,12 +964,14 @@ export async function updateAppointmentMeetLink(id: string, googleMeetLink: stri
   });
 }
 
+/** @deprecated Use getClinicalRecordForAppointment ou listClinicalRecordsForPatient. */
 export async function listClinicalRecordsForOwner() {
   const uid = getFirebaseAuth().currentUser?.uid;
   if (!uid) return [];
   const snapshot = await getDocs(
     query(collection(getFirebaseDb(), "clinicalRecords"), where("ownerUid", "==", uid))
   );
+  trackFirestoreReads(snapshot.size);
   return snapshot.docs.map((item) => ({
     appointmentId: text(item.data().appointmentId) || item.id,
     clinical: mapClinical(item.data().clinical),
@@ -832,25 +980,30 @@ export async function listClinicalRecordsForOwner() {
 
 export async function saveClinicalRecord(appointmentId: string, patientId: string, clinical: ClinicalRecord) {
   assertClinicWrite();
-  const ownerUid = currentOwnerUid();
-  const now = new Date().toISOString();
-  await setDoc(
-    doc(getFirebaseDb(), "clinicalRecords", appointmentId),
-    {
-      ownerUid,
-      patientId,
-      appointmentId,
-      clinical,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
+  const { authorizedHeaders } = await import("./api-auth");
+  const headers = await authorizedHeaders({ "Content-Type": "application/json" });
+  const response = await fetch(`/api/clinical/${encodeURIComponent(appointmentId)}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ clinical }),
+  });
+  if (!response.ok) {
+    const reason = await response.json().catch(() => null);
+    throw new Error(
+      typeof reason === "object" && reason && "reason" in reason
+        ? `Não foi possível salvar o prontuário (${String((reason as { reason?: string }).reason)}).`
+        : "Não foi possível salvar o prontuário."
+    );
+  }
+  void patientId;
 }
 
 function paymentRecord(input: PaymentInput, createdAt: string) {
   const external = input.origem === "externo";
+  const millis = dueDateMillis(input.dueDate);
   return {
     ...input,
+    dueDateMillis: millis || null,
     patientId: external ? "" : input.patientId,
     appointmentId: external ? null : input.appointmentId || null,
     packageId: external ? null : input.packageId || null,
@@ -862,6 +1015,9 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
     status: input.status ?? "agendado",
     paidAt: null,
     reciboFiscal: null,
+    pixTxid: "",
+    lembretesEnviados: 0,
+    comprovantePaciente: null,
     ownerUid: currentOwnerUid(),
     createdAt,
   };
@@ -870,8 +1026,14 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
 export async function createPayment(input: PaymentInput) {
   assertClinicWrite();
   const now = new Date().toISOString();
-  const ref = await addDoc(collection(getFirebaseDb(), "payments"), paymentRecord(input, now));
-  return ref.id;
+  const ref = doc(collection(getFirebaseDb(), "payments"));
+  const id = ref.id;
+  const { paymentPixTxid } = await import("@/lib/pix/payment-txid");
+  await setDoc(ref, {
+    ...paymentRecord(input, now),
+    pixTxid: paymentPixTxid(id),
+  });
+  return id;
 }
 
 export async function createPayments(inputs: PaymentInput[]) {
@@ -880,9 +1042,13 @@ export async function createPayments(inputs: PaymentInput[]) {
   const batch = writeBatch(getFirebaseDb());
   const now = new Date().toISOString();
   const refs = inputs.map(() => doc(collection(getFirebaseDb(), "payments")));
+  const { paymentPixTxid } = await import("@/lib/pix/payment-txid");
   refs.forEach((ref, index) => {
     const input = inputs[index];
-    batch.set(ref, paymentRecord(input, now));
+    batch.set(ref, {
+      ...paymentRecord(input, now),
+      pixTxid: paymentPixTxid(ref.id),
+    });
   });
   await batch.commit();
   return refs.map((ref) => ref.id);
@@ -891,7 +1057,12 @@ export async function createPayments(inputs: PaymentInput[]) {
 export async function updatePayment(id: string, patch: Partial<Payment>) {
   assertClinicWrite();
   const { id: _id, ...rest } = patch;
-  await updateDoc(doc(getFirebaseDb(), "payments", id), rest);
+  const data: Record<string, unknown> = { ...rest };
+  if (typeof patch.dueDate === "string") {
+    const millis = dueDateMillis(patch.dueDate);
+    data.dueDateMillis = millis || null;
+  }
+  await updateDoc(doc(getFirebaseDb(), "payments", id), data);
 }
 
 export async function createNotification(notification: Omit<PaymentNotification, "id">) {
@@ -1476,9 +1647,11 @@ function mapEmailTemplate(id: string, data: DocumentData): EmailTemplate | null 
   const triggerRaw = text(data.trigger);
   const triggers = new Set([
     "confirmacao_pagamento",
+    "cobranca_pix",
     "copia_contrato",
     "envio_recibo",
     "lembrete_sessao",
+    "confirmacao_agendamento",
     "link_avaliacao",
     "livre",
   ]);
@@ -1672,5 +1845,49 @@ export async function listEmailLogForTemplate(templateId: string, limit = 30) {
     .filter((item): item is EmailLogEntry => Boolean(item))
     .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
     .slice(0, limit);
+}
+
+function mapMonthClosing(id: string, data: DocumentData): MonthClosingRecord {
+  const summary = (data.summary ?? {}) as Partial<ReceitaSaudeMonthSummary>;
+  return {
+    id,
+    ownerUid: text(data.ownerUid),
+    month: text(data.month),
+    closedAt: text(data.closedAt),
+    summary: {
+      receivedTotal: Number(summary.receivedTotal) || 0,
+      paymentCount: Number(summary.paymentCount) || 0,
+      receiptsIssued: Number(summary.receiptsIssued) || 0,
+      receiptsPending: Number(summary.receiptsPending) || 0,
+    },
+  };
+}
+
+export async function getMonthClosing(month: string) {
+  const uid = currentOwnerUid();
+  const id = monthClosingDocId(uid, month);
+  const snapshot = await getDoc(doc(getFirebaseDb(), "fechamentos", id));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data();
+  if (text(data.ownerUid) !== uid) return null;
+  return mapMonthClosing(snapshot.id, data);
+}
+
+export async function saveMonthClosing(month: string, summary: ReceitaSaudeMonthSummary) {
+  assertClinicWrite();
+  const uid = currentOwnerUid();
+  const id = monthClosingDocId(uid, month);
+  const now = new Date().toISOString();
+  await setDoc(
+    doc(getFirebaseDb(), "fechamentos", id),
+    {
+      ownerUid: uid,
+      month,
+      closedAt: now,
+      summary,
+    },
+    { merge: true }
+  );
+  return mapMonthClosing(id, { ownerUid: uid, month, closedAt: now, summary });
 }
 

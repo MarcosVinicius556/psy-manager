@@ -18,7 +18,7 @@ import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
-import { PaymentEmailSendButton } from "@/components/admin/PatientEmailActions";
+import { PaymentEmailSendButton, PaymentPixCobrancaEmailButton } from "@/components/admin/PatientEmailActions";
 import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -40,13 +40,14 @@ import {
 import { addMonths, formatDate, formatMoney, labelPaymentMethod, labelPaymentStatus, todayISO } from "@/lib/admin/format";
 import { maskPhone } from "@/lib/masks";
 import type { Payment, PaymentStatus } from "@/lib/admin/types";
+import { monthDueWindow } from "@/lib/admin/clinic-load-windows";
 
 function FinanceContent() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { patients, payments, members, locations, loading, patientName } = useClinic();
+  const { patients, payments, members, locations, loading, patientName, ensurePaymentsDueWindow } = useClinic();
   const currentMember = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const presetPatientId = params.get("patientId") || "";
   const drawerOpen = params.get("novo") === "1" || Boolean(presetPatientId);
@@ -63,6 +64,12 @@ function FinanceContent() {
   const today = todayISO();
   const currentMonth = today.slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
+
+  useEffect(() => {
+    if (loading) return;
+    const { startMillis, endMillis } = monthDueWindow(month);
+    void ensurePaymentsDueWindow(startMillis, endMillis);
+  }, [ensurePaymentsDueWindow, loading, month]);
 
   const filtered = useMemo(() => {
     return payments.filter((payment) => {
@@ -226,7 +233,12 @@ function FinanceContent() {
                           {canReceive ? "Receber" : "Histórico"}
                         </button>
                         <PaymentFiscalReceipt payment={payment} compact />
-                        {patient ? <PaymentEmailSendButton patient={patient} payment={payment} /> : null}
+                        {patient ? (
+                          <>
+                            <PaymentPixCobrancaEmailButton patient={patient} payment={payment} />
+                            <PaymentEmailSendButton patient={patient} payment={payment} />
+                          </>
+                        ) : null}
                       </div>
                     }
                   />
@@ -291,7 +303,12 @@ function FinanceContent() {
                           </button>
                           <ReceiptLinks files={paymentReceipts(payment)} />
                           <PaymentFiscalReceipt payment={payment} />
-                          {patient ? <PaymentEmailSendButton patient={patient} payment={payment} /> : null}
+                          {patient ? (
+                            <>
+                              <PaymentPixCobrancaEmailButton patient={patient} payment={payment} />
+                              <PaymentEmailSendButton patient={patient} payment={payment} />
+                            </>
+                          ) : null}
                         </div>
                       </Td>
                     </tr>

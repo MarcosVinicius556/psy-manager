@@ -19,8 +19,10 @@ import {
   createPayments,
   findDirectoryUser,
   grantAccess,
-  listClinicalRecordsForOwner,
+  getAppointmentById,
+  getClinicalRecordForAppointment,
   listAppointments,
+  listAppointmentsInWindow,
   listExpenses,
   listLocationInvites,
   listLocations,
@@ -30,6 +32,7 @@ import {
   listPatients,
   listSessionFeedbacks,
   listPayments,
+  listPaymentsInDueWindow,
   patchExpense,
   removeExpense,
   removeLocation,
@@ -65,13 +68,15 @@ import {
 } from "./receipt-fiscal";
 import { professionalFiscalReady } from "./receita-saude-report";
 import { getFirebaseAuth } from "./firebase";
-import { formatDate, formatMoney, monthlyDates, shiftDate, todayISO } from "./format";
+import { formatDate, formatMoney, monthlyDates, todayISO } from "./format";
 import { roundMoney } from "./finance";
 import { SINGLE_SESSION_PACKAGE_MESSAGE, packageChangeSummary, packageIntervalDays, packageSnapshot } from "./packages";
 import { installmentDates, MAX_PAST_RECURRENCES, pendingRecurringCopies, recurringDatesBefore } from "./expenses";
 import { receiptPatch, remainingAmount, unpaidPatch } from "./finance";
 import { paymentForAppointment, type SessionClosePaymentInput } from "./session-close";
 import { locationSharePeople, memberWorkplaces, userBelongsToLocation } from "./workplaces";
+import { defaultAppointmentWindow, defaultPaymentDueWindow, mergeRange } from "./clinic-load-windows";
+import { resetSessionFirestoreReads } from "./firestore-reads";
 import {
   findLocationConflict,
   findProfessionalConflict,
@@ -83,6 +88,19 @@ import {
 } from "./schedule";
 import { assertGoogleScheduleFree } from "@/lib/google-calendar/check-conflict-client";
 import { syncAppointmentWithGoogle } from "@/lib/google-calendar/sync-client";
+
+async function refreshPublicBookingAvailability() {
+  try {
+    const token = await getFirebaseAuth().currentUser?.getIdToken();
+    if (!token) return;
+    await fetch("/api/booking/refresh", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    /* disponibilidade pública é auxiliar */
+  }
+}
 import { recordActivationEvent } from "@/lib/saas/activation-events";
 import {
   emptyClinical,
@@ -122,6 +140,10 @@ type ClinicContextValue = {
   sessionFeedbacks: SessionFeedback[];
   loading: boolean;
   refresh: () => Promise<void>;
+  ensureAppointmentsWindow: (startMillis: number, endMillis: number) => Promise<void>;
+  ensurePaymentsDueWindow: (startMillis: number, endMillis: number) => Promise<void>;
+  loadClinicalForAppointment: (appointmentId: string) => Promise<void>;
+  ensureAppointmentLoaded: (appointmentId: string) => Promise<void>;
   savePatient: (input: PatientInput, id?: string) => Promise<string>;
   saveAppointment: (
     input: AppointmentInput,
@@ -145,6 +167,7 @@ type ClinicContextValue = {
     clinical?: ClinicalRecord,
     faltaJustificativa?: string
   ) => Promise<void>;
+  createNoShowCharge: (appointmentId: string) => Promise<void>;
   cancelAppointment: (id: string) => Promise<void>;
   savePackage: (
     input: {
@@ -191,11 +214,19 @@ type ClinicContextValue = {
     enderecoCidade: string;
     enderecoUf: string;
     enderecoCep: string;
+    pixChave: string;
+    pixTipo: import("./types").PixKeyType;
+    pixNome: string;
+    pixCidade: string;
     valorBase: number;
     valorSocial: number;
     workHours: { weekday: number; startTime: string; endTime: string }[];
+    politicaFalta?: { horas: number; percentual: number };
   }) => Promise<void>;
   issueFiscalReceipt: (paymentId: string, options?: { replace?: boolean }) => Promise<void>;
+  issueFiscalReceiptBatch: (paymentIds: string[]) => Promise<{ issued: number; failed: string[] }>;
+  updatePaymentComprovantePaciente: (paymentId: string, file: ClinicAttachment | null) => Promise<void>;
+  closeReceitaSaudeMonth: (month: string) => Promise<void>;
   saveContractTemplate: (template: string) => Promise<void>;
   saveSignedContract: (patientId: string, file: ClinicAttachment | null) => Promise<void>;
   setMemberActive: (id: string, ativo: boolean) => Promise<void>;
@@ -264,13 +295,87 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const [sessionFeedbacks, setSessionFeedbacks] = useState<SessionFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const synced = useRef(false);
+  const appointmentsRangeRef = useRef<{ startMillis: number; endMillis: number } | null>(null);
+  const paymentsRangeRef = useRef<{ startMillis: number; endMillis: number } | null>(null);
+
+  const mergeAppointments = useCallback((incoming: Appointment[]) => {
+    setAppointments((prev) => {
+      const byId = new Map(prev.map((item) => [item.id, item]));
+      for (const item of incoming) {
+        const existing = byId.get(item.id);
+        byId.set(
+          item.id,
+          existing
+            ? { ...item, clinical: existing.clinical }
+            : { ...item, clinical: emptyClinical() }
+        );
+      }
+      const merged = [...byId.values()];
+      merged.sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
+      return merged;
+    });
+  }, []);
+
+  const mergePayments = useCallback((incoming: Payment[]) => {
+    setPayments((prev) => {
+      const byId = new Map(prev.map((item) => [item.id, item]));
+      for (const item of incoming) byId.set(item.id, item);
+      const merged = [...byId.values()];
+      merged.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+      return merged;
+    });
+  }, []);
+
+  const ensureAppointmentsWindow = useCallback(
+    async (startMillis: number, endMillis: number) => {
+      const loaded = appointmentsRangeRef.current;
+      if (loaded && startMillis >= loaded.startMillis && endMillis <= loaded.endMillis) return;
+      const nextRange = mergeRange(loaded, { startMillis, endMillis });
+      const nextAppointments = await listAppointmentsInWindow(nextRange.startMillis, nextRange.endMillis);
+      appointmentsRangeRef.current = nextRange;
+      mergeAppointments(nextAppointments);
+    },
+    [mergeAppointments]
+  );
+
+  const ensurePaymentsDueWindow = useCallback(
+    async (startMillis: number, endMillis: number) => {
+      const loaded = paymentsRangeRef.current;
+      if (loaded && startMillis >= loaded.startMillis && endMillis <= loaded.endMillis) return;
+      const nextRange = mergeRange(loaded, { startMillis, endMillis });
+      const nextPayments = await listPaymentsInDueWindow(nextRange.startMillis, nextRange.endMillis);
+      paymentsRangeRef.current = nextRange;
+      mergePayments(nextPayments);
+    },
+    [mergePayments]
+  );
+
+  const loadClinicalForAppointment = useCallback(async (appointmentId: string) => {
+    const clinical = await getClinicalRecordForAppointment(appointmentId);
+    setAppointments((prev) =>
+      prev.map((item) => (item.id === appointmentId ? { ...item, clinical } : item))
+    );
+  }, []);
+
+  const ensureAppointmentLoaded = useCallback(
+    async (appointmentId: string) => {
+      const found = await getAppointmentById(appointmentId);
+      if (found) mergeAppointments([found]);
+    },
+    [mergeAppointments]
+  );
 
   const refresh = useCallback(async () => {
-    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks, clinicalRecords] =
+    resetSessionFirestoreReads();
+    const appointmentWindow = defaultAppointmentWindow();
+    const paymentWindow = defaultPaymentDueWindow();
+    appointmentsRangeRef.current = appointmentWindow;
+    paymentsRangeRef.current = paymentWindow;
+    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks] =
       await Promise.all([
         listPatients(),
-        listAppointments(),
-        listPayments(),
+        listAppointmentsInWindow(appointmentWindow.startMillis, appointmentWindow.endMillis),
+        listPaymentsInDueWindow(paymentWindow.startMillis, paymentWindow.endMillis),
         listNotifications(),
         listMembers(),
         listLocations(),
@@ -278,12 +383,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         listPackages(),
         listLocationInvites(),
         listSessionFeedbacks(),
-        listClinicalRecordsForOwner(),
       ]);
-    const clinicalByAppointment = new Map(clinicalRecords.map((item) => [item.appointmentId, item.clinical]));
     const mergedAppointments = nextAppointments.map((appointment) => ({
       ...appointment,
-      clinical: clinicalByAppointment.get(appointment.id) ?? emptyClinical(),
+      clinical: emptyClinical(),
     }));
     const uid = getFirebaseAuth().currentUser?.uid;
     let listedExpenses = nextExpenses;
@@ -485,6 +588,62 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<ClinicContextValue>(() => {
+    async function issueFiscalReceiptInternal(paymentId: string, options?: { replace?: boolean }) {
+      const uid = currentUid();
+      const mine = members.find((member) => member.uid === uid);
+      const ready = professionalFiscalReady(mine);
+      if (!ready.ok) {
+        throw new Error(`Complete em Configurações: ${ready.missing.join(", ")}.`);
+      }
+      if (!mine || !isValidCpf(mine.cpf)) throw new Error("Informe um CPF válido em Configurações.");
+      const payment = payments.find((item) => item.id === paymentId);
+      if (!payment) throw new Error("Lançamento não encontrado.");
+      if (!canIssueFiscalReceipt(payment)) throw new Error("Só é possível emitir recibo para pagamentos quitados.");
+      if (payment.reciboFiscal && !options?.replace) {
+        throw new Error("Este lançamento já tem recibo. Gere de novo se precisar substituir.");
+      }
+      const patient = payment.patientId ? patients.find((item) => item.id === payment.patientId) ?? null : null;
+      if (patient) {
+        const beneficiary = assertValidCpfOptional(patient.cpfBeneficiario || patient.cpf, "CPF do beneficiário");
+        const payer = assertValidCpfOptional(patient.cpfPagador || beneficiary, "CPF do pagador");
+        if (!beneficiary || !payer) {
+          throw new Error("Informe CPF do pagador e do beneficiário na ficha do paciente (Receita Saúde).");
+        }
+      }
+      const numero = payment.reciboFiscal?.numero || nextReceiptNumber(mine, payments);
+      const paymentDate = paymentReceiptDate(payment);
+      const blob = await createFiscalReceiptPdf({
+        payment,
+        patient,
+        professional: mine,
+        receiptNumber: numero,
+        paymentDate,
+      });
+      const filename = fiscalReceiptFilename({
+        payment,
+        patient,
+        professional: mine,
+        receiptNumber: numero,
+        paymentDate,
+      });
+      const file = new File([blob], filename, { type: "application/pdf" });
+      const uploaded = await uploadClinicFile(file, { kind: "payment-receipt", paymentId }, "documento");
+      const reciboFiscal = {
+        numero,
+        arquivo: uploaded,
+        emitidoEm: new Date().toISOString(),
+        dataPagamento: paymentDate,
+        valor: receivedAmount(payment),
+      };
+      await updatePayment(paymentId, { reciboFiscal });
+      if (numero > (mine.reciboSequencia || 0)) {
+        await updateMember(mine.id, { reciboSequencia: numero });
+      }
+      trackActivation("primeiro_recibo");
+      toast.success(`Recibo nº ${numero} gerado.`);
+      await refresh();
+    }
+
     return {
       patients,
       appointments,
@@ -498,6 +657,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       sessionFeedbacks,
       loading,
       refresh,
+      ensureAppointmentsWindow,
+      ensurePaymentsDueWindow,
+      loadClinicalForAppointment,
+      ensureAppointmentLoaded,
       patientName,
       memberName,
       locationName,
@@ -659,6 +822,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           await consumePackageCredits(booked.length);
           await refresh();
           for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
+          void refreshPublicBookingAvailability();
           return { id: ids[0] || "", sessions: booked.map((date, index) => ({ id: ids[index], date })) };
         }
         await assertGoogleScheduleFree(payload);
@@ -687,11 +851,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
             await refresh();
             void syncAppointmentWithGoogle(id);
             for (const createdId of created) void syncAppointmentWithGoogle(createdId);
+            void refreshPublicBookingAvailability();
             return { id, sessions: [{ id, date: payload.date }, ...companions.map((item, index) => ({ id: created[index], date: item.date }))] };
           }
           toast.success("Atendimento atualizado.");
           await refresh();
           void syncAppointmentWithGoogle(id);
+          void refreshPublicBookingAvailability();
           return { id, sessions: [] };
         }
         if (companions.length) {
@@ -712,6 +878,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           await consumePackageCredits(ids.length);
           await refresh();
           for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
+          void refreshPublicBookingAvailability();
           return {
             id: ids[0] || "",
             sessions: [{ ...payload, status: "agendado" as const }, ...companions].map((item, index) => ({ id: ids[index], date: item.date })),
@@ -722,6 +889,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await consumePackageCredits(1);
         await refresh();
         void syncAppointmentWithGoogle(created);
+        void refreshPublicBookingAvailability();
         return { id: created, sessions: [{ id: created, date: payload.date }] };
       },
       async createHaverPayments(sessions, input) {
@@ -833,6 +1001,28 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         await refresh();
       },
+      async createNoShowCharge(appointmentId) {
+        const appointment = appointments.find((item) => item.id === appointmentId);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        const member =
+          members.find((item) => item.id === appointment.professionalId) ||
+          members.find((item) => item.uid === currentUid());
+        if (!member) throw new Error("Profissional não encontrado.");
+        const { computeNoShowCharge } = await import("./no-show-policy");
+        const suggestion = computeNoShowCharge(appointment, member);
+        if (!suggestion) throw new Error("Não há política de falta configurada para gerar cobrança.");
+        await createPayment({
+          patientId: appointment.patientId,
+          appointmentId: appointment.id,
+          descricao: "Falta sem aviso",
+          valor: suggestion.valor,
+          dueDate: todayISO(),
+          formaPagamento: "pix",
+          status: "nao_pago",
+        });
+        toast.success("Cobrança por falta criada.");
+        await refresh();
+      },
       async cancelAppointment(id) {
         const appointment = appointments.find((item) => item.id === id);
         if (!appointment) throw new Error("Atendimento não encontrado.");
@@ -847,6 +1037,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         );
         await refresh();
         void syncAppointmentWithGoogle(id, "delete");
+        void refreshPublicBookingAvailability();
       },
       async savePackage(input, id) {
         const uid = currentUid();
@@ -969,8 +1160,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         const appointment = appointments.find((item) => item.id === id);
         if (!appointment) throw new Error("Atendimento não encontrado.");
         await saveClinicalRecord(id, appointment.patientId, clinical);
+        setAppointments((prev) => prev.map((item) => (item.id === id ? { ...item, clinical } : item)));
         if (!options?.silent) toast.success("Ficha salva.");
         await refresh();
+        await loadClinicalForAppointment(id);
       },
       async saveTcleAcceptance(patientId, aceite) {
         await setPatientTcleAcceptance(patientId, aceite);
@@ -1176,6 +1369,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         const cpf = assertValidCpfOptional(input.cpf, "CPF");
         if (input.cpf.trim() && !isValidCpf(input.cpf)) throw new Error("CPF inválido.");
+        const { validatePixKey } = await import("@/lib/pix/keys");
+        if (input.pixChave.trim()) {
+          const pixCheck = validatePixKey(input.pixChave, input.pixTipo);
+          if (!pixCheck.ok) throw new Error(pixCheck.reason);
+        }
         await saveMemberPrivateProfile(uid, {
           cpf,
           crpNumero: input.crpNumero.replace(/\D/g, "").trim(),
@@ -1184,6 +1382,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           enderecoCidade: input.enderecoCidade.trim(),
           enderecoUf: input.enderecoUf.trim().toUpperCase().slice(0, 2),
           enderecoCep: input.enderecoCep.replace(/\D/g, "").slice(0, 8),
+          pixChave: input.pixChave.trim(),
+          pixTipo: input.pixTipo,
+          pixNome: input.pixNome.trim(),
+          pixCidade: input.pixCidade.trim(),
         });
         await updateMember(mine.id, {
           nome,
@@ -1192,65 +1394,42 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           valorBase: input.valorBase,
           valorSocial: input.valorSocial,
           workHours: input.workHours,
+          ...(input.politicaFalta ? { politicaFalta: input.politicaFalta } : {}),
         });
         if (input.workHours.length > 0) trackActivation("horarios_definidos");
         await updateAuthProfile({ displayName: nome, ...(foto ? { photoURL: foto } : {}) });
         if (mine.email) await publishDirectory({ uid, email: mine.email, nome, foto });
         toast.success("Cadastro atualizado.");
         await refresh();
+        void refreshPublicBookingAvailability();
       },
-      async issueFiscalReceipt(paymentId, options) {
-        const uid = currentUid();
-        const mine = members.find((member) => member.uid === uid);
-        const ready = professionalFiscalReady(mine);
-        if (!ready.ok) {
-          throw new Error(`Complete em Configurações: ${ready.missing.join(", ")}.`);
-        }
-        if (!mine || !isValidCpf(mine.cpf)) throw new Error("Informe um CPF válido em Configurações.");
-        const payment = payments.find((item) => item.id === paymentId);
-        if (!payment) throw new Error("Lançamento não encontrado.");
-        if (!canIssueFiscalReceipt(payment)) throw new Error("Só é possível emitir recibo para pagamentos quitados.");
-        if (payment.reciboFiscal && !options?.replace) {
-          throw new Error("Este lançamento já tem recibo. Gere de novo se precisar substituir.");
-        }
-        const patient = payment.patientId ? patients.find((item) => item.id === payment.patientId) ?? null : null;
-        if (patient) {
-          const beneficiary = assertValidCpfOptional(patient.cpfBeneficiario || patient.cpf, "CPF do beneficiário");
-          const payer = assertValidCpfOptional(patient.cpfPagador || beneficiary, "CPF do pagador");
-          if (!beneficiary || !payer) {
-            throw new Error("Informe CPF do pagador e do beneficiário na ficha do paciente (Receita Saúde).");
+      issueFiscalReceipt: issueFiscalReceiptInternal,
+      async issueFiscalReceiptBatch(paymentIds) {
+        const failed: string[] = [];
+        let issued = 0;
+        for (const paymentId of paymentIds) {
+          try {
+            await issueFiscalReceiptInternal(paymentId, { replace: false });
+            issued += 1;
+          } catch {
+            failed.push(paymentId);
           }
         }
-        const numero = payment.reciboFiscal?.numero || nextReceiptNumber(mine, payments);
-        const paymentDate = paymentReceiptDate(payment);
-        const blob = await createFiscalReceiptPdf({
-          payment,
-          patient,
-          professional: mine,
-          receiptNumber: numero,
-          paymentDate,
-        });
-        const filename = fiscalReceiptFilename({
-          payment,
-          patient,
-          professional: mine,
-          receiptNumber: numero,
-          paymentDate,
-        });
-        const file = new File([blob], filename, { type: "application/pdf" });
-        const uploaded = await uploadClinicFile(file, { kind: "payment-receipt", paymentId }, "documento");
-        const reciboFiscal = {
-          numero,
-          arquivo: uploaded,
-          emitidoEm: new Date().toISOString(),
-          dataPagamento: paymentDate,
-          valor: receivedAmount(payment),
-        };
-        await updatePayment(paymentId, { reciboFiscal });
-        if (numero > (mine.reciboSequencia || 0)) {
-          await updateMember(mine.id, { reciboSequencia: numero });
-        }
-        toast.success(`Recibo nº ${numero} gerado.`);
+        if (issued > 1) await refresh();
+        return { issued, failed };
+      },
+      async updatePaymentComprovantePaciente(paymentId, file) {
+        const payment = payments.find((item) => item.id === paymentId);
+        if (!payment) throw new Error("Lançamento não encontrado.");
+        await updatePayment(paymentId, { comprovantePaciente: file });
+        await refresh();
+      },
+      async closeReceitaSaudeMonth(month) {
+        const { receitaSaudeMonthSummary } = await import("./receita-saude-report");
+        const { saveMonthClosing } = await import("./collections");
+        const summary = receitaSaudeMonthSummary(month, payments);
+        await saveMonthClosing(month, summary);
+        toast.success(`Mês ${month} marcado como fechado.`);
         await refresh();
       },
       async saveContractTemplate(template) {
@@ -1484,7 +1663,27 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await refresh();
       },
     };
-  }, [appointments, expenses, loading, locationInvites, locationName, locations, memberName, members, notifications, packages, patientName, patients, payments, refresh, sessionFeedbacks]);
+  }, [
+    appointments,
+    ensureAppointmentLoaded,
+    ensureAppointmentsWindow,
+    ensurePaymentsDueWindow,
+    expenses,
+    loadClinicalForAppointment,
+    loading,
+    locationInvites,
+    locationName,
+    locations,
+    memberName,
+    members,
+    notifications,
+    packages,
+    patientName,
+    patients,
+    payments,
+    refresh,
+    sessionFeedbacks,
+  ]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }

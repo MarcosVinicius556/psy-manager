@@ -19,6 +19,7 @@ import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTabl
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import {
+  addMonths,
   formatDate,
   labelAppointmentPlace,
   labelAppointmentStatus,
@@ -27,9 +28,12 @@ import {
   startOfWeek,
   todayISO,
 } from "@/lib/admin/format";
-import { fromMinutes, rangesOverlap, SLOT_STEP, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
+import { labelAppointmentConfirmation } from "@/lib/admin/format";
+import { fromMinutes, rangesOverlap, SLOT_STEP, sessionStartMillis, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
+import { weekAppointmentWindow } from "@/lib/admin/clinic-load-windows";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
 import CompleteSessionFlow from "@/components/admin/CompleteSessionFlow";
+import BookingRequestsPanel from "@/components/admin/BookingRequestsPanel";
 import type { Appointment } from "@/lib/admin/types";
 import { getFirebaseAuth } from "@/lib/admin/firebase";
 
@@ -42,7 +46,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   const dateParam = params.get("date");
   const initial = dateParam || todayISO();
   const { user } = useAuth();
-  const { appointments, patients, members, locations, loading, patientName, memberName, locationName } = useClinic();
+  const { appointments, patients, members, locations, loading, patientName, memberName, locationName, ensureAppointmentsWindow } = useClinic();
   const [period, setPeriod] = useState<Period>(locationId ? "hoje" : "mes");
   const [selected, setSelected] = useState(initial);
   const [month, setMonth] = useState(initial.slice(0, 7));
@@ -68,6 +72,24 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
     setSelected(dateParam);
     setMonth(dateParam.slice(0, 7));
   }, [dateParam]);
+
+  useEffect(() => {
+    if (loading) return;
+    const window =
+      period === "semana"
+        ? weekAppointmentWindow(startOfWeek(selected))
+        : period === "mes"
+          ? (() => {
+              const startMillis = sessionStartMillis(shiftDate(`${month}-01`, -31), "00:00");
+              const endMillis = sessionStartMillis(shiftDate(`${addMonths(month, 2)}-01`, -1), "23:59");
+              return { startMillis, endMillis };
+            })()
+          : {
+              startMillis: sessionStartMillis(selected, "00:00"),
+              endMillis: sessionStartMillis(selected, "23:59"),
+            };
+    void ensureAppointmentsWindow(window.startMillis, window.endMillis);
+  }, [ensureAppointmentsWindow, loading, month, period, selected]);
 
   useEffect(() => {
     let active = true;
@@ -115,6 +137,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   }, [locationId]);
 
   const creating = params.get("novo") === "1";
+  const bookingRequestHighlight = params.get("bookingRequest");
   const editId = params.get("edit");
   const editing = appointments.find((item) => item.id === editId);
   const drawerOpen = creating || Boolean(editing);
@@ -244,6 +267,8 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
           action={newButton}
         />
       )}
+
+      {!locationId ? <BookingRequestsPanel highlightId={bookingRequestHighlight} /> : null}
       {!locationId && workplaces.length > 1 && (
         <div className="mb-4 max-w-md">
           <Select
@@ -372,9 +397,16 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
                       title={visiblePatient(item.patientId)}
                       subtitle={`${formatDate(item.date)} · ${item.startTime}–${item.endTime}`}
                       meta={
-                        <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
-                          {labelAppointmentStatus(item.status)}
-                        </Pill>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
+                            {labelAppointmentStatus(item.status)}
+                          </Pill>
+                          {item.status === "agendado" && item.confirmacao ? (
+                            <Pill tone={item.confirmacao === "confirmada" ? "teal" : item.confirmacao === "remarcar" ? "accent" : "sage"}>
+                              {labelAppointmentConfirmation(item.confirmacao)}
+                            </Pill>
+                          ) : null}
+                        </div>
                       }
                     />
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -431,9 +463,16 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
                       {item.recurring ? " · recorrente" : ""}
                     </Td>
                     <Td>
-                      <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
-                        {labelAppointmentStatus(item.status)}
-                      </Pill>
+                      <div className="flex flex-wrap gap-2">
+                        <Pill tone={item.status === "concluido" ? "teal" : item.status === "faltou" ? "accent" : "sage"}>
+                          {labelAppointmentStatus(item.status)}
+                        </Pill>
+                        {item.status === "agendado" && item.confirmacao ? (
+                          <Pill tone={item.confirmacao === "confirmada" ? "teal" : item.confirmacao === "remarcar" ? "accent" : "sage"}>
+                            {labelAppointmentConfirmation(item.confirmacao)}
+                          </Pill>
+                        ) : null}
+                      </div>
                     </Td>
                     <Td className="text-right">
                       <button type="button" className="btn-row" onClick={() => replaceQuery({ edit: item.id, novo: null })}>

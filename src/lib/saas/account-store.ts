@@ -1,6 +1,7 @@
 import { FirebaseError } from "firebase/app";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, runTransaction, setDoc, updateDoc, type DocumentData } from "firebase/firestore";
+import { subscriptionPixTxid } from "@/lib/billing/subscription-pix";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/admin/firebase";
 import { recordActivationEvent } from "./activation-events";
 import {
@@ -53,9 +54,20 @@ export function mapAccount(uid: string, data: DocumentData | undefined): Account
     termsAcceptedAt: text(data.termsAcceptedAt),
     termsVersion: text(data.termsVersion),
     privacyAcknowledgedAt: text(data.privacyAcknowledgedAt),
-    checkoutStatus: data.checkoutStatus === "aguardando_provedor" ? "aguardando_provedor" : "",
+    checkoutStatus:
+      data.checkoutStatus === "aguardando_provedor"
+        ? "aguardando_provedor"
+        : data.checkoutStatus === "aguardando_confirmacao_pix"
+          ? "aguardando_confirmacao_pix"
+          : "",
     checkoutPlanId: text(data.checkoutPlanId),
     checkoutRequestedAt: text(data.checkoutRequestedAt),
+    cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
+    accessUntilMillis: number(data.accessUntilMillis),
+    canceledAt: text(data.canceledAt),
+    cancelReason: text(data.cancelReason),
+    paidUntilMillis: number(data.paidUntilMillis),
+    pixTxid: text(data.pixTxid),
     onboardingDismissed: Boolean(data.onboardingDismissed),
     operationalEmail: data.operationalEmail !== false,
     productEmail: data.productEmail !== false,
@@ -78,6 +90,11 @@ export function mapPlan(id: string, data: DocumentData): PlanDefinition | null {
     periodicidade,
     trialDias: number(data.trialDias),
     recursos: Array.isArray(data.recursos) ? data.recursos.filter((item): item is string => typeof item === "string") : [],
+    itensInclusos: Array.isArray(data.itensInclusos)
+      ? data.itensInclusos.filter((item): item is string => typeof item === "string")
+      : undefined,
+    descontoAnualPct: typeof data.descontoAnualPct === "number" ? data.descontoAnualPct : undefined,
+    destaque: typeof data.destaque === "boolean" ? data.destaque : undefined,
     limiteProfissionais: typeof data.limiteProfissionais === "number" ? data.limiteProfissionais : null,
     disponivel: data.disponivel !== false,
     ordem: number(data.ordem),
@@ -178,33 +195,59 @@ export async function saveProfile(uid: string, patch: { nome?: string; clinicNam
 }
 
 export async function requestCheckout(account: AccountRecord, planId: string) {
-  if (account.checkoutStatus === "aguardando_provedor" && account.checkoutPlanId === planId) {
+  if (account.checkoutStatus === "aguardando_confirmacao_pix" && account.checkoutPlanId === planId) {
     return { created: false as const };
   }
   const nowIso = new Date().toISOString();
-  const patch = checkoutPatch(planId, nowIso);
+  const pixTxid = subscriptionPixTxid(account.uid, planId);
+  const patch = checkoutPatch(planId, nowIso, pixTxid);
   await updateDoc(doc(getFirebaseDb(), "users", account.uid), patch);
   await setDoc(doc(collection(getFirebaseDb(), "users", account.uid, "billingEvents")), {
     tipo: "checkout_solicitado",
     resultado: "registrado",
     planId,
     at: nowIso,
-    summary: "Contratação solicitada. Nenhum pagamento foi confirmado porque o provedor não está configurado.",
+    summary: "Plano escolhido. Pague o Pix exibido e informe o pagamento; a confirmação é manual pela plataforma.",
   });
-  return { created: true as const };
+  return { created: true as const, pixTxid };
 }
 
-export async function cancelOwnPlan(account: AccountRecord) {
+export async function reportSubscriptionPixPaid(idToken: string) {
+  const response = await fetch("/api/billing/subscription/pix-reported", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+  });
+  const data = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+  if (!response.ok) throw new Error(data.message || "Não foi possível registrar o Pix informado.");
+  return data;
+}
+
+export async function cancelOwnPlan(account: AccountRecord, reason?: string) {
   const nowIso = new Date().toISOString();
-  const patch = userCancelPatch(account, nowIso);
+  const patch = userCancelPatch(account, nowIso, { reason });
   await updateDoc(doc(getFirebaseDb(), "users", account.uid), patch);
+  const paidEnd =
+    "accessUntilMillis" in patch && patch.accessUntilMillis
+      ? new Date(patch.accessUntilMillis).toLocaleString("pt-BR")
+      : "";
   await setDoc(doc(collection(getFirebaseDb(), "users", account.uid, "billingEvents")), {
     tipo: "cancelamento_solicitado",
     resultado: "registrado",
     planId: account.planId,
     at: nowIso,
-    summary: "Cancelamento feito pelo profissional. Não houve estorno porque não existe cobrança registrada.",
+    summary: paidEnd
+      ? `Cancelamento agendado. O acesso integral segue até ${paidEnd}. Depois disso a conta fica só para consulta e exportação.`
+      : "Cancelamento feito pelo profissional. Os dados do consultório permanecem para consulta e exportação.",
   });
+  try {
+    await fetch("/api/account/cancel-confirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason?.trim() || "" }),
+    });
+  } catch (error) {
+    console.error("cancel_confirmation_email", error);
+  }
 }
 
 export type InboxItem = {

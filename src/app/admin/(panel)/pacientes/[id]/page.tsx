@@ -19,6 +19,9 @@ import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, P
 import PatientContractEmit from "@/components/admin/PatientContractEmit";
 import PatientFreeEmailSend, { PatientEmailLog, PaymentEmailSendButton } from "@/components/admin/PatientEmailActions";
 import PatientTcleEmit from "@/components/admin/PatientTcleEmit";
+import SignatureShare from "@/components/admin/SignatureShare";
+import FormRequestShare from "@/components/admin/FormRequestShare";
+import FormResponsesPanel from "@/components/admin/FormResponsesPanel";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { agreedAmount, isUnpaid, paymentReceipts, remainingAmount } from "@/lib/admin/finance";
 import {
@@ -329,6 +332,28 @@ export default function PatientDetailPage() {
             Gere o termo preenchido com os dados do paciente e do seu CRP (Configurações) e registre o aceite.
           </p>
           <PatientTcleEmit patient={patient} />
+        </Card>
+      )}
+
+      {tab === "prontuario" && (
+        <Card className="mb-6">
+          <h2 className="mb-2 text-2xl font-medium text-teal">Assinatura digital (link)</h2>
+          <p className="mb-4 text-sm text-muted">
+            Envie TCLE, contrato ou consentimentos para o paciente assinar sem login. O aceite registra hash, data, IP e navegador.
+          </p>
+          <SignatureShare patient={patient} />
+        </Card>
+      )}
+
+      {tab === "prontuario" && (
+        <Card className="mb-6">
+          <h2 className="mb-2 text-2xl font-medium text-teal">Formulário online</h2>
+          <p className="mb-4 text-sm text-muted">Anamnese e triagem preenchidas pelo paciente no celular.</p>
+          <FormRequestShare patient={patient} />
+          <div className="mt-6 border-t border-[var(--color-border-subtle)] pt-4">
+            <h3 className="mb-2 text-lg font-medium text-teal">Respostas recebidas</h3>
+            <FormResponsesPanel patient={patient} appointments={history} />
+          </div>
         </Card>
       )}
 

@@ -3,10 +3,15 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Card, Empty, PageTitle, Pill } from "@/components/admin/ui";
+import AccountDataExport from "@/components/admin/AccountDataExport";
 import ConsultantActions from "@/components/ConsultantActions";
+import SubscriptionPixCheckout from "@/components/admin/SubscriptionPixCheckout";
+import { PUBLIC_BILLING, formatPublicPrice } from "@/lib/billing/plans";
+import { describeCheckoutState } from "@/lib/billing/subscription-checkout";
 import { cancelOwnPlan, markInboxRead, saveProfile } from "@/lib/saas/account-store";
 import { useSaas } from "@/lib/saas/context";
 import { daysRemaining, formatPrice, periodLabel, STATUS_LABEL } from "@/lib/saas/model";
+import Link from "next/link";
 import { listBillingEvents, type BillingEntry } from "@/lib/saas/platform-store";
 
 export default function SubscriptionPage() {
@@ -14,6 +19,7 @@ export default function SubscriptionPage() {
   const [events, setEvents] = useState<BillingEntry[]>([]);
   const [busy, setBusy] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     if (!account) return;
@@ -30,10 +36,15 @@ export default function SubscriptionPage() {
   async function cancel() {
     setBusy("cancelar");
     try {
-      await cancelOwnPlan(account!);
+      await cancelOwnPlan(account!, cancelReason);
       await refresh();
       setConfirmCancel(false);
-      toast.success("Avaliação ou cortesia cancelada. Os dados do consultório permanecem.");
+      setCancelReason("");
+      toast.success(
+        account!.subscriptionStatus === "ativa"
+          ? "Cancelamento agendado. Você receberá um e-mail de confirmação."
+          : "Avaliação ou cortesia cancelada. Os dados permanecem para consulta e exportação."
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível cancelar.");
     } finally {
@@ -77,25 +88,49 @@ export default function SubscriptionPage() {
         </Card>
       </div>
 
-      {account.checkoutStatus === "aguardando_provedor" && (
-        <p className="mt-4 rounded-md border border-[#d7e0d8] bg-white px-4 py-3 text-sm text-muted">
-          Há uma solicitação de contratação do plano {account.checkoutPlanId || "contínuo"} desde {account.checkoutRequestedAt ? new Date(account.checkoutRequestedAt).toLocaleString("pt-BR") : "agora"}. O provedor de pagamento não está configurado, então isso não é uma assinatura ativa.
+      {account.checkoutStatus && (
+        <p className="mt-4 rounded-md border border-[var(--color-border-subtle)] bg-white px-4 py-3 text-sm text-muted">
+          {describeCheckoutState(account.checkoutStatus)}
+        </p>
+      )}
+
+      {account.cancelAtPeriodEnd && account.accessUntilMillis > Date.now() && (
+        <p className="mt-4 rounded-md border border-[var(--color-border-subtle)] bg-paper px-4 py-3 text-sm">
+          Cancelamento agendado. Acesso integral até {new Date(account.accessUntilMillis).toLocaleString("pt-BR")}. Depois disso a conta fica só para consulta e exportação (guarda mínima CFP 5 anos).
         </p>
       )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card>
-          <h2 className="text-2xl text-teal">Plano contínuo</h2>
-          <p className="mt-2 text-sm text-muted">O valor pago se fecha com um consultor, pelo WhatsApp ou e-mail. Não há checkout nesta tela e o sistema não guarda cartão.</p>
+          <h2 className="text-2xl text-teal">Planos e preços</h2>
+          <p className="mt-2 text-sm text-muted">
+            Mensal {formatPublicPrice(PUBLIC_BILLING.monthlyCents)} · Anual {formatPublicPrice(PUBLIC_BILLING.annualCents)} ({PUBLIC_BILLING.annualSavingsLabel}).{" "}
+            <Link href="/planos" className="font-semibold text-teal">Ver detalhes públicos</Link>
+          </p>
+          <SubscriptionPixCheckout account={account} onUpdated={refresh} />
           <div className="mt-4">
             <ConsultantActions />
           </div>
-          {(account.subscriptionStatus === "trial_ativo" || account.subscriptionStatus === "cortesia") && !confirmCancel && (
-            <button type="button" className="btn-text mt-4" onClick={() => setConfirmCancel(true)}>Cancelar avaliação ou cortesia</button>
+          <AccountDataExport />
+          {(account.subscriptionStatus === "trial_ativo" ||
+            account.subscriptionStatus === "cortesia" ||
+            (account.subscriptionStatus === "ativa" && !account.cancelAtPeriodEnd)) &&
+            !confirmCancel && (
+            <button type="button" className="btn-text mt-4" onClick={() => setConfirmCancel(true)}>
+              {account.subscriptionStatus === "ativa" ? "Cancelar assinatura" : "Cancelar avaliação ou cortesia"}
+            </button>
           )}
           {confirmCancel && (
             <div className="mt-4 rounded-md bg-paper p-4 text-sm">
-              <p>O cancelamento interrompe novos lançamentos. Pacientes, agenda e financeiro permanecem. Não há estorno porque não existe cobrança registrada.</p>
+              <p>
+                {account.subscriptionStatus === "ativa"
+                  ? "O cancelamento mantém o acesso até o fim do período já pago. Depois, novos lançamentos param e os dados ficam disponíveis para exportação."
+                  : "O cancelamento interrompe novos lançamentos. Pacientes, agenda e financeiro permanecem para consulta e exportação."}
+              </p>
+              <label className="mt-3 block text-sm">
+                Motivo (opcional)
+                <textarea className="mt-1 w-full rounded-control border border-[var(--color-border-subtle)] p-2" rows={2} value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} />
+              </label>
               <div className="mt-3 flex gap-2">
                 <button type="button" className="btn-danger" disabled={busy === "cancelar"} onClick={() => void cancel()}>Confirmar cancelamento</button>
                 <button type="button" className="btn-text" onClick={() => setConfirmCancel(false)}>Voltar</button>

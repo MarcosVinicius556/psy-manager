@@ -1,4 +1,4 @@
-import type { ClinicMember } from "./types";
+import type { ClinicMember, PixKeyType } from "./types";
 
 export const MEMBER_PRIVATE_FIELD_KEYS = [
   "cpf",
@@ -8,6 +8,10 @@ export const MEMBER_PRIVATE_FIELD_KEYS = [
   "enderecoCidade",
   "enderecoUf",
   "enderecoCep",
+  "pixChave",
+  "pixTipo",
+  "pixNome",
+  "pixCidade",
 ] as const;
 
 export type MemberPrivateFields = Pick<ClinicMember, (typeof MEMBER_PRIVATE_FIELD_KEYS)[number]>;
@@ -21,7 +25,16 @@ export function emptyMemberPrivateFields(): MemberPrivateFields {
     enderecoCidade: "",
     enderecoUf: "",
     enderecoCep: "",
+    pixChave: "",
+    pixTipo: "",
+    pixNome: "",
+    pixCidade: "",
   };
+}
+
+function pixTipo(value: unknown): PixKeyType {
+  const text = typeof value === "string" ? value : "";
+  return text === "cpf" || text === "cnpj" || text === "email" || text === "telefone" || text === "aleatoria" ? text : "";
 }
 
 export function pickMemberPrivateFields(member: Partial<ClinicMember>): MemberPrivateFields {
@@ -33,6 +46,10 @@ export function pickMemberPrivateFields(member: Partial<ClinicMember>): MemberPr
     enderecoCidade: member.enderecoCidade ?? "",
     enderecoUf: member.enderecoUf ?? "",
     enderecoCep: member.enderecoCep ?? "",
+    pixChave: member.pixChave ?? "",
+    pixTipo: member.pixTipo ?? "",
+    pixNome: member.pixNome ?? "",
+    pixCidade: member.pixCidade ?? "",
   };
 }
 
@@ -52,5 +69,9 @@ export function mapMemberPrivateData(data: Record<string, unknown>): MemberPriva
     enderecoCidade: text(data.enderecoCidade),
     enderecoUf: text(data.enderecoUf),
     enderecoCep: text(data.enderecoCep),
+    pixChave: text(data.pixChave),
+    pixTipo: pixTipo(data.pixTipo),
+    pixNome: text(data.pixNome),
+    pixCidade: text(data.pixCidade),
   };
 }

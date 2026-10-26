@@ -26,7 +26,9 @@ export type EmailTemplateTrigger =
   | "copia_contrato"
   | "envio_recibo"
   | "lembrete_sessao"
+  | "confirmacao_agendamento"
   | "link_avaliacao"
+  | "cobranca_pix"
   | "livre";
 
 export type EmailAttachmentKind = "nenhum" | "contrato" | "recibo";
@@ -83,6 +85,12 @@ export type TemplateRenderContext = {
   data_pagamento?: string;
   descricao?: string;
   link_avaliacao?: string;
+  pix_copia_cola?: string;
+  vencimento?: string;
+  link_confirmar?: string;
+  link_remarcar?: string;
+  link_descadastro?: string;
+  local_sessao?: string;
 };
 
 export type OutboundAttachment = {

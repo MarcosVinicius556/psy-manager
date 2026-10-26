@@ -14,10 +14,10 @@ export default function HeroSection() {
         </p>
 
         <div className="mt-6 flex w-full max-w-md flex-col items-stretch justify-center gap-3 sm:mt-7 sm:max-w-none sm:flex-row sm:items-center">
-          <Link href="/cadastro" className="btn-primary landing-pill-cta w-full sm:w-auto">
+          <Link href="/cadastro" className="btn-primary w-full sm:w-auto">
             Testar grátis
           </Link>
-          <Link href="/#funcionalidades" className="btn-text landing-pill-ghost w-full sm:w-auto">
+          <Link href="/#funcionalidades" className="btn-text w-full sm:w-auto">
             Ver como funciona →
           </Link>
         </div>

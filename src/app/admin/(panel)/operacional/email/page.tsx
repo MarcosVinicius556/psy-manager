@@ -19,9 +19,11 @@ function formatWhen(iso: string) {
 
 const TRIGGER_LABEL: Record<string, string> = {
   confirmacao_pagamento: "Confirmação de pagamento",
+  cobranca_pix: "Cobrança com Pix",
   copia_contrato: "Cópia do contrato",
   envio_recibo: "Recibo",
   lembrete_sessao: "Lembrete de sessão",
+  confirmacao_agendamento: "Confirmação de agendamento",
   link_avaliacao: "Link de avaliação",
   livre: "Livre",
 };

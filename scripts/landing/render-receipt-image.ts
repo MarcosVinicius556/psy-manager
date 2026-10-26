@@ -33,6 +33,10 @@ const professional: ClinicMember = {
   enderecoCidade: "Chapecó",
   enderecoUf: "SC",
   enderecoCep: "89801000",
+  pixChave: "52998224725",
+  pixTipo: "cpf",
+  pixNome: "Dra. Helena Alves",
+  pixCidade: "Chapecó",
   reciboSequencia: 12,
   contratoModelo: "",
 };
@@ -85,6 +89,9 @@ const payment: Payment = {
     },
   ],
   reciboFiscal: null,
+  pixTxid: "PSYPAYLANDING",
+  lembretesEnviados: 0,
+  comprovantePaciente: null,
   createdAt: new Date().toISOString(),
 };
 

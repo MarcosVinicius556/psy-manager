@@ -39,6 +39,38 @@
         { "fieldPath": "idempotencyKey", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "sessionStartMillis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "accessUids", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "sessionStartMillis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "dueDateMillis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clinicalRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "patientId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

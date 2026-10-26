@@ -44,11 +44,13 @@ export default function PatientForm({
     foto: patient?.foto ?? "",
     fotoAsset: patient?.fotoAsset ?? null,
     status: patient?.status ?? "ativo",
+    lembretesEmail: patient?.lembretesEmail ?? true,
   });
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [contractId, setContractId] = useState("");
   const [emitOnSave, setEmitOnSave] = useState(false);
+  const [showDetails, setShowDetails] = useState(Boolean(patient));
   const photoRef = useRef<HTMLInputElement>(null);
   const nextStep = useRef<"save" | "appointment">("save");
 
@@ -139,6 +141,15 @@ export default function PatientForm({
       <Field label="Nome">
         <input className={fieldClass} value={form.nome} onChange={(event) => set("nome", event.target.value)} required />
       </Field>
+      {!patient ? (
+        <div className="md:col-span-2">
+          <button type="button" className="btn-text" onClick={() => setShowDetails((value) => !value)}>
+            {showDetails ? "Usar cadastro rápido (só nome)" : "Mostrar dados completos do paciente"}
+          </button>
+        </div>
+      ) : null}
+      {(showDetails || patient) && (
+        <>
       <Field label="CPF do paciente (beneficiário padrão)">
         <input
           className={fieldClass}
@@ -189,6 +200,17 @@ export default function PatientForm({
       <Field label="E-mail">
         <input type="email" className={fieldClass} value={form.email} onChange={(event) => set("email", event.target.value)} />
       </Field>
+      <div className="md:col-span-2">
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={form.lembretesEmail}
+            onChange={(event) => set("lembretesEmail", event.target.checked)}
+          />
+          <span>Enviar lembretes automáticos de sessão por e-mail (com link de confirmação).</span>
+        </label>
+      </div>
       <Field label="Status">
         <Select
           value={form.status}
@@ -288,6 +310,8 @@ export default function PatientForm({
           )}
         </Field>
       </div>
+        </>
+      )}
       <div className="flex flex-wrap gap-3 md:col-span-2">
         <button
           className="btn-primary"

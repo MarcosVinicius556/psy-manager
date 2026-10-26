@@ -16,6 +16,7 @@ import {
   type AdminNavLink,
 } from "@/lib/admin/admin-nav";
 import type { ShellNavConfig } from "@/lib/shell/nav-helpers";
+import PwaInstallButton from "@/components/admin/PwaInstallButton";
 
 export type MobileMenuEntry = AdminNavEntry;
 export type MobileMenuLink = AdminNavLink;
@@ -336,9 +337,10 @@ export default function MobileMenuSheet({
           </div>
         </div>
         <div className="shrink-0 border-t border-[#eef2ee] px-3 pt-2">
+          <PwaInstallButton />
           <button
             type="button"
-            className="motion-press flex min-h-11 w-full items-center justify-start gap-3 rounded-md border-0 px-3 py-2.5 text-left text-sm font-semibold text-accent hover:bg-[#f6e6df]/60"
+            className="motion-press mt-1 flex min-h-11 w-full items-center justify-start gap-3 rounded-md border-0 px-3 py-2.5 text-left text-sm font-semibold text-accent hover:bg-[#f6e6df]/60"
             onClick={async () => {
               onClose();
               await onLogout();

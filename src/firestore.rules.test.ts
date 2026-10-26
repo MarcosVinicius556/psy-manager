@@ -125,20 +125,27 @@ describe("clinicalNoteTemplates", () => {
   });
 });
 
-describe("clinicalRecords", () => {
-  it("owner reads own clinical record", async () => {
+describe("tenantRead", () => {
+  it("denies read when ownerUid is missing", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "patients", "patient-sem-owner"), {
+        nome: "Sem dono",
+      });
+    });
     const db = env.authenticatedContext(ownerUid).firestore();
-    await assertSucceeds(getDoc(doc(db, "clinicalRecords", "appt-future")));
+    await assertFails(getDoc(doc(db, "patients", "patient-sem-owner")));
   });
+});
 
-  it("co-member cannot read clinical record", async () => {
-    const db = env.authenticatedContext(memberUid).firestore();
+describe("clinicalRecords", () => {
+  it("client cannot read clinical record (server API only)", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
     await assertFails(getDoc(doc(db, "clinicalRecords", "appt-future")));
   });
 
-  it("owner can save clinical record", async () => {
+  it("client cannot write clinical record", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(db, "clinicalRecords", "appt-past"), {
         ownerUid,
         patientId: "patient-1",
@@ -187,6 +194,51 @@ describe("appointments", () => {
   it("stranger cannot read appointments", async () => {
     const db = env.authenticatedContext(strangerUid).firestore();
     await assertFails(getDoc(doc(db, "appointments", "appt-future")));
+  });
+});
+
+describe("bookingRequests", () => {
+  it("owner can read own requests but cannot create", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "bookingRequests", "req-1"), {
+        ownerUid,
+        slug: "demo",
+        status: "pendente",
+        patientName: "Paciente Demo",
+        patientEmail: "demo@example.com",
+        patientPhone: "11999990000",
+        modality: "online",
+        date: "2099-06-01",
+        startTime: "10:00",
+        endTime: "10:50",
+        consentimentoEm: new Date().toISOString(),
+        createdAtMillis: Date.now(),
+      });
+    });
+
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(getDoc(doc(db, "bookingRequests", "req-1")));
+    await assertFails(
+      setDoc(doc(db, "bookingRequests", "req-2"), {
+        ownerUid,
+        slug: "demo",
+        status: "pendente",
+      })
+    );
+  });
+});
+
+describe("sessionConfirmations", () => {
+  it("client cannot read or write tokens", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      setDoc(doc(db, "sessionConfirmations", "token-1"), {
+        ownerUid,
+        appointmentId: "appt-future",
+        status: "pendente",
+      })
+    );
+    await assertFails(getDoc(doc(db, "sessionConfirmations", "token-1")));
   });
 });
 
@@ -489,6 +541,32 @@ describe("platform and rate limits", () => {
   it("super admin can read any support ticket", async () => {
     const db = env.authenticatedContext(superUid).firestore();
     await assertSucceeds(getDoc(doc(db, "supportTickets", "ticket-b")));
+  });
+
+  it("psychologist cannot self-activate paid subscription", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "users", ownerUid), {
+        uid: ownerUid,
+        role: "psicologo",
+        billingAccess: "trial",
+        subscriptionStatus: "trial_ativo",
+        accountStatus: "ativa",
+        trialEndsAtMillis: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        checkoutStatus: "aguardando_confirmacao_pix",
+        checkoutPlanId: "consultorio",
+        pixTxid: "PSYSUBTEST",
+        paidUntilMillis: 0,
+      });
+    });
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      updateDoc(doc(db, "users", ownerUid), {
+        subscriptionStatus: "ativa",
+        billingAccess: "integral",
+        paidUntilMillis: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      })
+    );
   });
 
   it("clients cannot write support ticket documents", async () => {

@@ -1,5 +1,19 @@
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/admin/firebase";
+
+export async function confirmSubscriptionPixPayment(targetUid: string) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) throw new Error("Entre novamente para continuar.");
+  const token = await user.getIdToken();
+  const response = await fetch("/api/platform/billing/confirm-pix", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ targetUid }),
+  });
+  const data = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+  if (!response.ok) throw new Error(data.message || "Não foi possível confirmar o pagamento.");
+  return data;
+}
 import type { ActivationEventName, ActivationEventRecord } from "./activation-events";
 import { mapAccount, mapInbox, mapPlan, type InboxItem } from "./account-store";
 import {

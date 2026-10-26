@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --project psy-rules-test --only firestore \"vitest run --config vitest.rules.config.ts\"",
-    "verify": "npm run typecheck && npm run lint && npm test && npm run test:rules && npm run build",
+    "verify:ui": "node scripts/verify-ui-standard.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run verify:ui && npm test && npm run test:rules && npm run build",
     "e2e:mobile": "node scripts/e2e/run-mobile.mjs",
     "e2e:support-tickets": "node scripts/e2e/run-support-tickets.mjs",
     "e2e:seed": "tsx scripts/e2e/seed-emulator.ts",
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "cloudinary": "^2.11.0",
+    "fflate": "^0.8.3",
     "firebase": "^13.0.0",
     "firebase-admin": "^13.10.0",
     "jspdf": "^4.2.1",
@@ -38,7 +40,8 @@
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0",
     "react-toastify": "^11.1.0",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
@@ -52,6 +55,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/streamifier": "^0.1.2",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.28",
     "firebase-tools": "^14.0.0",

@@ -15,6 +15,7 @@ const publicRoutes = [
   "/suboperadores",
   "/dpa",
   `/feedback/${e2eFeedbackDocId(1)}`,
+  "/agendar/marina-costa",
 ] as const;
 
 const adminRoutes = [
@@ -23,7 +24,9 @@ const adminRoutes = [
   "/admin/pacientes",
   "/admin/pacientes/pat-ana",
   "/admin/financeiro",
+  "/admin/financeiro/receita-saude",
   "/admin/configuracoes",
+  "/admin/configuracoes/agendamento-publico",
   "/admin/notificacoes",
   "/admin/locais",
   "/admin/pacotes",
@@ -32,6 +35,8 @@ const adminRoutes = [
   "/admin/operacional/contrato",
   "/admin/operacional/relatorios",
   "/admin/operacional/consentimento",
+  "/admin/operacional/formularios",
+  "/admin/operacional/conformidade",
 ] as const;
 
 /** Routes may not declare data-allow-horizontal-scroll unless listed here (count per route). */

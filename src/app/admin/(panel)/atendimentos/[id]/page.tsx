@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import AppointmentForm from "@/components/admin/AppointmentForm";
 import ClinicalForm from "@/components/admin/ClinicalForm";
 import FeedbackShare from "@/components/admin/FeedbackShare";
+import NoShowChargeSuggestion from "@/components/admin/NoShowChargeSuggestion";
 import Drawer from "@/components/admin/Drawer";
 import { Card, Empty, Field, PageTitle, Pill, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -14,12 +15,33 @@ import { formatDate, labelAppointmentStatus, labelModality, labelSessionType } f
 
 export default function AppointmentPage() {
   const params = useParams<{ id: string }>();
-  const { appointments, patients, packages, sessionFeedbacks, loading, patientName, memberName, locationName, setAppointmentStatus } = useClinic();
+  const {
+    appointments,
+    patients,
+    packages,
+    sessionFeedbacks,
+    loading,
+    patientName,
+    memberName,
+    locationName,
+    setAppointmentStatus,
+    ensureAppointmentLoaded,
+    loadClinicalForAppointment,
+  } = useClinic();
   const [editing, setEditing] = useState(false);
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [savingAbsence, setSavingAbsence] = useState(false);
   const appointment = appointments.find((item) => item.id === params.id);
+
+  useEffect(() => {
+    if (!params.id || loading) return;
+    if (appointment) {
+      void loadClinicalForAppointment(params.id);
+      return;
+    }
+    void ensureAppointmentLoaded(params.id).then(() => loadClinicalForAppointment(params.id));
+  }, [appointment, ensureAppointmentLoaded, loadClinicalForAppointment, loading, params.id]);
   const feedback = sessionFeedbacks.find((item) => item.appointmentId === params.id);
   const patient = patients.find((item) => item.id === appointment?.patientId);
   const pack = packages.find((item) => item.id === appointment?.packageId);
@@ -107,6 +129,7 @@ export default function AppointmentPage() {
           </form>
         </Card>
       )}
+      {appointment.status === "faltou" ? <NoShowChargeSuggestion appointment={appointment} /> : null}
       {appointment.status === "faltou" && appointment.faltaJustificativa && (
         <Card className="mb-4">
           <h2 className="text-2xl font-medium text-teal">Justificativa da falta</h2>

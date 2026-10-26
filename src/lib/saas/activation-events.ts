@@ -7,6 +7,7 @@ export const ACTIVATION_EVENT_NAMES = [
   "primeiro_paciente",
   "primeira_sessao_concluida",
   "primeiro_pagamento",
+  "primeiro_recibo",
   "ativo_7_dias",
 ] as const;
 

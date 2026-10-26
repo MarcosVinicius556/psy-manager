@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   TRIAL_DAYS,
+  MS_DAY,
   applyAdminAction,
   buildLegacyAccount,
   buildTrialAccount,
@@ -105,8 +106,9 @@ describe("trial", () => {
 
 describe("assinatura e administração", () => {
   it("não marca checkout como pago", () => {
-    const patch = checkoutPatch("consultorio", new Date(NOW).toISOString());
-    expect(patch.checkoutStatus).toBe("aguardando_provedor");
+    const patch = checkoutPatch("consultorio", new Date(NOW).toISOString(), "PSYSUBTEST");
+    expect(patch.checkoutStatus).toBe("aguardando_confirmacao_pix");
+    expect(patch.pixTxid).toBe("PSYSUBTEST");
     expect("subscriptionStatus" in patch).toBe(false);
   });
 
@@ -114,6 +116,22 @@ describe("assinatura e administração", () => {
     const patch = userCancelPatch(trialAccount(), new Date(NOW).toISOString());
     expect(patch.subscriptionStatus).toBe("cancelada");
     expect(patch.billingAccess).toBe("restrito");
+  });
+
+  it("cancelar assinatura ativa agenda fim do período", () => {
+    const paidUntil = NOW + 20 * MS_DAY;
+    const account = {
+      ...trialAccount(),
+      subscriptionStatus: "ativa" as const,
+      billingAccess: "integral" as const,
+      paidUntilMillis: paidUntil,
+      cancelAtPeriodEnd: false,
+      accessUntilMillis: 0,
+    };
+    const patch = userCancelPatch(account, new Date(NOW).toISOString());
+    expect(patch.cancelAtPeriodEnd).toBe(true);
+    expect(patch.accessUntilMillis).toBe(paidUntil);
+    expect(patch.subscriptionStatus).toBe("ativa");
   });
 
   it("impede o administrador de fabricar assinatura paga ao trocar o plano", () => {

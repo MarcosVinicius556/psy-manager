@@ -35,11 +35,17 @@ export function useContractTemplates() {
   return { templates, loading };
 }
 
-export async function emitPatientContract(patient: Patient, template: ContractTemplate, professional: Parameters<typeof downloadContractPdf>[0]["professional"]) {
+export async function emitPatientContract(
+  patient: Patient,
+  template: ContractTemplate,
+  professional: Parameters<typeof downloadContractPdf>[0]["professional"],
+  politicaFalta?: Parameters<typeof downloadContractPdf>[0]["politicaFalta"]
+) {
   await downloadContractPdf({
     template: template.conteudo,
     patient,
     professional,
+    politicaFalta,
   });
 }
 
@@ -74,7 +80,8 @@ export default function PatientContractEmit({ patient }: { patient: Patient }) {
               valorBase: me.valorBase,
               valorSocial: me.valorSocial,
             }
-          : null
+          : null,
+        me?.politicaFalta
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível gerar o contrato.");
