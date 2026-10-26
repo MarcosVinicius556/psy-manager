@@ -498,10 +498,31 @@ export async function getAppointmentById(id: string) {
 }
 
 export async function getClinicalRecordForAppointment(appointmentId: string) {
-  const snapshot = await getDoc(doc(getFirebaseDb(), "clinicalRecords", appointmentId));
-  trackFirestoreReads(snapshot.exists() ? 1 : 0);
-  if (!snapshot.exists()) return emptyClinical();
-  return mapClinical(snapshot.data().clinical);
+  const { authorizedHeaders } = await import("./api-auth");
+  try {
+    const headers = await authorizedHeaders();
+    const response = await fetch(`/api/clinical/${encodeURIComponent(appointmentId)}`, { headers });
+    if (response.status === 404) return emptyClinical();
+    if (!response.ok) {
+      console.warn("getClinicalRecordForAppointment: API falhou, tentando leitura direta.", response.status);
+      throw new Error("api_clinical_failed");
+    }
+    const payload = (await response.json()) as { clinical?: unknown };
+    return mapClinical(payload.clinical);
+  } catch (error) {
+    if (error instanceof Error && error.message === "api_clinical_failed") {
+      const snapshot = await getDoc(doc(getFirebaseDb(), "clinicalRecords", appointmentId));
+      trackFirestoreReads(snapshot.exists() ? 1 : 0);
+      if (!snapshot.exists()) return emptyClinical();
+      const data = snapshot.data();
+      if (data?.enc) {
+        console.warn("Prontuário cifrado: configure CLINICAL_FIELD_ENC_KEY no servidor.");
+        return emptyClinical();
+      }
+      return mapClinical(data.clinical);
+    }
+    throw error;
+  }
 }
 
 export async function listClinicalRecordsForPatient(patientId: string) {
@@ -910,19 +931,22 @@ export async function listClinicalRecordsForOwner() {
 
 export async function saveClinicalRecord(appointmentId: string, patientId: string, clinical: ClinicalRecord) {
   assertClinicWrite();
-  const ownerUid = currentOwnerUid();
-  const now = new Date().toISOString();
-  await setDoc(
-    doc(getFirebaseDb(), "clinicalRecords", appointmentId),
-    {
-      ownerUid,
-      patientId,
-      appointmentId,
-      clinical,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
+  const { authorizedHeaders } = await import("./api-auth");
+  const headers = await authorizedHeaders({ "Content-Type": "application/json" });
+  const response = await fetch(`/api/clinical/${encodeURIComponent(appointmentId)}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ clinical }),
+  });
+  if (!response.ok) {
+    const reason = await response.json().catch(() => null);
+    throw new Error(
+      typeof reason === "object" && reason && "reason" in reason
+        ? `Não foi possível salvar o prontuário (${String((reason as { reason?: string }).reason)}).`
+        : "Não foi possível salvar o prontuário."
+    );
+  }
+  void patientId;
 }
 
 function paymentRecord(input: PaymentInput, createdAt: string) {

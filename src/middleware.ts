@@ -12,6 +12,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/feedback/:path*",
+    "/assinar/:path*",
+    "/formulario/:path*",
     "/api/public/:path*",
     "/api/legal/:path*",
     "/privacidade",

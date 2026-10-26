@@ -90,6 +90,7 @@ async function main() {
     "e2e/cookie-banner-viewport.spec.ts",
     "e2e/settings-landing-integrations.spec.ts",
     "e2e/email-integration.spec.ts",
+    "e2e/o4-documentos-screenshots.spec.ts",
   ]);
   shutdown();
 }

@@ -32,6 +32,8 @@ const adminRoutes = [
   "/admin/operacional/contrato",
   "/admin/operacional/relatorios",
   "/admin/operacional/consentimento",
+  "/admin/operacional/formularios",
+  "/admin/operacional/conformidade",
 ] as const;
 
 /** Routes may not declare data-allow-horizontal-scroll unless listed here (count per route). */

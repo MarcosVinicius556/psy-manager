@@ -343,6 +343,42 @@ async function main() {
     });
   }
 
+  const o4Expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const signToken = "e2e00000-0000-4000-8000-000000000001";
+  const formToken = "e2e00000-0000-4000-8000-000000000002";
+  await db.collection("signatureRequests").doc(signToken).set({
+    ownerUid: uid,
+    patientId: "pat-ana",
+    patientNome: "Ana Souza",
+    kind: "tcle",
+    body: "TERMO DE CONSENTIMENTO (demonstração e2e)\n\nTexto fictício para assinatura digital.",
+    templateVersion: "tcle-v1",
+    modality: "presencial",
+    expiresAt: o4Expires.toISOString(),
+    expiresAtMillis: o4Expires.getTime(),
+    signedAt: null,
+    signedAtMillis: null,
+    createdAt: now,
+  });
+  await db.collection("formRequests").doc(formToken).set({
+    ownerUid: uid,
+    patientId: "pat-ana",
+    patientNome: "Ana Souza",
+    templateId: "anamnese-tcc",
+    templateNome: "Anamnese TCC",
+    templateVersion: 1,
+    finalidade: "Coleta de histórico clínico inicial (dados fictícios).",
+    campos: [
+      { id: "queixa", label: "Queixa principal", type: "textarea", required: true },
+      { id: "metas", label: "Metas", type: "textarea", required: true },
+    ],
+    expiresAt: o4Expires.toISOString(),
+    expiresAtMillis: o4Expires.getTime(),
+    answeredAt: null,
+    answeredAtMillis: null,
+    createdAt: now,
+  });
+
   console.log(
     JSON.stringify(
       {

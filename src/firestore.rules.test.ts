@@ -136,19 +136,14 @@ describe("tenantRead", () => {
 });
 
 describe("clinicalRecords", () => {
-  it("owner reads own clinical record", async () => {
+  it("client cannot read clinical record (server API only)", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
-    await assertSucceeds(getDoc(doc(db, "clinicalRecords", "appt-future")));
-  });
-
-  it("co-member cannot read clinical record", async () => {
-    const db = env.authenticatedContext(memberUid).firestore();
     await assertFails(getDoc(doc(db, "clinicalRecords", "appt-future")));
   });
 
-  it("owner can save clinical record", async () => {
+  it("client cannot write clinical record", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(db, "clinicalRecords", "appt-past"), {
         ownerUid,
         patientId: "patient-1",
