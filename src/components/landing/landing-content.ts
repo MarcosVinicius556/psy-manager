@@ -3,17 +3,54 @@ import { landingScreenshots } from "@/lib/landing/screenshots";
 export const faqItems = [
   ["Quanto tempo dura a avaliação?", "30 dias, contados da criação da conta. A data e a hora de término ficam no painel, em Assinatura."],
   ["Preciso de cartão para começar?", "Não. O cadastro não pede cartão e a aplicação não guarda número de cartão."],
-  ["O que acontece quando os 30 dias acabam?", "Novos lançamentos param. Pacientes, agenda e financeiro já salvos permanecem, e a página de assinatura continua aberta."],
+  ["Qual é o preço depois do teste?", "O plano mensal e o anual estão publicados na landing e em /planos, com tudo incluso. A cobrança por Pix será habilitada em breve; até lá, um consultor pode ajudar na contratação."],
+  ["Posso cancelar sozinho?", "Sim. Em Assinatura há cancelamento em poucos cliques, com e-mail de confirmação. Se houver período pago em aberto, o acesso integral segue até o fim do ciclo."],
+  ["Como exporto meus dados?", "Na mesma página de Assinatura, use Exportar meus dados para baixar um ZIP com JSON, CSV e prontuários — portabilidade prevista na LGPD."],
+  ["O que acontece quando os 30 dias acabam?", "Novos lançamentos param. Pacientes, agenda e financeiro já salvos permanecem para consulta e exportação."],
   ["Uma conta vê os pacientes de outra?", "Não. Cada profissional trabalha os dados do próprio consultório."],
-  [
-    "Como funciona o plano pago?",
-    "Não há preço fixo nesta página. Você fala com um consultor no WhatsApp (49) 9 9826-6688 ou envia um e-mail. A avaliação de 30 dias continua gratuita e sem cartão.",
-  ],
   ["O proprietário da plataforma lê prontuários?", "Não. A área da plataforma acompanha conta, plano e comunicação, sem abrir a ficha clínica."],
   [
     "O Psy Manager envia dados à Receita Federal?",
     "Não. O sistema gera recibo PDF e relatório para você lançar manualmente no app Receita Saúde ou no Carnê-Leão Web.",
   ],
+];
+
+export const journeyStages = [
+  {
+    phase: "Antes",
+    title: "Agenda e preparo",
+    text: "Horários, locais, Google Agenda e lembretes quando você quiser enviar.",
+    bullets: ["Visão semana e mês", "Meet na sessão online", "Paciente com contrato e TCLE"],
+  },
+  {
+    phase: "Durante",
+    title: "Registro clínico",
+    text: "Prontuário por sessão, modelos por abordagem e nota restrita quando precisar.",
+    bullets: ["Evolução estruturada", "Anexos na ficha", "Sigilo por profissional"],
+  },
+  {
+    phase: "Depois",
+    title: "Financeiro e conformidade",
+    text: "Pagamentos, recibo PDF, Receita Saúde e indicadores da prática no Início.",
+    bullets: ["Pacotes e despesas rateadas", "Exportação LGPD", "Cancelamento self-service"],
+  },
+];
+
+export const exclusiveHighlights = [
+  { title: "Receita Saúde no fluxo", text: "Relatório mensal alinhado ao caixa, com recibo numerado e campos para o app da Receita." },
+  { title: "TCLE e contratos", text: "Modelos editáveis e registro de aceite, com trilha para LGPD e CFP 9/2024." },
+  { title: "Despesas rateadas", text: "Consultórios compartilhados com convite entre colegas e divisão de custos fixos." },
+  { title: "MFA e inatividade", text: "Verificação em duas etapas e logout automático após 30 minutos de inatividade." },
+  { title: "DPA e suboperadores", text: "Lista pública de fornecedores e acordo de tratamento versionado, sem letras miúdas escondidas." },
+  { title: "Backup diário", text: "Exportação criptografada com idade e hash publicados — recuperação documentada." },
+];
+
+export const dataPromisePoints = [
+  "Não vendemos dados de pacientes nem usamos prontuário para treinar modelos de IA.",
+  "Não abrimos ficha clínica no suporte da plataforma — só metadados de conta e cobrança.",
+  "Não guardamos cartão: a assinatura paga será por Pix com confirmação explícita.",
+  "Você pode exportar tudo em Assinatura e cancelar sem falar com ninguém.",
+  "Suboperadores (Firebase, Vercel, e-mail etc.) estão listados com finalidade de tratamento.",
 ];
 
 export const heroFloatingTags = [
@@ -90,8 +127,8 @@ export const securityPoints = [
     text: "Dados de pacientes ficam na conta de quem atende; exportação e exclusão seguem política publicada.",
   },
   {
-    title: "Sem números inventados",
-    text: "Esta landing não exibe depoimentos ou logos de clientes — só o que o produto faz hoje.",
+    title: "Depoimentos só com autorização",
+    text: "A seção de depoimentos só aparece quando há autorização escrita de uso de nome e imagem — sem números inventados.",
   },
 ];
 

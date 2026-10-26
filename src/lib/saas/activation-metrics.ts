@@ -7,6 +7,7 @@ const FUNNEL: ActivationEventName[] = [
   "primeiro_paciente",
   "primeira_sessao_concluida",
   "primeiro_pagamento",
+  "primeiro_recibo",
   "ativo_7_dias",
 ];
 
@@ -16,6 +17,7 @@ const FUNNEL_LABEL: Record<ActivationEventName, string> = {
   primeiro_paciente: "Primeiro paciente",
   primeira_sessao_concluida: "Primeira sessão concluída",
   primeiro_pagamento: "Primeiro pagamento",
+  primeiro_recibo: "Primeiro recibo emitido",
   ativo_7_dias: "Ativo 7 dias",
 };
 
@@ -25,6 +27,7 @@ export type ActivationMetricsSummary = {
   funnel: FunnelStep[];
   trialToPaid: { trials: number; paid: number; rate: number | null };
   medianDaysToFirstSession: number | null;
+  medianDaysToFirstReceipt: number | null;
   atRisk: AtRiskAccount[];
 };
 
@@ -81,6 +84,22 @@ export function summarizeActivationMetrics(
         ? durations[(durations.length - 1) / 2]
         : (durations[durations.length / 2 - 1] + durations[durations.length / 2]) / 2;
 
+  const receiptDurations: number[] = [];
+  for (const [, timeline] of byAccount) {
+    const signupAt = timeline.signup;
+    const receiptAt = timeline.primeiro_recibo;
+    if (!signupAt || !receiptAt) continue;
+    const delta = Date.parse(receiptAt) - Date.parse(signupAt);
+    if (Number.isFinite(delta) && delta >= 0) receiptDurations.push(delta / MS_DAY);
+  }
+  receiptDurations.sort((a, b) => a - b);
+  const medianDaysToFirstReceipt =
+    receiptDurations.length === 0
+      ? null
+      : receiptDurations.length % 2 === 1
+        ? receiptDurations[(receiptDurations.length - 1) / 2]
+        : (receiptDurations[receiptDurations.length / 2 - 1] + receiptDurations[receiptDurations.length / 2]) / 2;
+
   const atRisk: AtRiskAccount[] = [];
   for (const account of accounts) {
     if (account.role === "super_admin") continue;
@@ -105,5 +124,5 @@ export function summarizeActivationMetrics(
   }
   atRisk.sort((a, b) => a.trialDaysLeft - b.trialDaysLeft);
 
-  return { funnel, trialToPaid: { trials, paid, rate }, medianDaysToFirstSession, atRisk };
+  return { funnel, trialToPaid: { trials, paid, rate }, medianDaysToFirstSession, medianDaysToFirstReceipt, atRisk };
 }

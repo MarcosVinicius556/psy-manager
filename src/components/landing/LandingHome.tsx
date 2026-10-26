@@ -7,6 +7,10 @@ import FeaturesShowcaseSection from "@/components/landing/sections/FeaturesShowc
 import SecuritySection from "@/components/landing/sections/SecuritySection";
 import ReceitaSaudeSection from "@/components/landing/sections/ReceitaSaudeSection";
 import HowItWorksSection from "@/components/landing/sections/HowItWorksSection";
+import JourneySection from "@/components/landing/sections/JourneySection";
+import ExclusiveSection from "@/components/landing/sections/ExclusiveSection";
+import DataPromiseSection from "@/components/landing/sections/DataPromiseSection";
+import TestimonialsSection from "@/components/landing/sections/TestimonialsSection";
 import LandingFaq from "@/components/landing/sections/LandingFaq";
 import LandingFinalCta from "@/components/landing/sections/LandingFinalCta";
 
@@ -14,12 +18,16 @@ export default function LandingHome() {
   return (
     <div className="landing overflow-x-hidden bg-landing-cream">
       <HeroSection />
+      <JourneySection />
       <PainSolutionSection />
       <FeaturesShowcaseSection />
+      <ExclusiveSection />
       <SecuritySection />
+      <DataPromiseSection />
       <ReceitaSaudeSection />
       <HowItWorksSection />
       <PlansSection />
+      <TestimonialsSection />
       <LandingFaq />
       <LandingFinalCta />
 
