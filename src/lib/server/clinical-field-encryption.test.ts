@@ -21,7 +21,7 @@ describe("clinical-field-encryption", () => {
   });
 
   it("cifra e decifra com chave mestra", async () => {
-    process.env.CLINICAL_FIELD_ENC_KEY = "a".repeat(64);
+    process.env.CLINICAL_FIELD_ENC_KEY = Buffer.from("vitest-clinical-enc-key-32-bytes!!").toString("base64");
     let wrappedKey = "";
     const keysRef = {
       get: vi.fn().mockImplementation(async () => ({
