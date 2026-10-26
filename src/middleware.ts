@@ -14,6 +14,8 @@ export const config = {
     "/feedback/:path*",
     "/agendar/:path*",
     "/confirmar/:path*",
+    "/assinar/:path*",
+    "/formulario/:path*",
     "/api/public/:path*",
     "/api/legal/:path*",
     "/privacidade",

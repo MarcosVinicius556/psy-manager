@@ -532,15 +532,45 @@ service cloud.firestore {
     }
 
     match /clinicalRecords/{recordId} {
-      allow read: if ownsExisting();
-      allow create: if tenantCreate()
-        && request.resource.data.appointmentId is string
-        && request.resource.data.patientId is string
-        && request.resource.data.appointmentId == recordId;
-      allow update: if tenantUpdate()
-        && request.resource.data.appointmentId == resource.data.appointmentId
-        && request.resource.data.patientId == resource.data.patientId;
+      allow read, write: if false;
+    }
+
+    match /keys/{uid} {
+      allow read, write: if false;
+    }
+
+    match /consentRecords/{recordId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /signatureRequests/{token} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn() && ownsNew() && clinicWritesOpen();
+      allow update, delete: if false;
+    }
+
+    match /formTemplates/{templateId} {
+      allow read: if tenantRead();
+      allow create: if tenantCreate();
+      allow update: if tenantUpdate();
       allow delete: if tenantDelete();
+    }
+
+    match /formRequests/{token} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn() && ownsNew() && clinicWritesOpen();
+      allow update, delete: if false;
+    }
+
+    match /formResponses/{responseId} {
+      allow read: if tenantRead();
+      allow create, update, delete: if false;
+    }
+
+    match /clinicalAccessLog/{logId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
     match /appointments/{appointmentId} {
