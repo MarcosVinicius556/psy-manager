@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import AppointmentForm from "@/components/admin/AppointmentForm";
 import ClinicalForm from "@/components/admin/ClinicalForm";
 import FeedbackShare from "@/components/admin/FeedbackShare";
+import NoShowChargeSuggestion from "@/components/admin/NoShowChargeSuggestion";
 import Drawer from "@/components/admin/Drawer";
 import { Card, Empty, Field, PageTitle, Pill, fieldClass } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -128,6 +129,7 @@ export default function AppointmentPage() {
           </form>
         </Card>
       )}
+      {appointment.status === "faltou" ? <NoShowChargeSuggestion appointment={appointment} /> : null}
       {appointment.status === "faltou" && appointment.faltaJustificativa && (
         <Card className="mb-4">
           <h2 className="text-2xl font-medium text-teal">Justificativa da falta</h2>

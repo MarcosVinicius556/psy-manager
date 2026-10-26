@@ -1,6 +1,7 @@
 import { formatDate, formatMoney, todayISO } from "./format";
 import { maskCpf, maskPhone } from "../masks";
-import type { Patient } from "./types";
+import { formatPoliticaFalta, normalizePoliticaFalta } from "./no-show-policy";
+import type { ClinicMember, Patient } from "./types";
 
 export const CONTRACT_FIELDS = [
   { key: "paciente.nome", label: "Nome do paciente", group: "Paciente" },
@@ -16,6 +17,7 @@ export const CONTRACT_FIELDS = [
   { key: "profissional.valorBase", label: "Valor da sessão", group: "Profissional" },
   { key: "profissional.valorSocial", label: "Valor social", group: "Profissional" },
   { key: "data.hoje", label: "Data de hoje", group: "Data" },
+  { key: "POLITICA_FALTA", label: "Política de faltas", group: "Profissional" },
 ] as const;
 
 export type ContractFieldKey = (typeof CONTRACT_FIELDS)[number]["key"];
@@ -145,7 +147,8 @@ export function resolveContractTemplate(stored: string | null | undefined) {
 export function contractFieldValues(
   patient: Patient,
   professional: ContractProfessional | null,
-  today = todayISO()
+  today = todayISO(),
+  memberPolicy?: ClinicMember["politicaFalta"]
 ): Record<ContractFieldKey, string> {
   const money = (value: number) => (value > 0 ? formatMoney(value) : "");
   const phone = (value: string) => (value.trim() ? maskPhone(value) : "");
@@ -163,6 +166,7 @@ export function contractFieldValues(
     "profissional.valorBase": money(professional?.valorBase ?? 0),
     "profissional.valorSocial": money(professional?.valorSocial ?? 0),
     "data.hoje": formatDate(today),
+    POLITICA_FALTA: formatPoliticaFalta(normalizePoliticaFalta(memberPolicy)),
   };
 }
 
@@ -361,9 +365,14 @@ export function parseContract(markdown: string): ContractBlock[] {
   return blocks;
 }
 
-export function renderContract(template: string, patient: Patient, professional: ContractProfessional | null) {
+export function renderContract(
+  template: string,
+  patient: Patient,
+  professional: ContractProfessional | null,
+  memberPolicy?: ClinicMember["politicaFalta"]
+) {
   const source = resolveContractTemplate(template);
-  const filled = fillContractTemplate(source, contractFieldValues(patient, professional));
+  const filled = fillContractTemplate(source, contractFieldValues(patient, professional, todayISO(), memberPolicy));
   return { filled, blocks: parseContract(filled) };
 }
 
@@ -422,9 +431,10 @@ export async function createContractPdf(input: {
   template: string;
   patient: Patient;
   professional: ContractProfessional | null;
+  politicaFalta?: ClinicMember["politicaFalta"];
 }) {
   const { jsPDF } = await import("jspdf");
-  const { filled, blocks } = renderContract(input.template, input.patient, input.professional);
+  const { filled, blocks } = renderContract(input.template, input.patient, input.professional, input.politicaFalta);
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -664,6 +674,7 @@ export async function downloadContractPdf(input: {
   template: string;
   patient: Patient;
   professional: ContractProfessional | null;
+  politicaFalta?: ClinicMember["politicaFalta"];
 }) {
   if (typeof document === "undefined") throw new Error("O PDF do contrato é gerado no navegador.");
   const { filename, bytes } = await createContractPdf(input);

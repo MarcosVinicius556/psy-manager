@@ -1,5 +1,7 @@
 export type PatientStatus = "ativo" | "inativo";
 
+export type AppointmentConfirmationStatus = "pendente" | "confirmada" | "remarcar";
+
 export type AppointmentStatus =
   | "agendado"
   | "em_andamento"
@@ -80,6 +82,8 @@ export interface Patient {
   tcleAceite: TcleAcceptance | null;
   status: PatientStatus;
   demo?: boolean;
+  /** Opt-in para lembretes automáticos por e-mail (padrão: ligado). */
+  lembretesEmail?: boolean;
   createdAt: string;
 }
 
@@ -158,6 +162,8 @@ export interface Appointment {
   googleMeetLink: string | null;
   sessionStartMillis?: number;
   demo?: boolean;
+  confirmacao?: AppointmentConfirmationStatus | null;
+  confirmadaEm?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -187,6 +193,7 @@ export interface ClinicMember {
   valorSocial: number;
   workHours: WorkShift[];
   contratoModelo: string;
+  politicaFalta?: { horas: number; percentual: number };
   ativo: boolean;
   createdAt: string;
 }
@@ -388,5 +395,6 @@ export function emptyPatient(): PatientInput {
     foto: "",
     fotoAsset: null,
     status: "ativo",
+    lembretesEmail: true,
   };
 }
