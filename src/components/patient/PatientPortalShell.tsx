@@ -30,6 +30,14 @@ export default function PatientPortalShell({ children }: { children: React.React
     return <div className="min-h-dvh bg-paper text-ink">{children}</div>;
   }
 
+  if (loading || !user) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-paper text-muted">
+        Carregando...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-paper text-ink">
       <header className="border-b border-[var(--color-border-subtle)] bg-white px-4 py-3">
