@@ -91,6 +91,7 @@ async function main() {
     "e2e/settings-landing-integrations.spec.ts",
     "e2e/email-integration.spec.ts",
     "e2e/o4-documentos-screenshots.spec.ts",
+    "e2e/o6-equipe.spec.ts",
   ]);
   shutdown();
 }
