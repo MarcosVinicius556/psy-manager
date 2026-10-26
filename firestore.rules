@@ -243,6 +243,16 @@ service cloud.firestore {
         && resource.data.sessionStartMillis > request.time.toMillis();
     }
 
+    function appointmentConfirmationFieldsStable() {
+      return (
+        !("confirmacao" in request.resource.data)
+        || request.resource.data.confirmacao == resource.data.confirmacao
+      ) && (
+        !("confirmadaEm" in request.resource.data)
+        || request.resource.data.confirmadaEm == resource.data.confirmadaEm
+      );
+    }
+
     function locationInviteAccepted(locationId) {
       return exists(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid))
         && get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.status == "aceito";
@@ -471,6 +481,7 @@ service cloud.firestore {
       allow update: if ownsExisting()
         && clinicWritesOpen()
         && noClinicalOnAppointment()
+        && appointmentConfirmationFieldsStable()
         && request.resource.data.ownerUid == resource.data.ownerUid;
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
