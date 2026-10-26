@@ -109,6 +109,8 @@ const baseAdminNav: AdminNavEntry[] = [
       { href: "/admin/operacional/email", label: "Modelos de e-mail", icon: HiOutlineDocumentText },
       { href: "/admin/operacional/prontuario", label: "Modelos de prontuário", icon: HiOutlineDocumentText },
       { href: "/admin/operacional/consentimento", label: "Termo de consentimento", icon: HiOutlineShieldCheck },
+      { href: "/admin/operacional/formularios", label: "Formulários", icon: HiOutlineDocumentText },
+      { href: "/admin/operacional/conformidade", label: "Conformidade", icon: HiOutlineShieldCheck },
       { href: "/admin/operacional/relatorios", label: "Gerador de relatórios", icon: HiOutlineChartBar },
       { href: "/admin/suporte", label: "Suporte", icon: HiOutlineChatAlt2 },
     ],
