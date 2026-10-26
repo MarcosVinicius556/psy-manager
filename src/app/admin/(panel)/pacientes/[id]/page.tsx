@@ -39,6 +39,9 @@ import { feedbackAvailability } from "@/components/admin/FeedbackShare";
 import SecureMediaImage from "@/components/admin/SecureMediaImage";
 import { fetchSignedMediaUrl, patientPhotoAsset } from "@/lib/cloudinary/client-media";
 import type { Appointment, ClinicAttachment, Patient, Payment } from "@/lib/admin/types";
+import { useWorkspace } from "@/lib/team/workspace-context";
+import { logPatientAdminAccess } from "@/lib/team/log-patient-access";
+import { useAuth } from "@/lib/admin/auth-context";
 
 function PaymentRows({
   payments,
@@ -132,7 +135,11 @@ function PaymentRows({
 
 export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
-  const { patients, appointments, payments, packages, sessionFeedbacks, loading, cancelAppointment, locationName, saveSignedContract } = useClinic();
+  const { user } = useAuth();
+  const { workspace } = useWorkspace();
+  const clinicalAllowed = workspace?.isClinicalAllowed ?? true;
+  const { patients, appointments, payments, packages, sessionFeedbacks, loading, cancelAppointment, locationName, saveSignedContract, members } = useClinic();
+  const me = members.find((member) => member.uid === user?.uid);
   const [editing, setEditing] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -151,9 +158,14 @@ export default function PatientDetailPage() {
   const [pendingCancel, setPendingCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [savingContract, setSavingContract] = useState(false);
-  const [tab, setTab] = useState<"prontuario" | "agenda" | "financeiro">("prontuario");
+  const [tab, setTab] = useState<"prontuario" | "agenda" | "financeiro">(clinicalAllowed ? "prontuario" : "agenda");
   const [receiving, setReceiving] = useState<Payment | null>(null);
   const patient = patients.find((item) => item.id === params.id);
+
+  useEffect(() => {
+    if (!patient?.id) return;
+    logPatientAdminAccess(patient.id, me?.nome || user?.email || "Usuário");
+  }, [patient?.id, me?.nome, user?.email]);
   const history = appointments
     .filter((item) => item.patientId === params.id)
     .sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
@@ -227,7 +239,7 @@ export default function PatientDetailPage() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "prontuario", label: "Prontuário" },
+            ...(clinicalAllowed ? [{ value: "prontuario" as const, label: "Prontuário" }] : []),
             { value: "agenda", label: "Agenda" },
             { value: "financeiro", label: "Financeiro" },
           ]}

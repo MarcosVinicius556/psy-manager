@@ -102,6 +102,15 @@ const baseAdminNav: AdminNavEntry[] = [
     ],
   },
   {
+    label: "Equipe",
+    icon: HiOutlineUserAdd,
+    children: [
+      { href: "/admin/equipe", label: "Secretárias", icon: HiOutlineUserAdd },
+      { href: "/admin/equipe/clinica", label: "Clínica", icon: HiOutlineBuildingOffice },
+      { href: "/admin/equipe/supervisao", label: "Supervisão", icon: HiOutlineShieldCheck },
+    ],
+  },
+  {
     label: "Operacional",
     icon: HiOutlineBriefcase,
     children: [
@@ -146,6 +155,7 @@ const routeTitles: { prefix: string; title: string }[] = [
   { prefix: "/admin/locais", title: "Locais" },
   { prefix: "/admin/pacotes", title: "Pacotes" },
   { prefix: "/admin/usuarios", title: "Usuários" },
+  { prefix: "/admin/equipe", title: "Equipe" },
   { prefix: "/admin/operacional", title: "Operacional" },
   { prefix: "/admin/suporte", title: "Suporte" },
   { prefix: "/admin/atendimentos", title: "Atendimento" },

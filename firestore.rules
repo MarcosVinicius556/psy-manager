@@ -265,22 +265,69 @@ service cloud.firestore {
         || (("subscriptionStatus" in resource.data) && request.resource.data.subscriptionStatus == resource.data.subscriptionStatus);
     }
 
+    function staffActsFor(ownerUid) {
+      return signedIn()
+        && request.auth.token.staffOf == ownerUid
+        && request.auth.token.staffPerms is list;
+    }
+
+    function clinicAdminReadsMember(memberUid) {
+      return signedIn()
+        && request.auth.token.clinicRole == "admin"
+        && request.auth.token.clinicId is string
+        && exists(/databases/$(database)/documents/clinics/$(request.auth.token.clinicId))
+        && get(/databases/$(database)/documents/clinics/$(request.auth.token.clinicId)).data.adminUid == request.auth.uid
+        && (
+          memberUid == request.auth.uid
+          || memberUid in get(/databases/$(database)/documents/clinics/$(request.auth.token.clinicId)).data.memberUids
+        );
+    }
+
+    function tenantStaffRead() {
+      return signedIn() && staffActsFor(resource.data.ownerUid);
+    }
+
     function tenantRead() {
       return signedIn()
         && resource.data.keys().hasAny(["ownerUid"])
-        && resource.data.ownerUid == request.auth.uid;
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || tenantStaffRead()
+          || clinicAdminReadsMember(resource.data.ownerUid)
+        );
+    }
+
+    function staffTenantWriteOwner(ownerUid) {
+      return staffActsFor(ownerUid);
     }
 
     function tenantCreate() {
-      return ownsNew() && clinicWritesOpen();
+      return clinicWritesOpen() && (
+        ownsNew()
+        || (
+          signedIn()
+          && staffTenantWriteOwner(request.resource.data.ownerUid)
+          && request.resource.data.ownerUid is string
+        )
+      );
     }
 
     function tenantUpdate() {
       return signedIn()
         && clinicWritesOpen()
-        && request.resource.data.ownerUid == request.auth.uid
         && resource.data.keys().hasAny(["ownerUid"])
-        && resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && (
+          (
+            resource.data.ownerUid == request.auth.uid
+            && request.resource.data.ownerUid == request.auth.uid
+          )
+          || staffTenantWriteOwner(resource.data.ownerUid)
+          || (
+            clinicAdminReadsMember(resource.data.ownerUid)
+            && request.auth.token.clinicRole == "admin"
+          )
+        );
     }
 
     function tenantDelete() {
@@ -363,6 +410,18 @@ service cloud.firestore {
 
     function patientOwnerRead() {
       return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    function patientStaffRead() {
+      return signedIn() && staffActsFor(resource.data.ownerUid);
+    }
+
+    function patientReadAllowed() {
+      return patientOwnerRead() || patientStaffRead();
+    }
+
+    function noPatientPrivateOnPatient() {
+      return !request.resource.data.keys().hasAny(["observacoes", "contatoEmergencia"]);
     }
 
     match /users/{userId} {
@@ -551,7 +610,7 @@ service cloud.firestore {
     }
 
     match /formTemplates/{templateId} {
-      allow read: if tenantRead();
+      allow read: if ownsExisting();
       allow create: if tenantCreate();
       allow update: if tenantUpdate();
       allow delete: if tenantDelete();
@@ -564,7 +623,7 @@ service cloud.firestore {
     }
 
     match /formResponses/{responseId} {
-      allow read: if tenantRead();
+      allow read: if ownsExisting();
       allow create, update, delete: if false;
     }
 
@@ -614,11 +673,24 @@ service cloud.firestore {
       allow delete: if tenantDelete();
     }
 
+    match /patientPrivate/{docId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.patientId is string;
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
     match /patients/{patientId} {
-      allow read: if patientOwnerRead();
+      allow read: if patientReadAllowed();
       allow create: if tenantCreate()
+        && noPatientPrivateOnPatient()
         && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
       allow update: if tenantUpdate()
+        && noPatientPrivateOnPatient()
         && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
       allow delete: if tenantDelete();
     }
@@ -666,7 +738,7 @@ service cloud.firestore {
     }
 
     match /clinicalNoteTemplates/{templateId} {
-      allow read: if tenantRead();
+      allow read: if ownsExisting();
       allow create: if tenantCreate();
       allow update: if tenantUpdate();
       allow delete: if tenantDelete();
@@ -813,6 +885,53 @@ service cloud.firestore {
     match /trialNoticeMarkers/{markerId} {
       allow read: if isSuperAdmin();
       allow write: if false;
+    }
+
+    match /staffMembers/{memberId} {
+      allow read: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid
+        || resource.data.staffUid == request.auth.uid
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /staffInvites/{token} {
+      allow read: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid
+        || (
+          request.auth.token.email is string
+          && resource.data.inviteeEmail == request.auth.token.email.lower()
+        )
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /clinics/{clinicId} {
+      allow read: if signedIn() && (
+        resource.data.adminUid == request.auth.uid
+        || request.auth.uid in resource.data.memberUids
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /clinicInvites/{token} {
+      allow read: if signedIn() && (
+        resource.data.inviterUid == request.auth.uid
+        || (
+          request.auth.token.email is string
+          && resource.data.inviteeEmail == request.auth.token.email.lower()
+        )
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /supervisionShares/{token} {
+      allow read, write: if false;
+    }
+
+    match /supervisionExportLog/{eventId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
     match /patientAccounts/{uid} {

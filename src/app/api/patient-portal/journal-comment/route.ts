@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { patientOwnedByUid } from "@/lib/server/clinic-access";
 import { sendPatientPush } from "@/lib/server/patient-portal/push";
-import { requireAuthUser } from "@/lib/server/require-auth";
+import { requirePsychologistPortalClinicalActor } from "@/lib/server/patient-portal/psychologist-access";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const auth = await requireAuthUser(request);
-  if ("error" in auth) return auth.error;
+  const gate = await requirePsychologistPortalClinicalActor(request);
+  if ("error" in gate) return gate.error;
   const db = getAdminDb();
   if (!db) return NextResponse.json({ reason: "firebase_admin" }, { status: 503 });
 
@@ -28,18 +27,15 @@ export async function POST(request: Request) {
   const entrySnap = await entryRef.get();
   if (!entrySnap.exists) return NextResponse.json({ reason: "nao_encontrado" }, { status: 404 });
   const entry = entrySnap.data() || {};
-  if (entry.ownerUid !== auth.uid) return NextResponse.json({ reason: "sem_permissao" }, { status: 403 });
+  if (entry.ownerUid !== gate.ownerUid) return NextResponse.json({ reason: "sem_permissao" }, { status: 403 });
   if (entry.compartilhado !== true) return NextResponse.json({ reason: "nao_compartilhado" }, { status: 400 });
-  if (!(await patientOwnedByUid(String(entry.patientId), auth.uid))) {
-    return NextResponse.json({ reason: "sem_permissao" }, { status: 403 });
-  }
 
   const now = new Date().toISOString();
   const comment = {
     id: crypto.randomUUID(),
     texto: texto.slice(0, 1000),
     createdAt: now,
-    authorUid: auth.uid,
+    authorUid: gate.ownerUid,
   };
   await entryRef.update({ comentarios: FieldValue.arrayUnion(comment), updatedAt: now });
 

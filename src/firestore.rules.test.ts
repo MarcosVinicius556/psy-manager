@@ -14,6 +14,7 @@ const PROJECT_ID = "psy-rules-test";
 const ownerUid = "uid-owner-a";
 const memberUid = "uid-member-b";
 const strangerUid = "uid-stranger-c";
+const secretaryUid = "uid-secretary-e";
 const superUid = "uid-super-d";
 const locationId = "loc-shared-1";
 
@@ -31,6 +32,7 @@ async function seedBase() {
     await setDoc(doc(db, "users", ownerUid), { uid: ownerUid, ...legadoUser });
     await setDoc(doc(db, "users", memberUid), { uid: memberUid, ...legadoUser });
     await setDoc(doc(db, "users", strangerUid), { uid: strangerUid, ...legadoUser });
+    await setDoc(doc(db, "users", secretaryUid), { uid: secretaryUid, role: "secretaria", ...legadoUser });
     await setDoc(doc(db, "users", superUid), { uid: superUid, role: "super_admin", billingAccess: "legado" });
 
     await setDoc(doc(db, "locationInvites", `${locationId}_${memberUid}`), {
@@ -344,7 +346,25 @@ describe("memberPrivate and patients", () => {
     );
   });
 
-  it("patient CPF is owner-only", async () => {
+  it("patient private notes are owner-only", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "patientPrivate", `${ownerUid}_patient-1`), {
+        ownerUid,
+        patientId: "patient-1",
+        observacoes: "sigilo",
+        contatoEmergencia: "contato",
+      });
+    });
+    const ownerDb = env.authenticatedContext(ownerUid).firestore();
+    await assertSucceeds(getDoc(doc(ownerDb, "patientPrivate", `${ownerUid}_patient-1`)));
+    const staffDb = env.authenticatedContext(secretaryUid, {
+      staffOf: ownerUid,
+      staffPerms: ["pacientes"],
+    }).firestore();
+    await assertFails(getDoc(doc(staffDb, "patientPrivate", `${ownerUid}_patient-1`)));
+  });
+
+  it("patient CPF is owner-only for strangers", async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), "patients", "patient-1"), {
         ownerUid,
@@ -358,6 +378,75 @@ describe("memberPrivate and patients", () => {
     await assertSucceeds(getDoc(doc(ownerDb, "patients", "patient-1")));
     const memberDb = env.authenticatedContext(memberUid).firestore();
     await assertFails(getDoc(doc(memberDb, "patients", "patient-1")));
+  });
+});
+
+describe("staff secretary", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "staffMembers", `${ownerUid}_${secretaryUid}`), {
+        ownerUid,
+        staffUid: secretaryUid,
+        ativo: true,
+        email: "sec@test.com",
+        perms: ["agenda", "pacientes", "financeiro"],
+      });
+      await setDoc(doc(context.firestore(), "patients", "patient-staff"), {
+        ownerUid,
+        nome: "Paciente Demo",
+        cpf: "39053344705",
+      });
+      await setDoc(doc(context.firestore(), "payments", "pay-staff"), {
+        ownerUid,
+        patientId: "patient-staff",
+        descricao: "Sessão",
+        valor: 120,
+        status: "nao_pago",
+      });
+    });
+  });
+
+  it("secretary reads tenant payments but not clinical records", async () => {
+    const db = env.authenticatedContext(secretaryUid, {
+      staffOf: ownerUid,
+      staffPerms: ["financeiro", "pacientes"],
+    }).firestore();
+    await assertSucceeds(getDoc(doc(db, "payments", "pay-staff")));
+    await assertSucceeds(getDoc(doc(db, "patients", "patient-staff")));
+    await assertFails(getDoc(doc(db, "clinicalRecords", "appt-future")));
+  });
+
+  it("secretary cannot read form responses", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "formResponses", "form-staff"), {
+        ownerUid,
+        patientId: "patient-staff",
+        respostas: { queixa: "texto clínico" },
+      });
+    });
+    const db = env.authenticatedContext(secretaryUid, {
+      staffOf: ownerUid,
+      staffPerms: ["pacientes"],
+    }).firestore();
+    await assertFails(getDoc(doc(db, "formResponses", "form-staff")));
+  });
+
+  it("secretary cannot read clinical note templates", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "clinicalNoteTemplates", "tpl-staff"), {
+        ownerUid,
+        nome: "Modelo",
+        approach: "custom",
+        sections: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    });
+    const db = env.authenticatedContext(secretaryUid, {
+      staffOf: ownerUid,
+      staffPerms: ["pacientes"],
+    }).firestore();
+    await assertFails(getDoc(doc(db, "clinicalNoteTemplates", "tpl-staff")));
   });
 });
 

@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import type { Firestore } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import { claimsFromToken } from "@/lib/team/claims";
+import { readIdTokenClaims } from "@/lib/server/team-access";
 import { requireAuthUser } from "@/lib/server/require-auth";
 import type { PatientAccountLink } from "./types";
 
@@ -33,6 +35,12 @@ export async function patientPortalActive(db: Firestore, ownerUid: string, patie
 export async function requirePatientAuth(request: Request) {
   const auth = await requireAuthUser(request);
   if ("error" in auth) return { error: auth.error };
+
+  const decoded = await readIdTokenClaims(auth.idToken);
+  const staffOf = decoded ? claimsFromToken(decoded.claims as Record<string, unknown>).staffOf : null;
+  if (staffOf) {
+    return { error: NextResponse.json({ reason: "proibido" }, { status: 403 }) };
+  }
 
   const link = await loadPatientAccountLink(auth.uid);
   if (!link) {

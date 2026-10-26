@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/admin/auth-context";
 import { ClinicProvider } from "@/lib/admin/clinic-context";
 import AdminShell from "@/components/admin/AdminShell";
+import { WorkspaceProvider } from "@/lib/team/workspace-context";
+import { ClinicalRouteGuard } from "@/components/admin/team/ClinicalRouteGuard";
 import { BlockedAccount } from "@/components/admin/AccountStatus";
 import LegalReacceptModal from "@/components/legal/LegalReacceptModal";
 import { SaasProvider, useSaas } from "@/lib/saas/context";
@@ -23,12 +25,16 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
 
   return (
     <SaasProvider>
-      <ClinicProvider>
-        <AdminShell>
-          <LegalReacceptModal />
-          <ClinicGate>{children}</ClinicGate>
-        </AdminShell>
-      </ClinicProvider>
+      <WorkspaceProvider>
+        <ClinicProvider>
+          <AdminShell>
+            <LegalReacceptModal />
+            <ClinicGate>
+              <ClinicalRouteGuard>{children}</ClinicalRouteGuard>
+            </ClinicGate>
+          </AdminShell>
+        </ClinicProvider>
+      </WorkspaceProvider>
     </SaasProvider>
   );
 }
