@@ -26,7 +26,7 @@ export default function HowItWorksSection() {
             <p className="text-muted">
               Depois do cadastro, o início do painel já mostra o mês, a agenda do dia e pendências de pagamento — o restante fica a um clique no menu.
             </p>
-            <Link href="/cadastro" className="btn-primary landing-pill-cta mt-6 inline-flex min-h-11">
+            <Link href="/cadastro" className="btn-primary mt-6 inline-flex min-h-11">
               Testar grátis
             </Link>
           </div>

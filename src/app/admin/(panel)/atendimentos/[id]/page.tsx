@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -14,12 +14,33 @@ import { formatDate, labelAppointmentStatus, labelModality, labelSessionType } f
 
 export default function AppointmentPage() {
   const params = useParams<{ id: string }>();
-  const { appointments, patients, packages, sessionFeedbacks, loading, patientName, memberName, locationName, setAppointmentStatus } = useClinic();
+  const {
+    appointments,
+    patients,
+    packages,
+    sessionFeedbacks,
+    loading,
+    patientName,
+    memberName,
+    locationName,
+    setAppointmentStatus,
+    ensureAppointmentLoaded,
+    loadClinicalForAppointment,
+  } = useClinic();
   const [editing, setEditing] = useState(false);
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [savingAbsence, setSavingAbsence] = useState(false);
   const appointment = appointments.find((item) => item.id === params.id);
+
+  useEffect(() => {
+    if (!params.id || loading) return;
+    if (appointment) {
+      void loadClinicalForAppointment(params.id);
+      return;
+    }
+    void ensureAppointmentLoaded(params.id).then(() => loadClinicalForAppointment(params.id));
+  }, [appointment, ensureAppointmentLoaded, loadClinicalForAppointment, loading, params.id]);
   const feedback = sessionFeedbacks.find((item) => item.appointmentId === params.id);
   const patient = patients.find((item) => item.id === appointment?.patientId);
   const pack = packages.find((item) => item.id === appointment?.packageId);

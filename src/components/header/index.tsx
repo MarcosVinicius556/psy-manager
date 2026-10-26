@@ -80,10 +80,10 @@ export default function Header() {
 
         <div className="flex items-center gap-3 sm:gap-4">
           <span className="hidden items-center gap-3 xl:flex">
-            <Link href="/admin/login" className="btn-text landing-pill-ghost min-h-11">
+            <Link href="/admin/login" className="btn-text min-h-11">
               Entrar
             </Link>
-            <Link href="/cadastro" className="btn-primary landing-pill-cta min-h-11">
+            <Link href="/cadastro" className="btn-primary min-h-11">
               Testar grátis
             </Link>
           </span>
@@ -134,10 +134,10 @@ export default function Header() {
           {link.label}
         </Link>
       ))}
-      <Link href="/admin/login" className="btn-text site-menu-cta landing-pill-ghost mt-2 w-full min-h-11" onClick={() => setOpen(false)}>
+      <Link href="/admin/login" className="btn-text site-menu-cta mt-2 w-full min-h-11" onClick={() => setOpen(false)}>
         Entrar
       </Link>
-      <Link href="/cadastro" className="btn-primary site-menu-cta landing-pill-cta mt-3 w-full min-h-11" onClick={() => setOpen(false)}>
+      <Link href="/cadastro" className="btn-primary site-menu-cta mt-3 w-full min-h-11" onClick={() => setOpen(false)}>
         Testar grátis
       </Link>
     </nav>

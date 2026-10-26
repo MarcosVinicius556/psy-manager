@@ -19,6 +19,7 @@ import { Card, DataTable, Empty, MobileListGrid, PageTitle, Pill, ResponsiveTabl
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import {
+  addMonths,
   formatDate,
   labelAppointmentPlace,
   labelAppointmentStatus,
@@ -27,7 +28,8 @@ import {
   startOfWeek,
   todayISO,
 } from "@/lib/admin/format";
-import { fromMinutes, rangesOverlap, SLOT_STEP, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
+import { fromMinutes, rangesOverlap, SLOT_STEP, sessionStartMillis, timelineSlots, toMinutes, workRangesForDate } from "@/lib/admin/schedule";
+import { weekAppointmentWindow } from "@/lib/admin/clinic-load-windows";
 import { memberWorkplaces } from "@/lib/admin/workplaces";
 import CompleteSessionFlow from "@/components/admin/CompleteSessionFlow";
 import type { Appointment } from "@/lib/admin/types";
@@ -42,7 +44,7 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
   const dateParam = params.get("date");
   const initial = dateParam || todayISO();
   const { user } = useAuth();
-  const { appointments, patients, members, locations, loading, patientName, memberName, locationName } = useClinic();
+  const { appointments, patients, members, locations, loading, patientName, memberName, locationName, ensureAppointmentsWindow } = useClinic();
   const [period, setPeriod] = useState<Period>(locationId ? "hoje" : "mes");
   const [selected, setSelected] = useState(initial);
   const [month, setMonth] = useState(initial.slice(0, 7));
@@ -68,6 +70,24 @@ export default function AgendaPage({ locationId }: { locationId?: string }) {
     setSelected(dateParam);
     setMonth(dateParam.slice(0, 7));
   }, [dateParam]);
+
+  useEffect(() => {
+    if (loading) return;
+    const window =
+      period === "semana"
+        ? weekAppointmentWindow(startOfWeek(selected))
+        : period === "mes"
+          ? (() => {
+              const startMillis = sessionStartMillis(shiftDate(`${month}-01`, -31), "00:00");
+              const endMillis = sessionStartMillis(shiftDate(`${addMonths(month, 2)}-01`, -1), "23:59");
+              return { startMillis, endMillis };
+            })()
+          : {
+              startMillis: sessionStartMillis(selected, "00:00"),
+              endMillis: sessionStartMillis(selected, "23:59"),
+            };
+    void ensureAppointmentsWindow(window.startMillis, window.endMillis);
+  }, [ensureAppointmentsWindow, loading, month, period, selected]);
 
   useEffect(() => {
     let active = true;

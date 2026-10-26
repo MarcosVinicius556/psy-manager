@@ -19,8 +19,10 @@ import {
   createPayments,
   findDirectoryUser,
   grantAccess,
-  listClinicalRecordsForOwner,
+  getAppointmentById,
+  getClinicalRecordForAppointment,
   listAppointments,
+  listAppointmentsInWindow,
   listExpenses,
   listLocationInvites,
   listLocations,
@@ -30,6 +32,7 @@ import {
   listPatients,
   listSessionFeedbacks,
   listPayments,
+  listPaymentsInDueWindow,
   patchExpense,
   removeExpense,
   removeLocation,
@@ -65,13 +68,15 @@ import {
 } from "./receipt-fiscal";
 import { professionalFiscalReady } from "./receita-saude-report";
 import { getFirebaseAuth } from "./firebase";
-import { formatDate, formatMoney, monthlyDates, shiftDate, todayISO } from "./format";
+import { formatDate, formatMoney, monthlyDates, todayISO } from "./format";
 import { roundMoney } from "./finance";
 import { SINGLE_SESSION_PACKAGE_MESSAGE, packageChangeSummary, packageIntervalDays, packageSnapshot } from "./packages";
 import { installmentDates, MAX_PAST_RECURRENCES, pendingRecurringCopies, recurringDatesBefore } from "./expenses";
 import { receiptPatch, remainingAmount, unpaidPatch } from "./finance";
 import { paymentForAppointment, type SessionClosePaymentInput } from "./session-close";
 import { locationSharePeople, memberWorkplaces, userBelongsToLocation } from "./workplaces";
+import { defaultAppointmentWindow, defaultPaymentDueWindow, mergeRange } from "./clinic-load-windows";
+import { resetSessionFirestoreReads } from "./firestore-reads";
 import {
   findLocationConflict,
   findProfessionalConflict,
@@ -122,6 +127,10 @@ type ClinicContextValue = {
   sessionFeedbacks: SessionFeedback[];
   loading: boolean;
   refresh: () => Promise<void>;
+  ensureAppointmentsWindow: (startMillis: number, endMillis: number) => Promise<void>;
+  ensurePaymentsDueWindow: (startMillis: number, endMillis: number) => Promise<void>;
+  loadClinicalForAppointment: (appointmentId: string) => Promise<void>;
+  ensureAppointmentLoaded: (appointmentId: string) => Promise<void>;
   savePatient: (input: PatientInput, id?: string) => Promise<string>;
   saveAppointment: (
     input: AppointmentInput,
@@ -264,13 +273,87 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const [sessionFeedbacks, setSessionFeedbacks] = useState<SessionFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const synced = useRef(false);
+  const appointmentsRangeRef = useRef<{ startMillis: number; endMillis: number } | null>(null);
+  const paymentsRangeRef = useRef<{ startMillis: number; endMillis: number } | null>(null);
+
+  const mergeAppointments = useCallback((incoming: Appointment[]) => {
+    setAppointments((prev) => {
+      const byId = new Map(prev.map((item) => [item.id, item]));
+      for (const item of incoming) {
+        const existing = byId.get(item.id);
+        byId.set(
+          item.id,
+          existing
+            ? { ...item, clinical: existing.clinical }
+            : { ...item, clinical: emptyClinical() }
+        );
+      }
+      const merged = [...byId.values()];
+      merged.sort((a, b) => `${b.date}${b.startTime}`.localeCompare(`${a.date}${a.startTime}`));
+      return merged;
+    });
+  }, []);
+
+  const mergePayments = useCallback((incoming: Payment[]) => {
+    setPayments((prev) => {
+      const byId = new Map(prev.map((item) => [item.id, item]));
+      for (const item of incoming) byId.set(item.id, item);
+      const merged = [...byId.values()];
+      merged.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+      return merged;
+    });
+  }, []);
+
+  const ensureAppointmentsWindow = useCallback(
+    async (startMillis: number, endMillis: number) => {
+      const loaded = appointmentsRangeRef.current;
+      if (loaded && startMillis >= loaded.startMillis && endMillis <= loaded.endMillis) return;
+      const nextRange = mergeRange(loaded, { startMillis, endMillis });
+      const nextAppointments = await listAppointmentsInWindow(nextRange.startMillis, nextRange.endMillis);
+      appointmentsRangeRef.current = nextRange;
+      mergeAppointments(nextAppointments);
+    },
+    [mergeAppointments]
+  );
+
+  const ensurePaymentsDueWindow = useCallback(
+    async (startMillis: number, endMillis: number) => {
+      const loaded = paymentsRangeRef.current;
+      if (loaded && startMillis >= loaded.startMillis && endMillis <= loaded.endMillis) return;
+      const nextRange = mergeRange(loaded, { startMillis, endMillis });
+      const nextPayments = await listPaymentsInDueWindow(nextRange.startMillis, nextRange.endMillis);
+      paymentsRangeRef.current = nextRange;
+      mergePayments(nextPayments);
+    },
+    [mergePayments]
+  );
+
+  const loadClinicalForAppointment = useCallback(async (appointmentId: string) => {
+    const clinical = await getClinicalRecordForAppointment(appointmentId);
+    setAppointments((prev) =>
+      prev.map((item) => (item.id === appointmentId ? { ...item, clinical } : item))
+    );
+  }, []);
+
+  const ensureAppointmentLoaded = useCallback(
+    async (appointmentId: string) => {
+      const found = await getAppointmentById(appointmentId);
+      if (found) mergeAppointments([found]);
+    },
+    [mergeAppointments]
+  );
 
   const refresh = useCallback(async () => {
-    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks, clinicalRecords] =
+    resetSessionFirestoreReads();
+    const appointmentWindow = defaultAppointmentWindow();
+    const paymentWindow = defaultPaymentDueWindow();
+    appointmentsRangeRef.current = appointmentWindow;
+    paymentsRangeRef.current = paymentWindow;
+    const [nextPatients, nextAppointments, nextPayments, nextNotifications, nextMembers, nextLocations, nextExpenses, nextPackages, nextInvites, nextFeedbacks] =
       await Promise.all([
         listPatients(),
-        listAppointments(),
-        listPayments(),
+        listAppointmentsInWindow(appointmentWindow.startMillis, appointmentWindow.endMillis),
+        listPaymentsInDueWindow(paymentWindow.startMillis, paymentWindow.endMillis),
         listNotifications(),
         listMembers(),
         listLocations(),
@@ -278,12 +361,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         listPackages(),
         listLocationInvites(),
         listSessionFeedbacks(),
-        listClinicalRecordsForOwner(),
       ]);
-    const clinicalByAppointment = new Map(clinicalRecords.map((item) => [item.appointmentId, item.clinical]));
     const mergedAppointments = nextAppointments.map((appointment) => ({
       ...appointment,
-      clinical: clinicalByAppointment.get(appointment.id) ?? emptyClinical(),
+      clinical: emptyClinical(),
     }));
     const uid = getFirebaseAuth().currentUser?.uid;
     let listedExpenses = nextExpenses;
@@ -498,6 +579,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       sessionFeedbacks,
       loading,
       refresh,
+      ensureAppointmentsWindow,
+      ensurePaymentsDueWindow,
+      loadClinicalForAppointment,
+      ensureAppointmentLoaded,
       patientName,
       memberName,
       locationName,
@@ -969,8 +1054,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         const appointment = appointments.find((item) => item.id === id);
         if (!appointment) throw new Error("Atendimento não encontrado.");
         await saveClinicalRecord(id, appointment.patientId, clinical);
+        setAppointments((prev) => prev.map((item) => (item.id === id ? { ...item, clinical } : item)));
         if (!options?.silent) toast.success("Ficha salva.");
         await refresh();
+        await loadClinicalForAppointment(id);
       },
       async saveTcleAcceptance(patientId, aceite) {
         await setPatientTcleAcceptance(patientId, aceite);
@@ -1484,7 +1571,27 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await refresh();
       },
     };
-  }, [appointments, expenses, loading, locationInvites, locationName, locations, memberName, members, notifications, packages, patientName, patients, payments, refresh, sessionFeedbacks]);
+  }, [
+    appointments,
+    ensureAppointmentLoaded,
+    ensureAppointmentsWindow,
+    ensurePaymentsDueWindow,
+    expenses,
+    loadClinicalForAppointment,
+    loading,
+    locationInvites,
+    locationName,
+    locations,
+    memberName,
+    members,
+    notifications,
+    packages,
+    patientName,
+    patients,
+    payments,
+    refresh,
+    sessionFeedbacks,
+  ]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
