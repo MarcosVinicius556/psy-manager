@@ -1,5 +1,6 @@
 "use client";
 
+/** Todas as telas em /paciente usam apenas estas chamadas HTTP — nunca Firestore no browser. */
 import { getFirebaseAuth } from "@/lib/admin/firebase";
 
 export async function patientFetch(path: string, init?: RequestInit) {

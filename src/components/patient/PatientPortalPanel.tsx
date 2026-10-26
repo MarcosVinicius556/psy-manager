@@ -36,6 +36,10 @@ export default function PatientPortalPanel({ patient }: { patient: Patient }) {
   }, [authHeaders, patient.id, portalAtivo, user]);
 
   useEffect(() => {
+    setPortalAtivo(Boolean(patient.portalAtivo));
+  }, [patient.portalAtivo]);
+
+  useEffect(() => {
     void loadInsights();
   }, [loadInsights]);
 

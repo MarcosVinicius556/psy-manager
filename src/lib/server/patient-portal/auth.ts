@@ -1,3 +1,4 @@
+/** Portal do paciente: leitura/escrita só via Admin SDK nestas rotas. O cliente não acessa Firestore (regras live não são deployadas). */
 import { NextResponse } from "next/server";
 import type { Firestore } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
