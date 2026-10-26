@@ -83,6 +83,7 @@ export interface Patient {
   contratoAssinado: ClinicAttachment | null;
   tcleAceite: TcleAcceptance | null;
   status: PatientStatus;
+  demo?: boolean;
   /** Opt-in para lembretes automáticos por e-mail (padrão: ligado). */
   lembretesEmail?: boolean;
   createdAt: string;
@@ -161,6 +162,8 @@ export interface Appointment {
   googleEventId: string | null;
   googleLocationEventId: string | null;
   googleMeetLink: string | null;
+  sessionStartMillis?: number;
+  demo?: boolean;
   confirmacao?: AppointmentConfirmationStatus | null;
   confirmadaEm?: string | null;
   createdAt: string;
@@ -281,6 +284,7 @@ export interface Payment {
   reciboFiscal: FiscalReceiptRecord | null;
   pixTxid: string;
   comprovantePaciente: ClinicAttachment | null;
+  demo?: boolean;
   createdAt: string;
 }
 

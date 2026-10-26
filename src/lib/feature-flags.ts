@@ -4,7 +4,7 @@
  */
 
 export const FEATURE_FLAG_DEFAULTS = {
-  dashboardCustomization: false,
+  dashboardCustomization: true,
 } as const;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAG_DEFAULTS;

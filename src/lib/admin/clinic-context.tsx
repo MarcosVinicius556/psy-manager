@@ -626,6 +626,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       if (numero > (mine.reciboSequencia || 0)) {
         await updateMember(mine.id, { reciboSequencia: numero });
       }
+      trackActivation("primeiro_recibo");
       toast.success(`Recibo nº ${numero} gerado.`);
       await refresh();
     }

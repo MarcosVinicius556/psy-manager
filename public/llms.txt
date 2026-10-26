@@ -1,0 +1,12 @@
+# Psy Manager — corpus público para buscadores e assistentes
+Site: https://psy-manager.vercel.app/
+Conteúdos: https://psy-manager.vercel.app/conteudos
+Planos e preços: https://psy-manager.vercel.app/planos
+Política de privacidade: https://psy-manager.vercel.app/privacidade
+Termos: https://psy-manager.vercel.app/termos
+Suboperadores: https://psy-manager.vercel.app/suboperadores
+DPA: https://psy-manager.vercel.app/dpa
+
+Produto: software web para psicólogos (agenda, prontuário, financeiro, Receita Saúde, TCLE, contratos).
+Teste grátis: 30 dias, sem cartão. Preço público mensal e anual em /planos.
+Cancelamento self-service e exportação LGPD em Assinatura no painel.
