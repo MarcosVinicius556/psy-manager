@@ -86,6 +86,10 @@ export interface Patient {
   demo?: boolean;
   /** Opt-in para lembretes automáticos por e-mail (padrão: ligado). */
   lembretesEmail?: boolean;
+  /** Portal do paciente (PWA) habilitado pelo profissional. */
+  portalAtivo?: boolean;
+  /** UID Firebase Auth do paciente, quando vinculado. */
+  patientAuthUid?: string | null;
   createdAt: string;
 }
 

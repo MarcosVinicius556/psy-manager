@@ -584,6 +584,24 @@ describe("platform and rate limits", () => {
     );
   });
 
+  it("patient portal collections are server-only", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(getDoc(doc(db, "patientAccounts", ownerUid)));
+    await assertFails(
+      setDoc(doc(db, "patientJournal", "entry-1"), {
+        ownerUid,
+        patientId: "patient-1",
+        compartilhado: true,
+      })
+    );
+    await assertFails(getDoc(doc(db, "portalInvites", "invite-1")));
+  });
+
+  it("authenticated user cannot read another tenant clinical record", async () => {
+    const db = env.authenticatedContext(strangerUid).firestore();
+    await assertFails(getDoc(doc(db, "clinicalRecords", "appt-future")));
+  });
+
   it("clients cannot write support ticket documents", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
     await assertFails(
