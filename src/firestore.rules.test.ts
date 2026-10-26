@@ -416,6 +416,21 @@ describe("staff secretary", () => {
     await assertFails(getDoc(doc(db, "clinicalRecords", "appt-future")));
   });
 
+  it("secretary cannot read form responses", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "formResponses", "form-staff"), {
+        ownerUid,
+        patientId: "patient-staff",
+        respostas: { queixa: "texto clínico" },
+      });
+    });
+    const db = env.authenticatedContext(secretaryUid, {
+      staffOf: ownerUid,
+      staffPerms: ["pacientes"],
+    }).firestore();
+    await assertFails(getDoc(doc(db, "formResponses", "form-staff")));
+  });
+
   it("secretary cannot read clinical note templates", async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), "clinicalNoteTemplates", "tpl-staff"), {

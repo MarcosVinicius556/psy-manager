@@ -610,7 +610,7 @@ service cloud.firestore {
     }
 
     match /formTemplates/{templateId} {
-      allow read: if tenantRead();
+      allow read: if ownsExisting();
       allow create: if tenantCreate();
       allow update: if tenantUpdate();
       allow delete: if tenantDelete();
@@ -623,7 +623,7 @@ service cloud.firestore {
     }
 
     match /formResponses/{responseId} {
-      allow read: if tenantRead();
+      allow read: if ownsExisting();
       allow create, update, delete: if false;
     }
 
@@ -922,11 +922,6 @@ service cloud.firestore {
           && resource.data.inviteeEmail == request.auth.token.email.lower()
         )
       );
-      allow create, update, delete: if false;
-    }
-
-    match /clinicalAccessLog/{logId} {
-      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow create, update, delete: if false;
     }
 
