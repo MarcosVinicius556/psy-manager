@@ -1591,6 +1591,7 @@ function mapEmailTemplate(id: string, data: DocumentData): EmailTemplate | null 
     "copia_contrato",
     "envio_recibo",
     "lembrete_sessao",
+    "confirmacao_agendamento",
     "link_avaliacao",
     "livre",
   ]);

@@ -88,6 +88,19 @@ import {
 } from "./schedule";
 import { assertGoogleScheduleFree } from "@/lib/google-calendar/check-conflict-client";
 import { syncAppointmentWithGoogle } from "@/lib/google-calendar/sync-client";
+
+async function refreshPublicBookingAvailability() {
+  try {
+    const token = await getFirebaseAuth().currentUser?.getIdToken();
+    if (!token) return;
+    await fetch("/api/booking/refresh", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    /* disponibilidade pública é auxiliar */
+  }
+}
 import { recordActivationEvent } from "@/lib/saas/activation-events";
 import {
   emptyClinical,
@@ -809,6 +822,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           await consumePackageCredits(booked.length);
           await refresh();
           for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
+          void refreshPublicBookingAvailability();
           return { id: ids[0] || "", sessions: booked.map((date, index) => ({ id: ids[index], date })) };
         }
         await assertGoogleScheduleFree(payload);
@@ -837,11 +851,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
             await refresh();
             void syncAppointmentWithGoogle(id);
             for (const createdId of created) void syncAppointmentWithGoogle(createdId);
+            void refreshPublicBookingAvailability();
             return { id, sessions: [{ id, date: payload.date }, ...companions.map((item, index) => ({ id: created[index], date: item.date }))] };
           }
           toast.success("Atendimento atualizado.");
           await refresh();
           void syncAppointmentWithGoogle(id);
+          void refreshPublicBookingAvailability();
           return { id, sessions: [] };
         }
         if (companions.length) {
@@ -862,6 +878,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           await consumePackageCredits(ids.length);
           await refresh();
           for (const createdId of ids) void syncAppointmentWithGoogle(createdId);
+          void refreshPublicBookingAvailability();
           return {
             id: ids[0] || "",
             sessions: [{ ...payload, status: "agendado" as const }, ...companions].map((item, index) => ({ id: ids[index], date: item.date })),
@@ -872,6 +889,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await consumePackageCredits(1);
         await refresh();
         void syncAppointmentWithGoogle(created);
+        void refreshPublicBookingAvailability();
         return { id: created, sessions: [{ id: created, date: payload.date }] };
       },
       async createHaverPayments(sessions, input) {
@@ -1019,6 +1037,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         );
         await refresh();
         void syncAppointmentWithGoogle(id, "delete");
+        void refreshPublicBookingAvailability();
       },
       async savePackage(input, id) {
         const uid = currentUid();
@@ -1382,6 +1401,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (mine.email) await publishDirectory({ uid, email: mine.email, nome, foto });
         toast.success("Cadastro atualizado.");
         await refresh();
+        void refreshPublicBookingAvailability();
       },
       issueFiscalReceipt: issueFiscalReceiptInternal,
       async issueFiscalReceiptBatch(paymentIds) {

@@ -36,9 +36,12 @@ export const meuJob: DailyCronJob = {
 | ID | Descrição |
 | --- | --- |
 | `trial_notifications` | Avisos de fim de trial (contas `trial_ativo` / `trial_expirado`). |
-| `session_reminders` | Lembretes de sessão do dia seguinte (e-mail com confirmação em um clique). |
+| `activation_nudges` | E-mails de ativação (D+2 e D+5) para trials com checklist incompleto. |
 | `billing_renewals` | Renovação da assinatura Pix: avisos D-5/D-0, `pagamento_pendente` / `pagamento_atrasado` após vencimento e carência. |
+| `session_reminders` | Lembretes de sessão do dia seguinte (e-mail com confirmação em um clique). |
 | `payment_reminders` | Lembretes de cobrança a pacientes (D0, D+1, D+7; máx. 2 por `payments/{id}`). |
+| `booking_availability` | Recalcula `bookingAvailability/{uid}` para perfis com link público ligado. |
+| `booking_cleanup` | Remove `bookingRequests` recusados com mais de 30 dias. |
 | `cleanup_expired` | Remove `sessionFeedbacks` e `sessionConfirmations` expirados (substituto de TTL pago). |
 
 ## Compatibilidade

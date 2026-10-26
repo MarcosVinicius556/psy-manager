@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
@@ -259,6 +260,15 @@ export default function SettingsPage() {
   return (
     <div>
       <PageTitle title="Configurações" subtitle="Seus dados de acesso e a foto usada no painel." />
+      <Card className="mb-6">
+        <h2 className="text-lg font-semibold text-teal">Agendamento público</h2>
+        <p className="mt-2 text-sm text-muted">
+          Ative o link para pacientes pedirem horários. Você aprova cada pedido na agenda.
+        </p>
+        <Link href="/admin/configuracoes/agendamento-publico" className="btn-text mt-4 inline-flex min-h-11 items-center font-semibold">
+          Configurar link de agendamento
+        </Link>
+      </Card>
       <Card className="overflow-hidden p-0">
         <div className="bg-teal px-6 pb-10 pt-8 text-white sm:px-8">
           <div className="flex flex-wrap items-center gap-6">
