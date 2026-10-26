@@ -243,6 +243,16 @@ service cloud.firestore {
         && resource.data.sessionStartMillis > request.time.toMillis();
     }
 
+    function appointmentConfirmationFieldsStable() {
+      return (
+        !("confirmacao" in request.resource.data)
+        || request.resource.data.confirmacao == resource.data.confirmacao
+      ) && (
+        !("confirmadaEm" in request.resource.data)
+        || request.resource.data.confirmadaEm == resource.data.confirmadaEm
+      );
+    }
+
     function locationInviteAccepted(locationId) {
       return exists(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid))
         && get(/databases/$(database)/documents/locationInvites/$(locationId + "_" + request.auth.uid)).data.status == "aceito";
@@ -253,6 +263,18 @@ service cloud.firestore {
         && request.resource.data.comment == ""
         && request.resource.data.answeredAt == null
         && request.resource.data.answeredAtMillis == null;
+    }
+
+    function politicaFaltaValid(data) {
+      return !("politicaFalta" in data)
+        || (
+          data.politicaFalta.horas is int
+          && data.politicaFalta.horas >= 0
+          && data.politicaFalta.horas <= 168
+          && data.politicaFalta.percentual is int
+          && data.politicaFalta.percentual >= 0
+          && data.politicaFalta.percentual <= 100
+        );
     }
 
     function memberPrivateFieldKeys() {
@@ -408,7 +430,7 @@ service cloud.firestore {
           && request.resource.data.email is string
         )
       );
-      allow update: if tenantUpdate() && noMemberPrivateOnMember();
+      allow update: if tenantUpdate() && noMemberPrivateOnMember() && politicaFaltaValid(request.resource.data);
       allow delete: if tenantDelete();
     }
 
@@ -476,6 +498,7 @@ service cloud.firestore {
       allow update: if ownsExisting()
         && clinicWritesOpen()
         && noClinicalOnAppointment()
+        && appointmentConfirmationFieldsStable()
         && request.resource.data.ownerUid == resource.data.ownerUid;
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accessUids"])
@@ -510,8 +533,10 @@ service cloud.firestore {
 
     match /patients/{patientId} {
       allow read: if patientOwnerRead();
-      allow create: if tenantCreate();
-      allow update: if tenantUpdate();
+      allow create: if tenantCreate()
+        && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
+      allow update: if tenantUpdate()
+        && (!("lembretesEmail" in request.resource.data) || request.resource.data.lembretesEmail is bool);
       allow delete: if tenantDelete();
     }
 
@@ -607,6 +632,24 @@ service cloud.firestore {
       allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn() && ownsNew() && clinicWritesOpen() && feedbackAnswerFieldsUnset();
       allow update, delete: if false;
+    }
+
+    match /sessionConfirmations/{token} {
+      allow read, write: if false;
+    }
+
+    match /pushTokens/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+
+      match /devices/{deviceId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.subscription is map;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
     }
 
     match /apiEmailRateLimits/{docId} {

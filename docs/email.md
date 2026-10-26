@@ -60,7 +60,7 @@ openssl rand -base64 32
 ## Envio automático
 
 - **Confirmação de pagamento**: opt-in por modelo (`autoSend` no gatilho `confirmacao_pagamento`). Disparado na rota `POST /api/payments/{id}/receive` quando o status passa a `pago`, com marcador idempotente por pagamento.
-- **Lembrete de sessão**: envio manual por enquanto; um cron dedicado pode ser adicionado depois (mesmo padrão `CRON_SECRET` do trial).
+- **Lembrete de sessão**: job diário `session_reminders` no dispatcher `/api/cron/daily`. Requer modelo `lembrete_sessao` com **envio automático** ligado e Gmail/SMTP conectado. Cada sessão `agendado` de amanhã (fuso `America/Sao_Paulo`) recebe no máximo um e-mail por dia (`emailAutomationMarkers`). O paciente confirma em `/confirmar/[token]`. Opt-out por paciente (`lembretesEmail`) e link de descadastro no e-mail.
 
 ## Privacidade
 

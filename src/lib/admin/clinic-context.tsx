@@ -154,6 +154,7 @@ type ClinicContextValue = {
     clinical?: ClinicalRecord,
     faltaJustificativa?: string
   ) => Promise<void>;
+  createNoShowCharge: (appointmentId: string) => Promise<void>;
   cancelAppointment: (id: string) => Promise<void>;
   savePackage: (
     input: {
@@ -207,6 +208,7 @@ type ClinicContextValue = {
     valorBase: number;
     valorSocial: number;
     workHours: { weekday: number; startTime: string; endTime: string }[];
+    politicaFalta?: { horas: number; percentual: number };
   }) => Promise<void>;
   issueFiscalReceipt: (paymentId: string, options?: { replace?: boolean }) => Promise<void>;
   issueFiscalReceiptBatch: (paymentIds: string[]) => Promise<{ issued: number; failed: string[] }>;
@@ -980,6 +982,28 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         await refresh();
       },
+      async createNoShowCharge(appointmentId) {
+        const appointment = appointments.find((item) => item.id === appointmentId);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        const member =
+          members.find((item) => item.id === appointment.professionalId) ||
+          members.find((item) => item.uid === currentUid());
+        if (!member) throw new Error("Profissional não encontrado.");
+        const { computeNoShowCharge } = await import("./no-show-policy");
+        const suggestion = computeNoShowCharge(appointment, member);
+        if (!suggestion) throw new Error("Não há política de falta configurada para gerar cobrança.");
+        await createPayment({
+          patientId: appointment.patientId,
+          appointmentId: appointment.id,
+          descricao: "Falta sem aviso",
+          valor: suggestion.valor,
+          dueDate: todayISO(),
+          formaPagamento: "pix",
+          status: "nao_pago",
+        });
+        toast.success("Cobrança por falta criada.");
+        await refresh();
+      },
       async cancelAppointment(id) {
         const appointment = appointments.find((item) => item.id === id);
         if (!appointment) throw new Error("Atendimento não encontrado.");
@@ -1350,6 +1374,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           valorBase: input.valorBase,
           valorSocial: input.valorSocial,
           workHours: input.workHours,
+          ...(input.politicaFalta ? { politicaFalta: input.politicaFalta } : {}),
         });
         if (input.workHours.length > 0) trackActivation("horarios_definidos");
         await updateAuthProfile({ displayName: nome, ...(foto ? { photoURL: foto } : {}) });

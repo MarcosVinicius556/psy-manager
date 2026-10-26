@@ -12,6 +12,10 @@ export const EMAIL_TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "link_avaliacao", label: "Link de avaliação" },
   { key: "pix_copia_cola", label: "Pix copia e cola" },
   { key: "vencimento", label: "Vencimento da cobrança" },
+  { key: "link_confirmar", label: "Link de confirmação da sessão" },
+  { key: "link_remarcar", label: "Link para remarcar sessão" },
+  { key: "link_descadastro", label: "Link para descadastro de lembretes" },
+  { key: "local_sessao", label: "Local ou link da sessão" },
 ];
 
 const VARIABLE_PATTERN = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi;
@@ -100,7 +104,13 @@ Segue em anexo o recibo referente a {{descricao}} ({{valor}}), pago em {{data_pa
 
 Lembramos da sua sessão agendada para **{{data_sessao}}** às **{{hora_sessao}}**.
 
-Em caso de impossibilidade, avise com antecedência.
+{{local_sessao}}
+
+Confirme em um clique: {{link_confirmar}}
+
+Precisa remarcar? Abra o mesmo link e escolha a opção de remarcação.
+
+Para não receber lembretes por e-mail: {{link_descadastro}}
 
 {{profissional_nome}}
 {{clinica_nome}}`,
