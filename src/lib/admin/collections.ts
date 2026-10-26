@@ -14,6 +14,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { isPaymentMethod, normalizePatientStatus } from "./format";
+import { normalizePoliticaFalta } from "./no-show-policy";
 import { dueDateMillis } from "./due-date-millis";
 import { trackFirestoreReads } from "./firestore-reads";
 import { sessionStartMillis } from "./schedule";
@@ -202,6 +203,7 @@ function mapPatient(id: string, data: DocumentData): Patient {
     contratoAssinado: mapAttachment(data.contratoAssinado),
     tcleAceite: mapTcleAcceptance(data.tcleAceite),
     status: normalizePatientStatus(data),
+    lembretesEmail: data.lembretesEmail !== false,
     createdAt: text(data.createdAt),
   };
 }
@@ -237,6 +239,11 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
     googleEventId: data.googleEventId ? text(data.googleEventId) : null,
     googleLocationEventId: data.googleLocationEventId ? text(data.googleLocationEventId) : null,
     googleMeetLink: data.googleMeetLink ? text(data.googleMeetLink) : null,
+    confirmacao:
+      data.confirmacao === "confirmada" || data.confirmacao === "remarcar" || data.confirmacao === "pendente"
+        ? data.confirmacao
+        : null,
+    confirmadaEm: data.confirmadaEm ? text(data.confirmadaEm) : null,
     createdAt: text(data.createdAt),
     updatedAt: text(data.updatedAt),
   };
@@ -644,6 +651,7 @@ function mapMember(id: string, data: DocumentData, privateFields = emptyMemberPr
       ? data.workHours.map(mapWorkShift).filter((item): item is WorkShift => Boolean(item))
       : [],
     contratoModelo: text(data.contratoModelo),
+    politicaFalta: data.politicaFalta ? normalizePoliticaFalta(data.politicaFalta) : undefined,
     ativo: data.ativo !== false,
     createdAt: text(data.createdAt),
   };

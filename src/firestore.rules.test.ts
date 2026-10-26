@@ -200,6 +200,20 @@ describe("appointments", () => {
   });
 });
 
+describe("sessionConfirmations", () => {
+  it("client cannot read or write tokens", async () => {
+    const db = env.authenticatedContext(ownerUid).firestore();
+    await assertFails(
+      setDoc(doc(db, "sessionConfirmations", "token-1"), {
+        ownerUid,
+        appointmentId: "appt-future",
+        status: "pendente",
+      })
+    );
+    await assertFails(getDoc(doc(db, "sessionConfirmations", "token-1")));
+  });
+});
+
 describe("sessionFeedbacks", () => {
   it("owner creates pending feedback without client answer date", async () => {
     const db = env.authenticatedContext(ownerUid).firestore();
