@@ -13,6 +13,28 @@ const MOCK_VIEW = {
   ],
 };
 
+test.describe("agendamento público indisponível", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("404 exibe Link indisponível", async ({ page }) => {
+    await page.route("**/api/public/booking/slug-inexistente", async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 404,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Link indisponível." }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.goto("/agendar/slug-inexistente");
+    await expect(page.getByRole("heading", { name: "Link indisponível" })).toBeVisible();
+    await expect(page.getByText("Carregando...")).toHaveCount(0);
+  });
+});
+
 test.describe("agendamento público screenshots", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 

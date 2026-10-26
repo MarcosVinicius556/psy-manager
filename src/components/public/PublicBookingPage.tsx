@@ -7,6 +7,11 @@ import { fieldClass } from "@/components/admin/ui";
 import { formatDate } from "@/lib/admin/format";
 import type { Modality } from "@/lib/admin/types";
 import type { BookingSlot, PublicBookingView } from "@/lib/booking/types";
+import {
+  publicBookingLoadPhaseFromNetworkFailure,
+  publicBookingLoadPhaseFromResponse,
+  type PublicBookingLoadPhase,
+} from "@/lib/booking/public-booking-load";
 
 type Props = {
   slug: string;
@@ -14,7 +19,22 @@ type Props = {
   unavailable?: boolean;
 };
 
+function UnavailableScreen() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-paper px-4">
+      <section className="w-full max-w-lg rounded-surface bg-white p-5 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-8">
+        <BrandLogo height={44} />
+        <h1 className="mt-2 font-serif text-[clamp(1.6rem,5vw,1.875rem)] leading-tight text-teal">Link indisponível</h1>
+        <p className="mt-3 text-muted">Este link de agendamento não está ativo no momento.</p>
+      </section>
+    </div>
+  );
+}
+
 export default function PublicBookingPage({ slug, initial, unavailable }: Props) {
+  const [phase, setPhase] = useState<PublicBookingLoadPhase>(() =>
+    unavailable ? "unavailable" : initial ? "ready" : "loading"
+  );
   const [view, setView] = useState<PublicBookingView | null>(initial);
   const [selected, setSelected] = useState<BookingSlot | null>(null);
   const [modality, setModality] = useState<Modality>("online");
@@ -27,28 +47,64 @@ export default function PublicBookingPage({ slug, initial, unavailable }: Props)
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
+  async function loadBooking() {
+    setPhase("loading");
+    try {
+      const response = await fetch(`/api/public/booking/${encodeURIComponent(slug)}`);
+      const nextPhase = publicBookingLoadPhaseFromResponse({
+        ok: response.ok,
+        status: response.status,
+      });
+      if (nextPhase === "unavailable") {
+        setPhase("unavailable");
+        return;
+      }
+      if (nextPhase === "error") {
+        setPhase("error");
+        return;
+      }
+      const data = (await response.json()) as PublicBookingView;
+      setView(data);
+      if (data.modalities?.length === 1) setModality(data.modalities[0]);
+      setPhase("ready");
+    } catch {
+      setPhase(publicBookingLoadPhaseFromNetworkFailure());
+    }
+  }
+
   useEffect(() => {
+    if (unavailable) return;
     let active = true;
     (async () => {
+      setPhase("loading");
       try {
         const response = await fetch(`/api/public/booking/${encodeURIComponent(slug)}`);
         if (!active) return;
-        if (response.status === 404) {
-          setView(null);
+        const nextPhase = publicBookingLoadPhaseFromResponse({
+          ok: response.ok,
+          status: response.status,
+        });
+        if (nextPhase === "unavailable") {
+          setPhase("unavailable");
           return;
         }
-        if (!response.ok) return;
+        if (nextPhase === "error") {
+          setPhase("error");
+          return;
+        }
         const data = (await response.json()) as PublicBookingView;
+        if (!active) return;
         setView(data);
         if (data.modalities?.length === 1) setModality(data.modalities[0]);
+        setPhase("ready");
       } catch {
-        if (active) setView(null);
+        if (active) setPhase(publicBookingLoadPhaseFromNetworkFailure());
       }
     })();
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, unavailable]);
 
   useEffect(() => {
     if (initial?.modalities?.length === 1) {
@@ -119,13 +175,30 @@ export default function PublicBookingPage({ slug, initial, unavailable }: Props)
     }
   }
 
-  if (unavailable) {
+  if (unavailable || phase === "unavailable") {
+    return <UnavailableScreen />;
+  }
+
+  if (phase === "loading") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-paper text-muted">Carregando...</div>
+    );
+  }
+
+  if (phase === "error") {
     return (
       <div className="grid min-h-screen place-items-center bg-paper px-4">
         <section className="w-full max-w-lg rounded-surface bg-white p-5 shadow-[0_18px_50px_rgba(61,82,64,0.08)] sm:p-8">
           <BrandLogo height={44} />
-          <h1 className="mt-2 font-serif text-[clamp(1.6rem,5vw,1.875rem)] leading-tight text-teal">Link indisponível</h1>
-          <p className="mt-3 text-muted">Este link de agendamento não está ativo no momento.</p>
+          <h1 className="mt-2 font-serif text-[clamp(1.6rem,5vw,1.875rem)] leading-tight text-teal">Não foi possível carregar</h1>
+          <p className="mt-3 text-muted">Verifique sua conexão e tente novamente.</p>
+          <button
+            type="button"
+            className="mt-5 min-h-11 rounded-control border border-teal px-4 py-2 text-sm font-semibold text-teal transition hover:bg-transparent"
+            onClick={() => void loadBooking()}
+          >
+            Tentar novamente
+          </button>
         </section>
       </div>
     );
