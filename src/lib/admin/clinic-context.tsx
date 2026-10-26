@@ -200,11 +200,18 @@ type ClinicContextValue = {
     enderecoCidade: string;
     enderecoUf: string;
     enderecoCep: string;
+    pixChave: string;
+    pixTipo: import("./types").PixKeyType;
+    pixNome: string;
+    pixCidade: string;
     valorBase: number;
     valorSocial: number;
     workHours: { weekday: number; startTime: string; endTime: string }[];
   }) => Promise<void>;
   issueFiscalReceipt: (paymentId: string, options?: { replace?: boolean }) => Promise<void>;
+  issueFiscalReceiptBatch: (paymentIds: string[]) => Promise<{ issued: number; failed: string[] }>;
+  updatePaymentComprovantePaciente: (paymentId: string, file: ClinicAttachment | null) => Promise<void>;
+  closeReceitaSaudeMonth: (month: string) => Promise<void>;
   saveContractTemplate: (template: string) => Promise<void>;
   saveSignedContract: (patientId: string, file: ClinicAttachment | null) => Promise<void>;
   setMemberActive: (id: string, ativo: boolean) => Promise<void>;
@@ -566,6 +573,61 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<ClinicContextValue>(() => {
+    async function issueFiscalReceiptInternal(paymentId: string, options?: { replace?: boolean }) {
+      const uid = currentUid();
+      const mine = members.find((member) => member.uid === uid);
+      const ready = professionalFiscalReady(mine);
+      if (!ready.ok) {
+        throw new Error(`Complete em Configurações: ${ready.missing.join(", ")}.`);
+      }
+      if (!mine || !isValidCpf(mine.cpf)) throw new Error("Informe um CPF válido em Configurações.");
+      const payment = payments.find((item) => item.id === paymentId);
+      if (!payment) throw new Error("Lançamento não encontrado.");
+      if (!canIssueFiscalReceipt(payment)) throw new Error("Só é possível emitir recibo para pagamentos quitados.");
+      if (payment.reciboFiscal && !options?.replace) {
+        throw new Error("Este lançamento já tem recibo. Gere de novo se precisar substituir.");
+      }
+      const patient = payment.patientId ? patients.find((item) => item.id === payment.patientId) ?? null : null;
+      if (patient) {
+        const beneficiary = assertValidCpfOptional(patient.cpfBeneficiario || patient.cpf, "CPF do beneficiário");
+        const payer = assertValidCpfOptional(patient.cpfPagador || beneficiary, "CPF do pagador");
+        if (!beneficiary || !payer) {
+          throw new Error("Informe CPF do pagador e do beneficiário na ficha do paciente (Receita Saúde).");
+        }
+      }
+      const numero = payment.reciboFiscal?.numero || nextReceiptNumber(mine, payments);
+      const paymentDate = paymentReceiptDate(payment);
+      const blob = await createFiscalReceiptPdf({
+        payment,
+        patient,
+        professional: mine,
+        receiptNumber: numero,
+        paymentDate,
+      });
+      const filename = fiscalReceiptFilename({
+        payment,
+        patient,
+        professional: mine,
+        receiptNumber: numero,
+        paymentDate,
+      });
+      const file = new File([blob], filename, { type: "application/pdf" });
+      const uploaded = await uploadClinicFile(file, { kind: "payment-receipt", paymentId }, "documento");
+      const reciboFiscal = {
+        numero,
+        arquivo: uploaded,
+        emitidoEm: new Date().toISOString(),
+        dataPagamento: paymentDate,
+        valor: receivedAmount(payment),
+      };
+      await updatePayment(paymentId, { reciboFiscal });
+      if (numero > (mine.reciboSequencia || 0)) {
+        await updateMember(mine.id, { reciboSequencia: numero });
+      }
+      toast.success(`Recibo nº ${numero} gerado.`);
+      await refresh();
+    }
+
     return {
       patients,
       appointments,
@@ -1263,6 +1325,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         const cpf = assertValidCpfOptional(input.cpf, "CPF");
         if (input.cpf.trim() && !isValidCpf(input.cpf)) throw new Error("CPF inválido.");
+        const { validatePixKey } = await import("@/lib/pix/keys");
+        if (input.pixChave.trim()) {
+          const pixCheck = validatePixKey(input.pixChave, input.pixTipo);
+          if (!pixCheck.ok) throw new Error(pixCheck.reason);
+        }
         await saveMemberPrivateProfile(uid, {
           cpf,
           crpNumero: input.crpNumero.replace(/\D/g, "").trim(),
@@ -1271,6 +1338,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           enderecoCidade: input.enderecoCidade.trim(),
           enderecoUf: input.enderecoUf.trim().toUpperCase().slice(0, 2),
           enderecoCep: input.enderecoCep.replace(/\D/g, "").slice(0, 8),
+          pixChave: input.pixChave.trim(),
+          pixTipo: input.pixTipo,
+          pixNome: input.pixNome.trim(),
+          pixCidade: input.pixCidade.trim(),
         });
         await updateMember(mine.id, {
           nome,
@@ -1286,58 +1357,33 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         toast.success("Cadastro atualizado.");
         await refresh();
       },
-      async issueFiscalReceipt(paymentId, options) {
-        const uid = currentUid();
-        const mine = members.find((member) => member.uid === uid);
-        const ready = professionalFiscalReady(mine);
-        if (!ready.ok) {
-          throw new Error(`Complete em Configurações: ${ready.missing.join(", ")}.`);
-        }
-        if (!mine || !isValidCpf(mine.cpf)) throw new Error("Informe um CPF válido em Configurações.");
-        const payment = payments.find((item) => item.id === paymentId);
-        if (!payment) throw new Error("Lançamento não encontrado.");
-        if (!canIssueFiscalReceipt(payment)) throw new Error("Só é possível emitir recibo para pagamentos quitados.");
-        if (payment.reciboFiscal && !options?.replace) {
-          throw new Error("Este lançamento já tem recibo. Gere de novo se precisar substituir.");
-        }
-        const patient = payment.patientId ? patients.find((item) => item.id === payment.patientId) ?? null : null;
-        if (patient) {
-          const beneficiary = assertValidCpfOptional(patient.cpfBeneficiario || patient.cpf, "CPF do beneficiário");
-          const payer = assertValidCpfOptional(patient.cpfPagador || beneficiary, "CPF do pagador");
-          if (!beneficiary || !payer) {
-            throw new Error("Informe CPF do pagador e do beneficiário na ficha do paciente (Receita Saúde).");
+      issueFiscalReceipt: issueFiscalReceiptInternal,
+      async issueFiscalReceiptBatch(paymentIds) {
+        const failed: string[] = [];
+        let issued = 0;
+        for (const paymentId of paymentIds) {
+          try {
+            await issueFiscalReceiptInternal(paymentId, { replace: false });
+            issued += 1;
+          } catch {
+            failed.push(paymentId);
           }
         }
-        const numero = payment.reciboFiscal?.numero || nextReceiptNumber(mine, payments);
-        const paymentDate = paymentReceiptDate(payment);
-        const blob = await createFiscalReceiptPdf({
-          payment,
-          patient,
-          professional: mine,
-          receiptNumber: numero,
-          paymentDate,
-        });
-        const filename = fiscalReceiptFilename({
-          payment,
-          patient,
-          professional: mine,
-          receiptNumber: numero,
-          paymentDate,
-        });
-        const file = new File([blob], filename, { type: "application/pdf" });
-        const uploaded = await uploadClinicFile(file, { kind: "payment-receipt", paymentId }, "documento");
-        const reciboFiscal = {
-          numero,
-          arquivo: uploaded,
-          emitidoEm: new Date().toISOString(),
-          dataPagamento: paymentDate,
-          valor: receivedAmount(payment),
-        };
-        await updatePayment(paymentId, { reciboFiscal });
-        if (numero > (mine.reciboSequencia || 0)) {
-          await updateMember(mine.id, { reciboSequencia: numero });
-        }
-        toast.success(`Recibo nº ${numero} gerado.`);
+        if (issued > 1) await refresh();
+        return { issued, failed };
+      },
+      async updatePaymentComprovantePaciente(paymentId, file) {
+        const payment = payments.find((item) => item.id === paymentId);
+        if (!payment) throw new Error("Lançamento não encontrado.");
+        await updatePayment(paymentId, { comprovantePaciente: file });
+        await refresh();
+      },
+      async closeReceitaSaudeMonth(month) {
+        const { receitaSaudeMonthSummary } = await import("./receita-saude-report");
+        const { saveMonthClosing } = await import("./collections");
+        const summary = receitaSaudeMonthSummary(month, payments);
+        await saveMonthClosing(month, summary);
+        toast.success(`Mês ${month} marcado como fechado.`);
         await refresh();
       },
       async saveContractTemplate(template) {

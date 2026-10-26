@@ -15,6 +15,8 @@ import {
 } from "firebase/firestore";
 import { isPaymentMethod, normalizePatientStatus } from "./format";
 import { dueDateMillis } from "./due-date-millis";
+import type { MonthClosingRecord, ReceitaSaudeMonthSummary } from "./receita-saude-report";
+import { monthClosingDocId } from "./receita-saude-report";
 import { trackFirestoreReads } from "./firestore-reads";
 import { sessionStartMillis } from "./schedule";
 import {
@@ -301,6 +303,8 @@ function mapPayment(id: string, data: DocumentData): Payment {
       ? data.historico.map(mapPaymentEvent).filter((event): event is PaymentEvent => Boolean(event))
       : [],
     reciboFiscal: mapFiscalReceipt(data.reciboFiscal),
+    pixTxid: text(data.pixTxid),
+    comprovantePaciente: mapAttachment(data.comprovantePaciente),
     createdAt: text(data.createdAt),
   };
 }
@@ -942,6 +946,8 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
     status: input.status ?? "agendado",
     paidAt: null,
     reciboFiscal: null,
+    pixTxid: "",
+    comprovantePaciente: null,
     ownerUid: currentOwnerUid(),
     createdAt,
   };
@@ -950,8 +956,14 @@ function paymentRecord(input: PaymentInput, createdAt: string) {
 export async function createPayment(input: PaymentInput) {
   assertClinicWrite();
   const now = new Date().toISOString();
-  const ref = await addDoc(collection(getFirebaseDb(), "payments"), paymentRecord(input, now));
-  return ref.id;
+  const ref = doc(collection(getFirebaseDb(), "payments"));
+  const id = ref.id;
+  const { paymentPixTxid } = await import("@/lib/pix/payment-txid");
+  await setDoc(ref, {
+    ...paymentRecord(input, now),
+    pixTxid: paymentPixTxid(id),
+  });
+  return id;
 }
 
 export async function createPayments(inputs: PaymentInput[]) {
@@ -960,9 +972,13 @@ export async function createPayments(inputs: PaymentInput[]) {
   const batch = writeBatch(getFirebaseDb());
   const now = new Date().toISOString();
   const refs = inputs.map(() => doc(collection(getFirebaseDb(), "payments")));
+  const { paymentPixTxid } = await import("@/lib/pix/payment-txid");
   refs.forEach((ref, index) => {
     const input = inputs[index];
-    batch.set(ref, paymentRecord(input, now));
+    batch.set(ref, {
+      ...paymentRecord(input, now),
+      pixTxid: paymentPixTxid(ref.id),
+    });
   });
   await batch.commit();
   return refs.map((ref) => ref.id);
@@ -1561,6 +1577,7 @@ function mapEmailTemplate(id: string, data: DocumentData): EmailTemplate | null 
   const triggerRaw = text(data.trigger);
   const triggers = new Set([
     "confirmacao_pagamento",
+    "cobranca_pix",
     "copia_contrato",
     "envio_recibo",
     "lembrete_sessao",
@@ -1757,5 +1774,49 @@ export async function listEmailLogForTemplate(templateId: string, limit = 30) {
     .filter((item): item is EmailLogEntry => Boolean(item))
     .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
     .slice(0, limit);
+}
+
+function mapMonthClosing(id: string, data: DocumentData): MonthClosingRecord {
+  const summary = (data.summary ?? {}) as Partial<ReceitaSaudeMonthSummary>;
+  return {
+    id,
+    ownerUid: text(data.ownerUid),
+    month: text(data.month),
+    closedAt: text(data.closedAt),
+    summary: {
+      receivedTotal: Number(summary.receivedTotal) || 0,
+      paymentCount: Number(summary.paymentCount) || 0,
+      receiptsIssued: Number(summary.receiptsIssued) || 0,
+      receiptsPending: Number(summary.receiptsPending) || 0,
+    },
+  };
+}
+
+export async function getMonthClosing(month: string) {
+  const uid = currentOwnerUid();
+  const id = monthClosingDocId(uid, month);
+  const snapshot = await getDoc(doc(getFirebaseDb(), "fechamentos", id));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data();
+  if (text(data.ownerUid) !== uid) return null;
+  return mapMonthClosing(snapshot.id, data);
+}
+
+export async function saveMonthClosing(month: string, summary: ReceitaSaudeMonthSummary) {
+  assertClinicWrite();
+  const uid = currentOwnerUid();
+  const id = monthClosingDocId(uid, month);
+  const now = new Date().toISOString();
+  await setDoc(
+    doc(getFirebaseDb(), "fechamentos", id),
+    {
+      ownerUid: uid,
+      month,
+      closedAt: now,
+      summary,
+    },
+    { merge: true }
+  );
+  return mapMonthClosing(id, { ownerUid: uid, month, closedAt: now, summary });
 }
 

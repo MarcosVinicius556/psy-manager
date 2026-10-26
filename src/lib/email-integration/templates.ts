@@ -10,6 +10,8 @@ export const EMAIL_TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "data_pagamento", label: "Data do pagamento" },
   { key: "descricao", label: "Descrição" },
   { key: "link_avaliacao", label: "Link de avaliação" },
+  { key: "pix_copia_cola", label: "Pix copia e cola" },
+  { key: "vencimento", label: "Vencimento da cobrança" },
 ];
 
 const VARIABLE_PATTERN = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi;
@@ -99,6 +101,23 @@ Segue em anexo o recibo referente a {{descricao}} ({{valor}}), pago em {{data_pa
 Lembramos da sua sessão agendada para **{{data_sessao}}** às **{{hora_sessao}}**.
 
 Em caso de impossibilidade, avise com antecedência.
+
+{{profissional_nome}}
+{{clinica_nome}}`,
+    anexo: "nenhum",
+  },
+  {
+    nome: "Cobrança com Pix",
+    trigger: "cobranca_pix",
+    assunto: "Cobrança — {{descricao}} (vence {{vencimento}})",
+    corpo: `Olá, {{paciente_nome}}.
+
+Segue o Pix no valor de **{{valor}}** referente a {{descricao}}, com vencimento em {{vencimento}}.
+
+Pix copia e cola:
+{{pix_copia_cola}}
+
+Após pagar, envie o comprovante pelo canal combinado. O recebimento é confirmado manualmente pelo profissional.
 
 {{profissional_nome}}
 {{clinica_nome}}`,

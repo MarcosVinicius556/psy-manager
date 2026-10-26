@@ -16,6 +16,8 @@ import { maskCep, maskCpf, maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
 import IntegrationsSettingsCard from "@/components/admin/IntegrationsSettingsCard";
 import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
+import { PIX_KEY_TYPE_OPTIONS } from "@/lib/pix/keys";
+import type { PixKeyType } from "@/lib/admin/types";
 
 export default function SettingsPage() {
   const { user, sendPasswordReset } = useAuth();
@@ -31,6 +33,10 @@ export default function SettingsPage() {
   const [enderecoCidade, setEnderecoCidade] = useState("");
   const [enderecoUf, setEnderecoUf] = useState("");
   const [enderecoCep, setEnderecoCep] = useState("");
+  const [pixChave, setPixChave] = useState("");
+  const [pixTipo, setPixTipo] = useState<PixKeyType>("");
+  const [pixNome, setPixNome] = useState("");
+  const [pixCidade, setPixCidade] = useState("");
   const [foto, setFoto] = useState("");
   const [valorBase, setValorBase] = useState("");
   const [valorSocial, setValorSocial] = useState("");
@@ -61,6 +67,10 @@ export default function SettingsPage() {
     setEnderecoCidade(me?.enderecoCidade || "");
     setEnderecoUf(me?.enderecoUf || "");
     setEnderecoCep(maskCep(me?.enderecoCep || ""));
+    setPixChave(me?.pixChave || "");
+    setPixTipo(me?.pixTipo || "");
+    setPixNome(me?.pixNome || me?.nome || "");
+    setPixCidade(me?.pixCidade || me?.enderecoCidade || "");
     setFoto(me?.foto || user?.photoURL || "");
     setValorBase(moneyInput(me?.valorBase || 0));
     setValorSocial(moneyInput(me?.valorSocial || 0));
@@ -81,6 +91,10 @@ export default function SettingsPage() {
       enderecoCidade,
       enderecoUf,
       enderecoCep,
+      pixChave,
+      pixTipo,
+      pixNome,
+      pixCidade,
       foto: nextFoto,
       valorBase: parseMoney(valorBase),
       valorSocial: parseMoney(valorSocial),
@@ -346,6 +360,40 @@ export default function SettingsPage() {
           </Field>
           <button className="btn-primary justify-self-start sm:col-span-2" disabled={savingProfile}>
             {savingProfile ? "Salvando..." : "Salvar dados fiscais"}
+          </button>
+        </form>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="text-2xl font-medium text-teal">Pix para cobrança</h2>
+        <p className="mt-2 text-sm text-muted">
+          Gera QR Code e Pix copia e cola nas cobranças, sem gateway. O pagamento é confirmado manualmente por você após o paciente pagar.
+        </p>
+        <form onSubmit={onProfile} className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label="Tipo de chave">
+            <Select
+              value={pixTipo}
+              onChange={(value) => setPixTipo(value as PixKeyType)}
+              placeholder="Detectar automaticamente"
+              options={[{ value: "", label: "Detectar automaticamente" }, ...PIX_KEY_TYPE_OPTIONS]}
+            />
+          </Field>
+          <Field label="Chave Pix">
+            <input
+              className={fieldClass}
+              value={pixChave}
+              onChange={(event) => setPixChave(event.target.value)}
+              placeholder="CPF, e-mail, celular ou chave aleatória"
+            />
+          </Field>
+          <Field label="Nome do recebedor (no QR)">
+            <input className={fieldClass} value={pixNome} onChange={(event) => setPixNome(event.target.value)} placeholder="Como aparece no banco" />
+          </Field>
+          <Field label="Cidade do recebedor (no QR)">
+            <input className={fieldClass} value={pixCidade} onChange={(event) => setPixCidade(event.target.value)} placeholder="Cidade" />
+          </Field>
+          <button className="btn-primary justify-self-start sm:col-span-2" disabled={savingProfile}>
+            {savingProfile ? "Salvando..." : "Salvar Pix"}
           </button>
         </form>
       </Card>
