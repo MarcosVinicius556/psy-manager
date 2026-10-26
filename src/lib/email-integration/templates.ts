@@ -10,6 +10,8 @@ export const EMAIL_TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "data_pagamento", label: "Data do pagamento" },
   { key: "descricao", label: "Descrição" },
   { key: "link_avaliacao", label: "Link de avaliação" },
+  { key: "pix_copia_cola", label: "Pix copia e cola" },
+  { key: "vencimento", label: "Vencimento da cobrança" },
   { key: "link_confirmar", label: "Link de confirmação da sessão" },
   { key: "link_remarcar", label: "Link para remarcar sessão" },
   { key: "link_descadastro", label: "Link para descadastro de lembretes" },
@@ -109,6 +111,23 @@ Confirme em um clique: {{link_confirmar}}
 Precisa remarcar? Abra o mesmo link e escolha a opção de remarcação.
 
 Para não receber lembretes por e-mail: {{link_descadastro}}
+
+{{profissional_nome}}
+{{clinica_nome}}`,
+    anexo: "nenhum",
+  },
+  {
+    nome: "Cobrança com Pix",
+    trigger: "cobranca_pix",
+    assunto: "Cobrança — {{descricao}} (vence {{vencimento}})",
+    corpo: `Olá, {{paciente_nome}}.
+
+Segue o Pix no valor de **{{valor}}** referente a {{descricao}}, com vencimento em {{vencimento}}.
+
+Pix copia e cola:
+{{pix_copia_cola}}
+
+Após pagar, envie o comprovante pelo canal combinado. O recebimento é confirmado manualmente pelo profissional.
 
 {{profissional_nome}}
 {{clinica_nome}}`,

@@ -317,7 +317,22 @@ service cloud.firestore {
         "enderecoCidade",
         "enderecoUf",
         "enderecoCep",
+        "pixChave",
+        "pixTipo",
+        "pixNome",
+        "pixCidade",
       ];
+    }
+
+    function validPixTipo(value) {
+      return value == "" || value in ["cpf", "cnpj", "email", "telefone", "aleatoria"];
+    }
+
+    function validMemberPrivatePix() {
+      return (!("pixChave" in request.resource.data) || request.resource.data.pixChave is string && request.resource.data.pixChave.size() <= 120)
+        && (!("pixTipo" in request.resource.data) || validPixTipo(request.resource.data.pixTipo))
+        && (!("pixNome" in request.resource.data) || request.resource.data.pixNome is string && request.resource.data.pixNome.size() <= 80)
+        && (!("pixCidade" in request.resource.data) || request.resource.data.pixCidade is string && request.resource.data.pixCidade.size() <= 40);
     }
 
     function noMemberPrivateOnMember() {
@@ -421,11 +436,13 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.ownerUid == request.auth.uid
+        && validMemberPrivatePix();
       allow update: if signedIn()
         && request.auth.uid == uid
         && resource.data.ownerUid == request.auth.uid
-        && request.resource.data.ownerUid == resource.data.ownerUid;
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && validMemberPrivatePix();
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.ownerUid == request.auth.uid;
     }
 
@@ -620,6 +637,16 @@ service cloud.firestore {
       allow create: if tenantCreate();
       allow update: if tenantUpdate();
       allow delete: if tenantDelete();
+    }
+
+    match /fechamentos/{closingId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.month is string
+        && request.resource.data.month.size() == 7
+        && request.resource.data.closedAt is string;
+      allow delete: if false;
     }
 
     match /emailLog/{logId} {

@@ -2,6 +2,7 @@ import { cpfDigits } from "./cpf";
 import { formatDate, formatMoney } from "./format";
 import { receivedAmount } from "./finance";
 import { maskCpf } from "../masks";
+import { canIssueFiscalReceipt } from "./receipt-fiscal";
 import type { ClinicMember, Patient, Payment } from "./types";
 
 export type ReceitaSaudeRow = {
@@ -131,4 +132,62 @@ export function professionalFiscalReady(member: ClinicMember | null | undefined)
   if (!member.crpNumero.trim()) missing.push("número do CRP");
   if (!member.crpRegiao.trim()) missing.push("região do CRP");
   return { ok: missing.length === 0, missing };
+}
+
+export function receitaSaudeMonthPayments(month: string, payments: Payment[]) {
+  return payments.filter((payment) => {
+    if (payment.origem !== "paciente" || payment.status !== "pago") return false;
+    const date = paymentDate(payment);
+    return date.startsWith(month);
+  });
+}
+
+export function pendingFiscalReceipts(month: string, payments: Payment[]) {
+  return receitaSaudeMonthPayments(month, payments).filter(
+    (payment) => canIssueFiscalReceipt(payment) && !payment.reciboFiscal
+  );
+}
+
+export function patientsMissingCpf(month: string, payments: Payment[], patients: Patient[]) {
+  const byPatient = new Map(patients.map((item) => [item.id, item]));
+  const missing = new Map<string, Patient>();
+  for (const payment of receitaSaudeMonthPayments(month, payments)) {
+    const patient = byPatient.get(payment.patientId);
+    if (!patient) continue;
+    const cpfs = patientCpfs(patient);
+    if (!cpfs.payer || !cpfs.beneficiary) missing.set(patient.id, patient);
+  }
+  return [...missing.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+export type ReceitaSaudeMonthSummary = {
+  receivedTotal: number;
+  paymentCount: number;
+  receiptsIssued: number;
+  receiptsPending: number;
+};
+
+export function receitaSaudeMonthSummary(month: string, payments: Payment[]): ReceitaSaudeMonthSummary {
+  const monthPayments = receitaSaudeMonthPayments(month, payments);
+  const receivedTotal = monthPayments.reduce((sum, payment) => sum + receivedAmount(payment), 0);
+  const receiptsIssued = monthPayments.filter((payment) => payment.reciboFiscal).length;
+  const receiptsPending = monthPayments.filter((payment) => canIssueFiscalReceipt(payment) && !payment.reciboFiscal).length;
+  return {
+    receivedTotal: Math.round(receivedTotal * 100) / 100,
+    paymentCount: monthPayments.length,
+    receiptsIssued,
+    receiptsPending,
+  };
+}
+
+export type MonthClosingRecord = {
+  id: string;
+  ownerUid: string;
+  month: string;
+  closedAt: string;
+  summary: ReceitaSaudeMonthSummary;
+};
+
+export function monthClosingDocId(ownerUid: string, month: string) {
+  return `${ownerUid}_${month.replace(/-/g, "")}`;
 }

@@ -19,6 +19,8 @@ export type PaymentStatus = "agendado" | "em_haver" | "pago" | "nao_pago";
 export type PaymentOrigin = "paciente" | "externo";
 
 export type PaymentMethod = "pix" | "dinheiro" | "cartao" | "transferencia" | "outro";
+
+export type PixKeyType = "cpf" | "cnpj" | "email" | "telefone" | "aleatoria" | "";
 export type PaymentEventType = "lancamento" | "pagamento" | "situacao";
 
 import type { CloudinaryAsset } from "@/lib/cloudinary/asset";
@@ -188,6 +190,10 @@ export interface ClinicMember {
   enderecoCidade: string;
   enderecoUf: string;
   enderecoCep: string;
+  pixChave: string;
+  pixTipo: PixKeyType;
+  pixNome: string;
+  pixCidade: string;
   reciboSequencia: number;
   valorBase: number;
   valorSocial: number;
@@ -276,6 +282,8 @@ export interface Payment {
   formaPagamento: PaymentMethod;
   historico: PaymentEvent[];
   reciboFiscal: FiscalReceiptRecord | null;
+  pixTxid: string;
+  comprovantePaciente: ClinicAttachment | null;
   demo?: boolean;
   createdAt: string;
 }
@@ -352,7 +360,19 @@ export type MemberInput = Pick<ClinicMember, "nome" | "email">;
 export type PackageInput = Omit<SessionPackage, "id" | "createdAt" | "updatedAt" | "versao" | "historico" | "arquivado" | "arquivadoEm">;
 export type PaymentInput = Omit<
   Payment,
-  "id" | "createdAt" | "paidAt" | "status" | "packageId" | "valorAcordado" | "historico" | "origem" | "recorrente" | "seriesId" | "reciboFiscal"
+  | "id"
+  | "createdAt"
+  | "paidAt"
+  | "status"
+  | "packageId"
+  | "valorAcordado"
+  | "historico"
+  | "origem"
+  | "recorrente"
+  | "seriesId"
+  | "reciboFiscal"
+  | "pixTxid"
+  | "comprovantePaciente"
 > & {
   status?: PaymentStatus;
   packageId?: string | null;

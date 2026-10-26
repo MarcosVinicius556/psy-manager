@@ -18,7 +18,7 @@ import SegmentedControl from "@/components/admin/mobile/SegmentedControl";
 import StackedRow from "@/components/admin/mobile/StackedRow";
 import { ListSkeleton } from "@/components/admin/mobile/Skeleton";
 import PaymentFiscalReceipt from "@/components/admin/PaymentFiscalReceipt";
-import { PaymentEmailSendButton } from "@/components/admin/PatientEmailActions";
+import { PaymentEmailSendButton, PaymentPixCobrancaEmailButton } from "@/components/admin/PatientEmailActions";
 import { Card, DataTable, Empty, MobileListGrid, MobileStackedList, PageTitle, Pill, ResponsiveTableWrap, Td, Th } from "@/components/admin/ui";
 import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
@@ -233,7 +233,12 @@ function FinanceContent() {
                           {canReceive ? "Receber" : "Histórico"}
                         </button>
                         <PaymentFiscalReceipt payment={payment} compact />
-                        {patient ? <PaymentEmailSendButton patient={patient} payment={payment} /> : null}
+                        {patient ? (
+                          <>
+                            <PaymentPixCobrancaEmailButton patient={patient} payment={payment} />
+                            <PaymentEmailSendButton patient={patient} payment={payment} />
+                          </>
+                        ) : null}
                       </div>
                     }
                   />
@@ -298,7 +303,12 @@ function FinanceContent() {
                           </button>
                           <ReceiptLinks files={paymentReceipts(payment)} />
                           <PaymentFiscalReceipt payment={payment} />
-                          {patient ? <PaymentEmailSendButton patient={patient} payment={payment} /> : null}
+                          {patient ? (
+                            <>
+                              <PaymentPixCobrancaEmailButton patient={patient} payment={payment} />
+                              <PaymentEmailSendButton patient={patient} payment={payment} />
+                            </>
+                          ) : null}
                         </div>
                       </Td>
                     </tr>
