@@ -815,6 +815,26 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /patientAccounts/{uid} {
+      allow read, write: if false;
+    }
+
+    match /portalInvites/{token} {
+      allow read, write: if false;
+    }
+
+    match /patientJournal/{entryId} {
+      allow read, write: if false;
+    }
+
+    match /patientTasks/{taskId} {
+      allow read, write: if false;
+    }
+
+    match /patientMural/{messageId} {
+      allow read, write: if false;
+    }
+
     match /cronRuns/{runId} {
       allow read, write: if false;
     }

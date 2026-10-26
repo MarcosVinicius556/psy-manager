@@ -16,6 +16,7 @@ const publicRoutes = [
   "/dpa",
   `/feedback/${e2eFeedbackDocId(1)}`,
   "/agendar/marina-costa",
+  "/paciente/login",
 ] as const;
 
 const adminRoutes = [
