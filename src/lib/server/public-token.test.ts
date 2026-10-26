@@ -3,7 +3,8 @@ import { isValidPublicToken, sanitizeSignerName } from "./public-token";
 
 describe("public-token", () => {
   it("aceita UUID v4", () => {
-    expect(isValidPublicToken("550e8400-e29b-41d4-a716-446655440000")).toBe(true);
+    const token = crypto.randomUUID();
+    expect(isValidPublicToken(token)).toBe(true);
   });
 
   it("sanitiza nome", () => {
