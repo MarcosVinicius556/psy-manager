@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { emptyPatient } from "./types";
 import type { Payment } from "./types";
-import { patientCpfs, receitaSaudeRows, receitaSaudeTotals } from "./receita-saude-report";
+import {
+  patientCpfs,
+  receitaSaudeMonthSummary,
+  receitaSaudeRows,
+  receitaSaudeTotals,
+} from "./receita-saude-report";
 
 function buildCpf(baseNine: string) {
   const digits = baseNine.replace(/\D/g, "").slice(0, 9);
@@ -47,6 +52,8 @@ function paidPayment(overrides: Partial<Payment> = {}): Payment {
       },
     ],
     reciboFiscal: null,
+    pixTxid: "PSYPAY1",
+    comprovantePaciente: null,
     createdAt: "2026-03-01T10:00:00.000Z",
     ...overrides,
   };
@@ -101,5 +108,13 @@ describe("receitaSaudeRows", () => {
   it("ignora lançamentos não pagos", () => {
     const rows = receitaSaudeRows("2026-03", [paidPayment({ status: "em_haver" })], [], () => "");
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("receitaSaudeMonthSummary", () => {
+  it("conta recibos pendentes", () => {
+    const summary = receitaSaudeMonthSummary("2026-03", [paidPayment(), paidPayment({ id: "pay-2", reciboFiscal: null })]);
+    expect(summary.paymentCount).toBe(2);
+    expect(summary.receiptsPending).toBe(2);
   });
 });

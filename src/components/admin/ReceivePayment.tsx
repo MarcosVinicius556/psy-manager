@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
+import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
+import PixChargePanel from "@/components/admin/PixChargePanel";
 import { agreedAmount, paymentHistory, receivedAmount, remainingAmount } from "@/lib/admin/finance";
 import { formatDate, formatMoney, labelPaymentMethod, moneyInput, parseMoney, PAYMENT_METHOD_OPTIONS, todayISO } from "@/lib/admin/format";
 import { attachmentHasMedia } from "@/lib/cloudinary/asset";
@@ -21,7 +23,9 @@ function eventLabel(tipo: string, parcial: boolean) {
 }
 
 export default function ReceivePayment({ payment, onClose }: { payment: Payment; onClose: () => void }) {
-  const { appointments, patientName, receivePayment } = useClinic();
+  const { user } = useAuth();
+  const { appointments, members, patientName, receivePayment } = useClinic();
+  const me = members.find((member) => member.uid === user?.uid || member.email === user?.email?.toLowerCase());
   const agreed = agreedAmount(payment);
   const received = receivedAmount(payment);
   const remaining = remainingAmount(payment);
@@ -99,6 +103,7 @@ export default function ReceivePayment({ payment, onClose }: { payment: Payment;
             Valor combinado nesta sessão: {formatMoney(sessionValue)}. O valor abaixo é o que o paciente paga agora e pode ser menor.
           </p>
         )}
+        {open && method === "pix" ? <PixChargePanel payment={payment} member={me} /> : null}
         {open && (
           <form onSubmit={onSubmit} className="mb-6 grid gap-4">
             <Field label="Valor deste pagamento">

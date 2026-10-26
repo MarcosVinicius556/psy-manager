@@ -24,6 +24,7 @@ const adminRoutes = [
   "/admin/pacientes",
   "/admin/pacientes/pat-ana",
   "/admin/financeiro",
+  "/admin/financeiro/receita-saude",
   "/admin/configuracoes",
   "/admin/configuracoes/agendamento-publico",
   "/admin/notificacoes",
