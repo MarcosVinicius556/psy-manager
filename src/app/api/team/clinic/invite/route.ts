@@ -25,7 +25,17 @@ export async function POST(request: Request) {
   if (!db) return NextResponse.json({ error: "Serviço indisponível." }, { status: 503 });
 
   const body = await request.json();
-  const clinicId = typeof body.clinicId === "string" ? body.clinicId : ctx.workspace.clinicId;
+  const locationId = typeof body.locationId === "string" ? body.locationId.trim() : "";
+  let clinicId = typeof body.clinicId === "string" ? body.clinicId : ctx.workspace.clinicId;
+  if (locationId) {
+    const { ensureClinicForLocation, readLocation } = await import("@/lib/server/clinic-location-service");
+    const location = await readLocation(locationId);
+    if (!location || location.createdByUid !== ctx.auth.uid) {
+      return NextResponse.json({ reason: "proibido" }, { status: 403 });
+    }
+    const clinic = await ensureClinicForLocation(locationId, ctx.auth.uid, location.nome);
+    clinicId = clinic?.id || clinicId;
+  }
   if (!clinicId) return NextResponse.json({ error: "Clínica não encontrada." }, { status: 400 });
   const clinicSnap = await db.collection("clinics").doc(clinicId).get();
   if (!clinicSnap.exists || clinicSnap.data()?.adminUid !== ctx.auth.uid) {
@@ -43,7 +53,7 @@ export async function POST(request: Request) {
   });
   if (!invite) return NextResponse.json({ error: "Convite inválido." }, { status: 400 });
 
-  const link = `${new URL(request.url).origin}/admin/equipe/clinica/convite/${invite.token}`;
+  const link = `${new URL(request.url).origin}/admin/locais/convite/${invite.token}`;
   if (process.env.EMAIL_TO && process.env.GMAIL_APP_PASSWORD) {
     await transporter.sendMail({
       from: '"Psy Manager" <ellensmpsi@gmail.com>',

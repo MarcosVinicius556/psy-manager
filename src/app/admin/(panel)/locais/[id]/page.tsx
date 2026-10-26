@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Empty, PageTitle } from "@/components/admin/ui";
 import { useClinic } from "@/lib/admin/clinic-context";
 import AgendaPage from "../../agenda/AgendaPage";
+import LocationClinicPanel from "../LocationClinicPanel";
 import LocationSummary from "../LocationSummary";
 
 export default function LocationPage() {
@@ -28,6 +29,7 @@ export default function LocationPage() {
         }
       />
       <LocationSummary location={location} />
+      <LocationClinicPanel location={location} />
       <div className="mt-6">
         <Suspense fallback={<p className="text-muted">Carregando agenda...</p>}>
           <AgendaPage locationId={location.id} />

@@ -7,7 +7,6 @@ const artifactRoot = "/opt/cursor/artifacts/screenshots/o6-equipe";
 
 const screens = [
   { name: "equipe-secretarias", path: "/admin/equipe" },
-  { name: "equipe-clinica", path: "/admin/equipe/clinica" },
   { name: "equipe-supervisao", path: "/admin/equipe/supervisao" },
 ] as const;
 

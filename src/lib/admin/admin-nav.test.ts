@@ -20,4 +20,15 @@ describe("admin-nav", () => {
     expect(menuSheetShowsLink({ href: "/admin", label: "Início", icon: () => null })).toBe(false);
     expect(menuSheetShowsLink({ href: "/admin/assinatura", label: "Assinatura", icon: () => null })).toBe(true);
   });
+
+  it("does not list Clínica under Equipe (unified with Locais)", () => {
+    const menu = buildAdminMenu("psicologo");
+    const equipe = menu.find((entry) => "children" in entry && entry.label === "Equipe");
+    expect(equipe && "children" in equipe).toBe(true);
+    const hrefs = equipe && "children" in equipe
+      ? equipe.children.filter((child) => "href" in child).map((child) => child.href)
+      : [];
+    expect(hrefs).not.toContain("/admin/equipe/clinica");
+    expect(hrefs).toContain("/admin/equipe/supervisao");
+  });
 });

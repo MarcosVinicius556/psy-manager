@@ -1522,6 +1522,15 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await setLocationInviteStatus(invite.id, status);
         if (status === "aceito") {
           await addLocationMemberUid(invite.locationId, uid);
+          try {
+            await fetch("/api/team/clinic/sync-location-member", {
+              method: "POST",
+              headers: await authorizedHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ locationId: invite.locationId, memberUid: uid }),
+            });
+          } catch {
+            /* sync best-effort */
+          }
           for (const appointmentId of invite.appointmentIds) {
             const appointment = appointments.find((item) => item.id === appointmentId);
             if (appointment && isBookableStart(appointment.date, appointment.startTime)) {

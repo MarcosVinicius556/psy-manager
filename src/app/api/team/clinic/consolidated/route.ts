@@ -1,21 +1,40 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { ensureClinicForLocation, locationProfessionalUids, readLocation } from "@/lib/server/clinic-location-service";
 import { clinicAdminMemberUids } from "@/lib/server/team-access";
 import { requireWorkspace } from "@/lib/server/require-workspace";
 
 export async function GET(request: Request) {
   const ctx = await requireWorkspace(request);
   if ("error" in ctx) return ctx.error;
-  if (ctx.workspace.clinicRole !== "admin" || !ctx.workspace.clinicId) {
-    return NextResponse.json({ reason: "proibido" }, { status: 403 });
-  }
   const db = getAdminDb();
   if (!db) return NextResponse.json({ error: "Serviço indisponível." }, { status: 503 });
 
-  const memberUids = await clinicAdminMemberUids(ctx.workspace.clinicId, ctx.auth.uid);
+  const url = new URL(request.url);
+  const locationId = url.searchParams.get("locationId")?.trim() || "";
+  let memberUids: string[] = [];
+  let filterLocationId: string | null = null;
+
+  if (locationId) {
+    const location = await readLocation(locationId);
+    if (!location || location.createdByUid !== ctx.auth.uid) {
+      return NextResponse.json({ reason: "proibido" }, { status: 403 });
+    }
+    if (ctx.workspace.kind === "secretaria") {
+      return NextResponse.json({ reason: "proibido" }, { status: 403 });
+    }
+    await ensureClinicForLocation(locationId, ctx.auth.uid, location.nome);
+    memberUids = locationProfessionalUids(location);
+    filterLocationId = locationId;
+  } else {
+    if (ctx.workspace.clinicRole !== "admin" || !ctx.workspace.clinicId) {
+      return NextResponse.json({ reason: "proibido" }, { status: 403 });
+    }
+    memberUids = await clinicAdminMemberUids(ctx.workspace.clinicId, ctx.auth.uid);
+  }
+
   if (!memberUids.length) return NextResponse.json({ agenda: [], financeiro: [] });
 
-  const url = new URL(request.url);
   const windowStart = Number(url.searchParams.get("startMillis")) || Date.now() - 7 * 86400000;
   const windowEnd = Number(url.searchParams.get("endMillis")) || Date.now() + 30 * 86400000;
 
@@ -26,6 +45,7 @@ export async function GET(request: Request) {
     const apptSnap = await db.collection("appointments").where("ownerUid", "==", ownerUid).get();
     for (const doc of apptSnap.docs) {
       const data = doc.data();
+      if (filterLocationId && data.locationId !== filterLocationId) continue;
       const millis = Number(data.sessionStartMillis) || 0;
       if (millis < windowStart || millis > windowEnd) continue;
       agenda.push({
@@ -59,5 +79,5 @@ export async function GET(request: Request) {
   agenda.sort((a, b) => Number(a.sessionStartMillis) - Number(b.sessionStartMillis));
   financeiro.sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
 
-  return NextResponse.json({ agenda, financeiro, memberUids });
+  return NextResponse.json({ agenda, financeiro, memberUids, locationId: filterLocationId });
 }

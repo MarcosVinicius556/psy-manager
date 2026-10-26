@@ -140,6 +140,8 @@ export interface CareLocation {
   memberUids: string[];
   createdByUid: string;
   createdAt: string;
+  /** Vínculo 1:1 com clínica multi-profissional (preenchido via Admin SDK). */
+  clinicId?: string;
 }
 
 export interface Appointment {

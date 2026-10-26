@@ -40,6 +40,7 @@ export interface ClinicAccount {
   adminUid: string;
   memberUids: string[];
   createdAt: string;
+  locationId?: string;
 }
 
 export interface ClinicInvite {

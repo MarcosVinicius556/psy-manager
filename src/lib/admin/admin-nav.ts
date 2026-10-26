@@ -106,7 +106,6 @@ const baseAdminNav: AdminNavEntry[] = [
     icon: HiOutlineUserAdd,
     children: [
       { href: "/admin/equipe", label: "Secretárias", icon: HiOutlineUserAdd },
-      { href: "/admin/equipe/clinica", label: "Clínica", icon: HiOutlineBuildingOffice },
       { href: "/admin/equipe/supervisao", label: "Supervisão", icon: HiOutlineShieldCheck },
     ],
   },
