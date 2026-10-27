@@ -6,12 +6,19 @@ import { requireAuthUser } from "@/lib/server/require-auth";
 
 export const runtime = "nodejs";
 
-/** Vincula conta Firebase (magic link) a um paciente com portal ativo e e-mail correspondente. */
+/** Vincula conta Firebase (e-mail verificado) a um paciente com portal ativo e e-mail correspondente. */
 export async function POST(request: Request) {
   const auth = await requireAuthUser(request);
   if ("error" in auth) return auth.error;
+
+  if (!auth.emailTrustedForLinking) {
+    return NextResponse.json({ reason: "email_nao_verificado" }, { status: 403 });
+  }
+
   const existing = await loadPatientAccountLink(auth.uid);
-  if (existing) return NextResponse.json({ ok: true, linked: true });
+  if (existing?.ownerUid && existing.patientId) {
+    return NextResponse.json({ ok: true, linked: true });
+  }
 
   const db = getAdminDb();
   if (!db) return NextResponse.json({ reason: "firebase_admin" }, { status: 503 });
@@ -28,7 +35,14 @@ export async function POST(request: Request) {
   if (!ownerUid) return NextResponse.json({ reason: "paciente_invalido" }, { status: 400 });
 
   try {
-    await linkPatientAccount({ db, uid: auth.uid, email, ownerUid, patientId: match.id });
+    await linkPatientAccount({
+      db,
+      uid: auth.uid,
+      email,
+      ownerUid,
+      patientId: match.id,
+      emailTrustedForLinking: true,
+    });
   } catch (error) {
     const code = error instanceof Error ? error.message : "falha_vinculo";
     return NextResponse.json({ reason: code }, { status: 400 });

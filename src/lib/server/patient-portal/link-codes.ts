@@ -51,16 +51,13 @@ export async function createPatientLinkCode(db: Firestore, ownerUid: string, pat
   const expiresAtMillis = now + LINK_CODE_TTL_MS;
   const expiresAt = new Date(expiresAtMillis).toISOString();
 
-  const pending = await db
-    .collection("patientLinkCodes")
-    .where("ownerUid", "==", ownerUid)
-    .where("patientId", "==", patientId)
-    .where("status", "==", "pendente")
-    .limit(10)
-    .get();
+  const pendingSnap = await db.collection("patientLinkCodes").where("ownerUid", "==", ownerUid).limit(50).get();
+  const pending = pendingSnap.docs.filter(
+    (doc) => doc.data().patientId === patientId && doc.data().status === "pendente"
+  );
 
   await Promise.all(
-    pending.docs.map((doc) =>
+    pending.map((doc) =>
       doc.ref.set({ status: "revogado", revokedAt: createdAt, updatedAt: createdAt }, { merge: true })
     )
   );
@@ -88,17 +85,25 @@ export async function createPatientLinkCode(db: Firestore, ownerUid: string, pat
 }
 
 export async function revokePendingLinkCodes(db: Firestore, ownerUid: string, patientId: string) {
-  const pending = await db
-    .collection("patientLinkCodes")
-    .where("ownerUid", "==", ownerUid)
-    .where("patientId", "==", patientId)
-    .where("status", "==", "pendente")
-    .limit(20)
-    .get();
+  const snap = await db.collection("patientLinkCodes").where("ownerUid", "==", ownerUid).limit(50).get();
+  const pending = snap.docs.filter(
+    (doc) => doc.data().patientId === patientId && doc.data().status === "pendente"
+  );
   const now = new Date().toISOString();
   await Promise.all(
-    pending.docs.map((doc) => doc.ref.set({ status: "revogado", revokedAt: now, updatedAt: now }, { merge: true }))
+    pending.map((doc) => doc.ref.set({ status: "revogado", revokedAt: now, updatedAt: now }, { merge: true }))
   );
+}
+
+export async function findLatestPendingLinkCodeMeta(db: Firestore, ownerUid: string, patientId: string) {
+  const snap = await db.collection("patientLinkCodes").where("ownerUid", "==", ownerUid).limit(50).get();
+  const pending = snap.docs
+    .map((doc) => doc.data())
+    .filter((data) => data.patientId === patientId && data.status === "pendente")
+    .sort((a, b) => Number(b.expiresAtMillis) - Number(a.expiresAtMillis));
+  const doc = pending[0];
+  if (!doc) return null;
+  return doc;
 }
 
 export async function loadLinkCodeByInput(db: Firestore, codeInput: string) {

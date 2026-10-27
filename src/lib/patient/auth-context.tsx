@@ -65,6 +65,10 @@ const authErrors: Record<string, string> = {
   "auth/weak-password": "Use uma senha com pelo menos 6 caracteres.",
   "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco.",
   "auth/popup-closed-by-user": "A janela do Google foi fechada antes de concluir.",
+  "auth/operation-not-allowed":
+    "O login com Google ainda não está disponível neste portal. Use e-mail e senha ou o código do seu psicólogo(a).",
+  "auth/configuration-not-found":
+    "O login com Google ainda não está configurado. Use e-mail e senha ou o código do seu psicólogo(a).",
 };
 
 function messageOf(error: unknown) {
@@ -77,6 +81,17 @@ export function PatientAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
+
+  const attemptEmailAutoLink = useCallback(async () => {
+    const auth = getFirebaseAuth();
+    const current = auth.currentUser;
+    if (!current?.emailVerified) return;
+    const idToken = await current.getIdToken();
+    await fetch("/api/patient/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+  }, []);
 
   const bootstrapPortalAccount = useCallback(async () => {
     const auth = getFirebaseAuth();
@@ -156,28 +171,16 @@ export function PatientAuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailLink(auth, email.trim().toLowerCase(), linkUrl);
     window.localStorage.removeItem(EMAIL_STORAGE_KEY);
     await bootstrapPortalAccount();
-    const idToken = await auth.currentUser?.getIdToken();
-    if (idToken) {
-      await fetch("/api/patient/auth/link", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-    }
+    await attemptEmailAutoLink();
     await refreshProfile();
-  }, [bootstrapPortalAccount, refreshProfile]);
+  }, [bootstrapPortalAccount, attemptEmailAutoLink, refreshProfile]);
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const auth = getFirebaseAuth();
     await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
     await bootstrapPortalAccount();
-    const idToken = await auth.currentUser?.getIdToken();
-    if (idToken) {
-      await fetch("/api/patient/auth/link", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-    }
-  }, [bootstrapPortalAccount]);
+    await attemptEmailAutoLink();
+  }, [bootstrapPortalAccount, attemptEmailAutoLink]);
 
   const signUpWithPassword = useCallback(async (email: string, password: string) => {
     const auth = getFirebaseAuth();
@@ -198,14 +201,8 @@ export function PatientAuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
     await bootstrapPortalAccount();
-    const idToken = await auth.currentUser?.getIdToken();
-    if (idToken) {
-      await fetch("/api/patient/auth/link", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-    }
-  }, [bootstrapPortalAccount]);
+    await attemptEmailAutoLink();
+  }, [bootstrapPortalAccount, attemptEmailAutoLink]);
 
   const sendPasswordReset = useCallback(async (email: string) => {
     const auth = getFirebaseAuth();

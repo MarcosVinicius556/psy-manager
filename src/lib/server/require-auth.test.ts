@@ -49,7 +49,12 @@ describe("requireAuthUser", () => {
   });
 
   it("aceita token válido", async () => {
-    vi.mocked(verifyFirebaseIdToken).mockResolvedValue({ uid: "u1", email: "a@b.com" });
+    vi.mocked(verifyFirebaseIdToken).mockResolvedValue({
+      uid: "u1",
+      email: "a@b.com",
+      emailVerified: true,
+      signInProvider: "password",
+    });
     const result = await requireAuthUser(
       new Request("http://localhost", { headers: { Authorization: "Bearer good" } })
     );

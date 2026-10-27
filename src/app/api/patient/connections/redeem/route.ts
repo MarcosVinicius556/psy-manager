@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePatientSession } from "@/lib/server/patient-portal/auth";
-import { appendLinkCodeAudit, loadLinkCodeByInput } from "@/lib/server/patient-portal/link-codes";
-import { linkPatientConnection } from "@/lib/server/patient-portal/connections";
+import { appendLinkCodeAudit } from "@/lib/server/patient-portal/link-codes";
+import { redeemPatientLinkCodeAndConnect } from "@/lib/server/patient-portal/connections";
 import { enforceLinkCodeRedeemRateLimit } from "@/lib/server/patient-portal/redeem-rate-limit";
 import { ensurePatientUserDoc } from "@/lib/server/patient-portal/account-utils";
 
@@ -31,58 +31,25 @@ export async function POST(request: Request) {
   const code = typeof payload.code === "string" ? payload.code.trim() : "";
   if (!code) return NextResponse.json(GENERIC_ERROR, { status: 400 });
 
-  const loaded = await loadLinkCodeByInput(session.db, code);
-  if (!loaded) {
+  try {
+    await ensurePatientUserDoc(session.db, session.uid, session.email);
+    const result = await redeemPatientLinkCodeAndConnect({
+      db: session.db,
+      codeInput: code,
+      patientUid: session.uid,
+      email: session.email,
+    });
+    await appendLinkCodeAudit(session.db, {
+      action: "redeem",
+      patientUid: session.uid,
+      ownerUid: result.ownerUid,
+      patientId: result.patientId,
+      ip,
+      success: true,
+    });
+    return NextResponse.json({ ok: true });
+  } catch {
     await appendLinkCodeAudit(session.db, { action: "redeem", patientUid: session.uid, ip, success: false });
     return NextResponse.json(GENERIC_ERROR, { status: 400 });
   }
-
-  const doc = loaded.data;
-  if (doc.status !== "pendente" || doc.expiresAtMillis <= Date.now()) {
-    await appendLinkCodeAudit(session.db, {
-      action: "redeem",
-      patientUid: session.uid,
-      ownerUid: doc.ownerUid,
-      patientId: doc.patientId,
-      ip,
-      success: false,
-    });
-    return NextResponse.json(GENERIC_ERROR, { status: 400 });
-  }
-
-  try {
-    await ensurePatientUserDoc(session.db, session.uid, session.email);
-    await linkPatientConnection({
-      db: session.db,
-      patientUid: session.uid,
-      email: session.email,
-      ownerUid: doc.ownerUid,
-      patientId: doc.patientId,
-      skipEmailCheck: true,
-      makeActive: true,
-    });
-  } catch {
-    await appendLinkCodeAudit(session.db, {
-      action: "redeem",
-      patientUid: session.uid,
-      ownerUid: doc.ownerUid,
-      patientId: doc.patientId,
-      ip,
-      success: false,
-    });
-    return NextResponse.json(GENERIC_ERROR, { status: 400 });
-  }
-
-  const now = new Date().toISOString();
-  await loaded.ref.set({ status: "vinculado", usedAt: now, usedByUid: session.uid }, { merge: true });
-  await appendLinkCodeAudit(session.db, {
-    action: "redeem",
-    patientUid: session.uid,
-    ownerUid: doc.ownerUid,
-    patientId: doc.patientId,
-    ip,
-    success: true,
-  });
-
-  return NextResponse.json({ ok: true });
 }

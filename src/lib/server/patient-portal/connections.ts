@@ -50,15 +50,29 @@ function mapConnectionDoc(id: string, data: FirebaseFirestore.DocumentData): Pat
 }
 
 export async function listPatientConnections(db: Firestore, patientUid: string) {
-  const snap = await db
-    .collection("patientConnections")
-    .where("patientUid", "==", patientUid)
-    .where("status", "in", ["ativa", "desativada"])
-    .limit(30)
-    .get();
+  const snap = await db.collection("patientConnections").where("patientUid", "==", patientUid).limit(50).get();
   return snap.docs
     .map((doc) => mapConnectionDoc(doc.id, doc.data()))
+    .filter((conn) => conn.status === "ativa" || conn.status === "desativada")
     .sort((a, b) => b.lastActivatedAt.localeCompare(a.lastActivatedAt));
+}
+
+async function deactivateOtherActiveConnections(
+  db: Firestore,
+  patientUid: string,
+  exceptId: string,
+  now: string,
+  tx?: FirebaseFirestore.Transaction
+) {
+  const query = db.collection("patientConnections").where("patientUid", "==", patientUid).limit(50);
+  const snap = tx ? await tx.get(query) : await query.get();
+  for (const doc of snap.docs) {
+    if (doc.id === exceptId) continue;
+    if (doc.data().isActive !== true) continue;
+    const patch = { isActive: false, updatedAt: now };
+    if (tx) tx.set(doc.ref, patch, { merge: true });
+    else await doc.ref.set(patch, { merge: true });
+  }
 }
 
 export async function getActiveConnection(db: Firestore, patientUid: string) {
@@ -127,6 +141,7 @@ export async function linkPatientConnection(params: {
   ownerUid: string;
   patientId: string;
   skipEmailCheck?: boolean;
+  emailTrustedForLinking?: boolean;
   makeActive?: boolean;
 }) {
   const email = normalizeEmail(params.email);
@@ -143,8 +158,13 @@ export async function linkPatientConnection(params: {
 
   const patientEmail =
     typeof patientSnap.data()?.email === "string" ? normalizeEmail(patientSnap.data()!.email) : "";
-  if (!params.skipEmailCheck && patientEmail && patientEmail !== email) {
-    throw new Error("email_nao_confere");
+  if (!params.skipEmailCheck) {
+    if (!params.emailTrustedForLinking) {
+      throw new Error("email_nao_verificado");
+    }
+    if (patientEmail && patientEmail !== email) {
+      throw new Error("email_nao_confere");
+    }
   }
 
   const patientRecordNome = typeof patientSnap.data()?.nome === "string" ? patientSnap.data()!.nome : "";
@@ -154,17 +174,7 @@ export async function linkPatientConnection(params: {
 
   const makeActive = params.makeActive !== false;
   if (makeActive) {
-    const others = await params.db
-      .collection("patientConnections")
-      .where("patientUid", "==", params.patientUid)
-      .where("isActive", "==", true)
-      .limit(20)
-      .get();
-    await Promise.all(
-      others.docs
-        .filter((doc) => doc.id !== id)
-        .map((doc) => doc.ref.set({ isActive: false, updatedAt: now }, { merge: true }))
-    );
+    await deactivateOtherActiveConnections(params.db, params.patientUid, id, now);
   }
 
   const payload = {
@@ -217,15 +227,7 @@ export async function activatePatientConnection(db: Firestore, patientUid: strin
   if (!active) throw new Error("portal_desativado");
 
   const now = new Date().toISOString();
-  const others = await db
-    .collection("patientConnections")
-    .where("patientUid", "==", patientUid)
-    .where("isActive", "==", true)
-    .limit(20)
-    .get();
-  await Promise.all(
-    others.docs.map((doc) => doc.ref.set({ isActive: false, updatedAt: now }, { merge: true }))
-  );
+  await deactivateOtherActiveConnections(db, patientUid, connectionIdValue, now);
 
   await connRef.set({ status: "ativa", isActive: true, lastActivatedAt: now, deactivatedAt: null, updatedAt: now }, { merge: true });
   await syncAccountActivePointer(db, patientUid, { ...conn, status: "ativa", isActive: true, lastActivatedAt: now });
@@ -302,6 +304,91 @@ export async function migrateLegacyAccountToConnections(db: Firestore, patientUi
     skipEmailCheck: true,
     makeActive: true,
   });
+}
+
+export async function redeemPatientLinkCodeAndConnect(params: {
+  db: Firestore;
+  codeInput: string;
+  patientUid: string;
+  email: string;
+}) {
+  const { hashLinkCode } = await import("./link-codes");
+  const codeHash = hashLinkCode(params.codeInput);
+  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const email = normalizeEmail(params.email);
+
+  const result = await params.db.runTransaction(async (tx) => {
+    const codeRef = params.db.collection("patientLinkCodes").doc(codeHash);
+    const codeSnap = await tx.get(codeRef);
+    if (!codeSnap.exists) throw new Error("codigo_invalido");
+    const code = codeSnap.data() || {};
+    const status = code.status;
+    const expiresAtMillis = Number(code.expiresAtMillis) || 0;
+    const ownerUid = typeof code.ownerUid === "string" ? code.ownerUid : "";
+    const patientId = typeof code.patientId === "string" ? code.patientId : "";
+    if (status !== "pendente" || !ownerUid || !patientId || expiresAtMillis <= nowMs) {
+      throw new Error("codigo_invalido");
+    }
+
+    const patientRef = params.db.collection("patients").doc(patientId);
+    const patientSnap = await tx.get(patientRef);
+    if (!patientSnap.exists || patientSnap.data()?.ownerUid !== ownerUid) {
+      throw new Error("codigo_invalido");
+    }
+    if (patientSnap.data()?.portalAtivo !== true) {
+      throw new Error("codigo_invalido");
+    }
+
+    const memberRef = params.db.collection("members").doc(ownerUid);
+    const memberSnap = await tx.get(memberRef);
+    const memberData = memberSnap.data() || {};
+    const profissionalNome = typeof memberData.nome === "string" ? memberData.nome : "Profissional";
+    const profissionalEmail = typeof memberData.email === "string" ? memberData.email : "";
+    const patientRecordNome = typeof patientSnap.data()?.nome === "string" ? patientSnap.data()!.nome : "";
+
+    const id = connectionId(params.patientUid, ownerUid, patientId);
+    const connRef = params.db.collection("patientConnections").doc(id);
+    const existing = await tx.get(connRef);
+
+    await deactivateOtherActiveConnections(params.db, params.patientUid, id, now, tx);
+
+    const payload = {
+      patientUid: params.patientUid,
+      ownerUid,
+      patientId,
+      status: "ativa" as PatientConnectionStatus,
+      isActive: true,
+      linkedAt: existing.exists ? (existing.data()?.linkedAt as string) || now : now,
+      lastActivatedAt: now,
+      deactivatedAt: null,
+      disconnectedAt: null,
+      profissionalNome,
+      profissionalEmail,
+      patientRecordNome,
+      updatedAt: now,
+    };
+
+    tx.set(codeRef, { status: "vinculado", usedAt: now, usedByUid: params.patientUid }, { merge: true });
+    tx.set(connRef, payload, { merge: true });
+    tx.set(
+      params.db.collection("patientAccounts").doc(params.patientUid),
+      {
+        email,
+        ownerUid,
+        patientId,
+        activeConnectionId: id,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+    tx.set(patientRef, { patientAuthUid: params.patientUid, updatedAt: now }, { merge: true });
+
+    return { ownerUid, patientId, connectionId: id };
+  });
+
+  await setPatientCustomClaims(params.patientUid, result.ownerUid, result.patientId);
+  return result;
 }
 
 export async function psychologistUnlinkPortalAccount(db: Firestore, ownerUid: string, patientId: string) {

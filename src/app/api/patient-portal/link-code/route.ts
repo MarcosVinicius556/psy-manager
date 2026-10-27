@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { patientOwnedByUid } from "@/lib/server/clinic-access";
-import { createPatientLinkCode, revokePendingLinkCodes } from "@/lib/server/patient-portal/link-codes";
+import {
+  createPatientLinkCode,
+  findLatestPendingLinkCodeMeta,
+  revokePendingLinkCodes,
+} from "@/lib/server/patient-portal/link-codes";
 import { requireAuthUser } from "@/lib/server/require-auth";
 
 export const runtime = "nodejs";
@@ -19,18 +23,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ reason: "sem_permissao" }, { status: 403 });
   }
 
-  const pending = await db
-    .collection("patientLinkCodes")
-    .where("ownerUid", "==", auth.uid)
-    .where("patientId", "==", patientId)
-    .where("status", "==", "pendente")
-    .orderBy("expiresAtMillis", "desc")
-    .limit(1)
-    .get();
+  const doc = await findLatestPendingLinkCodeMeta(db, auth.uid, patientId);
+  if (!doc) return NextResponse.json({ code: null });
 
-  if (pending.empty) return NextResponse.json({ code: null });
-
-  const doc = pending.docs[0]!.data();
   const expiresAtMillis = Number(doc.expiresAtMillis) || 0;
   if (expiresAtMillis <= Date.now()) {
     return NextResponse.json({ code: null, expired: true });

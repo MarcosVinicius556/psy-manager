@@ -55,7 +55,7 @@ export type PatientPortalSession = {
 
 export async function requirePatientSession(request: Request): Promise<{ error: NextResponse } | PatientPortalSession> {
   const auth = await requireAuthUser(request);
-  if ("error" in auth && auth.error) return { error: auth.error };
+  if (auth.error) return { error: auth.error };
 
   const decoded = await readIdTokenClaims(auth.idToken);
   const staffOf = decoded ? claimsFromToken(decoded.claims as Record<string, unknown>).staffOf : null;
@@ -78,7 +78,12 @@ export async function requirePatientSession(request: Request): Promise<{ error: 
       : auth.email
         ? normalizeEmail(auth.email)
         : "";
-  if (email && auth.email && normalizeEmail(auth.email) !== email) {
+  if (
+    auth.emailTrustedForLinking &&
+    email &&
+    auth.email &&
+    normalizeEmail(auth.email) !== email
+  ) {
     return { error: NextResponse.json({ reason: "email_divergente" }, { status: 403 }) };
   }
 
@@ -127,6 +132,7 @@ export async function linkPatientAccount(params: {
   ownerUid: string;
   patientId: string;
   skipEmailCheck?: boolean;
+  emailTrustedForLinking?: boolean;
 }) {
   const email = normalizeEmail(params.email);
   await ensurePatientUserDoc(params.db, params.uid, email);
@@ -137,6 +143,7 @@ export async function linkPatientAccount(params: {
     ownerUid: params.ownerUid,
     patientId: params.patientId,
     skipEmailCheck: params.skipEmailCheck,
+    emailTrustedForLinking: params.emailTrustedForLinking === true,
     makeActive: true,
   });
 }

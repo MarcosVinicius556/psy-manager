@@ -140,7 +140,9 @@ function PatientLoginInner() {
             <input className="field mt-1 w-full" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "criar" ? "new-password" : "current-password"} />
           </label>
           {mode === "criar" && (
-            <p className="text-xs text-muted">Enviaremos um e-mail de verificação. Você pode usar o portal antes de confirmar.</p>
+            <p className="text-xs text-muted">
+              Enviamos um e-mail de verificação. O código do seu psicólogo(a) funciona imediatamente; o vínculo automático por e-mail só após confirmar o endereço.
+            </p>
           )}
           {error && <p className="text-sm text-accent">{error}</p>}
           {resetSent && <p className="text-sm text-teal">Enviamos instruções de recuperação para seu e-mail.</p>}
