@@ -1,5 +1,11 @@
 import { buildStaticPixBrcode } from "../pix/brcode";
-import { pixProfileReady, type PixProfile } from "../pix/keys";
+import { inferPixKeyType, parsePixKeyType, pixProfileReady, type PixKeyType, type PixProfile } from "../pix/keys";
+
+function platformBillingPixKeyType(key: string): PixKeyType {
+  const override = parsePixKeyType(process.env.PSY_BILLING_PIX_KEY_TYPE || "");
+  if (override) return override;
+  return inferPixKeyType(key);
+}
 
 /** Chave Pix da plataforma (assinatura). Placeholder explícito em dev quando env vazia. */
 const DEV_PLACEHOLDER_KEY = "00000000-0000-4000-8000-000000000001";
@@ -18,9 +24,10 @@ export function platformBillingPixProfile(): PixProfile & { configured: boolean;
       devPlaceholder: true,
     };
   }
+  const pixTipo = platformBillingPixKeyType(key);
   return {
     pixChave: key,
-    pixTipo: "aleatoria",
+    pixTipo,
     pixNome: nome,
     pixCidade: cidade,
     configured: true,
@@ -36,6 +43,7 @@ export function buildPlatformSubscriptionPixBrcode(input: { amountCents: number;
   }
   const code = buildStaticPixBrcode({
     key: profile.pixChave,
+    keyType: profile.pixTipo,
     amount: input.amountCents > 0 ? input.amountCents / 100 : undefined,
     merchantName: profile.pixNome,
     merchantCity: profile.pixCidade,

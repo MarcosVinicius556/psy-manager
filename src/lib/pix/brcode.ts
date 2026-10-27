@@ -3,9 +3,13 @@
  * Referência: Manual do BR Code v2.0.1 (Banco Central).
  */
 
+import { inferPixKeyType, type PixKeyType } from "./keys";
+
 export type StaticPixBrcodeInput = {
   /** Chave Pix (CPF/CNPJ só dígitos; e-mail; telefone +55…; EVP). */
   key: string;
+  /** Tipo da chave; quando omitido, infere (11 dígitos: CPF válido ou telefone). */
+  keyType?: PixKeyType;
   /** Valor em reais; omita ou 0 para QR sem valor fixo. */
   amount?: number;
   /** Nome do recebedor (máx. 25 caracteres). */
@@ -49,20 +53,28 @@ function sanitizeField(input: string, max: number) {
 
 const EVP_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function normalizePixKeyForBrcode(key: string) {
+export function normalizePixKeyForBrcode(key: string, tipo?: PixKeyType) {
   const trimmed = key.trim();
   if (!trimmed) return "";
+  const kind = tipo === "" || tipo === undefined ? inferPixKeyType(trimmed) : tipo;
+  if (kind === "email") return trimmed.toLowerCase();
+  if (kind === "aleatoria") return trimmed.toLowerCase();
+  if (kind === "cpf" || kind === "cnpj") return trimmed.replace(/\D/g, "");
+  if (kind === "telefone") {
+    if (trimmed.startsWith("+")) return trimmed;
+    const digits = trimmed.replace(/\D/g, "");
+    if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
+    if (digits.length === 13 && digits.startsWith("55")) return `+${digits}`;
+    return digits ? `+${digits}` : trimmed;
+  }
   if (trimmed.includes("@")) return trimmed.toLowerCase();
   if (EVP_PATTERN.test(trimmed)) return trimmed.toLowerCase();
-  if (trimmed.startsWith("+")) return trimmed;
   const digits = trimmed.replace(/\D/g, "");
-  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
-  if (digits.length === 13 && digits.startsWith("55")) return `+${digits}`;
   return digits || trimmed;
 }
 
 export function buildStaticPixBrcode(input: StaticPixBrcodeInput) {
-  const key = normalizePixKeyForBrcode(input.key);
+  const key = normalizePixKeyForBrcode(input.key, input.keyType);
   if (!key) throw new Error("Informe a chave Pix.");
 
   const merchantAccount = tlv("26", tlv("00", "br.gov.bcb.pix") + tlv("01", key));
