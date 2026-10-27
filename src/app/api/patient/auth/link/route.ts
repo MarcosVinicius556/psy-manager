@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { linkPatientAccount, loadPatientAccountLink } from "@/lib/server/patient-portal/auth";
+import { ensurePatientAccountShell } from "@/lib/server/patient-portal/connections";
 import { requireAuthUser } from "@/lib/server/require-auth";
 
 export const runtime = "nodejs";
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
   if (!db) return NextResponse.json({ reason: "firebase_admin" }, { status: 503 });
   const email = auth.email.trim().toLowerCase();
   if (!email) return NextResponse.json({ reason: "email_obrigatorio" }, { status: 400 });
+
+  await ensurePatientAccountShell(db, auth.uid, email);
 
   const patientsSnap = await db.collection("patients").where("email", "==", email).limit(20).get();
   const match = patientsSnap.docs.find((doc) => doc.data().portalAtivo === true);

@@ -595,6 +595,9 @@ describe("platform and rate limits", () => {
       })
     );
     await assertFails(getDoc(doc(db, "portalInvites", "invite-1")));
+    await assertFails(getDoc(doc(db, "patientConnections", "conn-1")));
+    await assertFails(getDoc(doc(db, "patientLinkCodes", "hash-1")));
+    await assertFails(getDoc(doc(db, "patientLinkCodeAudit", "audit-1")));
   });
 
   it("authenticated user cannot read another tenant clinical record", async () => {

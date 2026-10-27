@@ -763,3 +763,31 @@ header.landing .btn-primary,
     transform: none;
   }
 }
+
+html.patient-reduce-motion *,
+html.patient-reduce-motion *::before,
+html.patient-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.patient-dark {
+  --color-ink: #e8efe9;
+  --color-muted: #a8b5aa;
+  --color-paper: #1a221c;
+  --color-border-subtle: #2d3a30;
+}
+
+html.patient-dark body,
+html.patient-dark .patient-header,
+html.patient-dark .patient-nav {
+  background-color: #1a221c;
+  color: var(--color-ink);
+}
+
+html.patient-dark .patient-header,
+html.patient-dark .patient-nav {
+  background-color: #222b24;
+}
