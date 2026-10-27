@@ -23,6 +23,7 @@ export function buildPaymentPixBrcode(member: ClinicMember, payment: Payment) {
   const txid = payment.pixTxid || paymentPixTxid(payment.id);
   const code = buildStaticPixBrcode({
     key: profile.pixChave,
+    keyType: profile.pixTipo,
     amount: amount > 0 ? amount : undefined,
     merchantName: profile.pixNome,
     merchantCity: profile.pixCidade,

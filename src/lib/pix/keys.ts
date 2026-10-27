@@ -1,3 +1,5 @@
+import { isValidCpf } from "../admin/cpf";
+
 export type PixKeyType = "cpf" | "cnpj" | "email" | "telefone" | "aleatoria" | "";
 
 export const PIX_KEY_TYPE_OPTIONS: { value: PixKeyType; label: string }[] = [
@@ -10,6 +12,25 @@ export const PIX_KEY_TYPE_OPTIONS: { value: PixKeyType; label: string }[] = [
 
 const EVP_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const PIX_KEY_TYPE_ALIASES: Record<string, PixKeyType> = {
+  cpf: "cpf",
+  cnpj: "cnpj",
+  email: "email",
+  "e-mail": "email",
+  telefone: "telefone",
+  phone: "telefone",
+  celular: "telefone",
+  aleatoria: "aleatoria",
+  evp: "aleatoria",
+  random: "aleatoria",
+};
+
+export function parsePixKeyType(value: string): PixKeyType {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return "";
+  return PIX_KEY_TYPE_ALIASES[normalized] ?? "";
+}
+
 export function inferPixKeyType(key: string): PixKeyType {
   const trimmed = key.trim();
   if (!trimmed) return "";
@@ -17,7 +38,10 @@ export function inferPixKeyType(key: string): PixKeyType {
   if (EVP_PATTERN.test(trimmed)) return "aleatoria";
   const digits = trimmed.replace(/\D/g, "");
   if (digits.length === 14) return "cnpj";
-  if (digits.length === 11) return "cpf";
+  if (digits.length === 11) {
+    if (isValidCpf(digits)) return "cpf";
+    return "telefone";
+  }
   if (trimmed.startsWith("+") || digits.length >= 10) return "telefone";
   return "";
 }
