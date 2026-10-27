@@ -51,9 +51,9 @@ export async function createPatientLinkCode(db: Firestore, ownerUid: string, pat
   const expiresAtMillis = now + LINK_CODE_TTL_MS;
   const expiresAt = new Date(expiresAtMillis).toISOString();
 
-  const pendingSnap = await db.collection("patientLinkCodes").where("ownerUid", "==", ownerUid).limit(50).get();
+  const pendingSnap = await db.collection("patientLinkCodes").where("patientId", "==", patientId).limit(50).get();
   const pending = pendingSnap.docs.filter(
-    (doc) => doc.data().patientId === patientId && doc.data().status === "pendente"
+    (doc) => doc.data().ownerUid === ownerUid && doc.data().status === "pendente"
   );
 
   await Promise.all(
@@ -85,9 +85,9 @@ export async function createPatientLinkCode(db: Firestore, ownerUid: string, pat
 }
 
 export async function revokePendingLinkCodes(db: Firestore, ownerUid: string, patientId: string) {
-  const snap = await db.collection("patientLinkCodes").where("ownerUid", "==", ownerUid).limit(50).get();
+  const snap = await db.collection("patientLinkCodes").where("patientId", "==", patientId).limit(50).get();
   const pending = snap.docs.filter(
-    (doc) => doc.data().patientId === patientId && doc.data().status === "pendente"
+    (doc) => doc.data().ownerUid === ownerUid && doc.data().status === "pendente"
   );
   const now = new Date().toISOString();
   await Promise.all(
@@ -96,10 +96,10 @@ export async function revokePendingLinkCodes(db: Firestore, ownerUid: string, pa
 }
 
 export async function findLatestPendingLinkCodeMeta(db: Firestore, ownerUid: string, patientId: string) {
-  const snap = await db.collection("patientLinkCodes").where("ownerUid", "==", ownerUid).limit(50).get();
+  const snap = await db.collection("patientLinkCodes").where("patientId", "==", patientId).limit(50).get();
   const pending = snap.docs
     .map((doc) => doc.data())
-    .filter((data) => data.patientId === patientId && data.status === "pendente")
+    .filter((data) => data.ownerUid === ownerUid && data.status === "pendente")
     .sort((a, b) => Number(b.expiresAtMillis) - Number(a.expiresAtMillis));
   const doc = pending[0];
   if (!doc) return null;

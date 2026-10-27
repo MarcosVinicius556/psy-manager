@@ -306,6 +306,113 @@ export async function migrateLegacyAccountToConnections(db: Firestore, patientUi
   });
 }
 
+type TransactionLinkContext = {
+  patientUid: string;
+  email: string;
+  ownerUid: string;
+  patientId: string;
+  now: string;
+};
+
+async function writePatientConnectionInTransaction(
+  db: Firestore,
+  tx: FirebaseFirestore.Transaction,
+  ctx: TransactionLinkContext
+) {
+  const email = normalizeEmail(ctx.email);
+  const patientRef = db.collection("patients").doc(ctx.patientId);
+  const patientSnap = await tx.get(patientRef);
+  if (!patientSnap.exists || patientSnap.data()?.ownerUid !== ctx.ownerUid) {
+    throw new Error("paciente_invalido");
+  }
+  if (patientSnap.data()?.portalAtivo !== true) {
+    throw new Error("portal_desativado");
+  }
+
+  const memberRef = db.collection("members").doc(ctx.ownerUid);
+  const memberSnap = await tx.get(memberRef);
+  const memberData = memberSnap.data() || {};
+  const profissionalNome = typeof memberData.nome === "string" ? memberData.nome : "Profissional";
+  const profissionalEmail = typeof memberData.email === "string" ? memberData.email : "";
+  const patientRecordNome = typeof patientSnap.data()?.nome === "string" ? patientSnap.data()!.nome : "";
+
+  const id = connectionId(ctx.patientUid, ctx.ownerUid, ctx.patientId);
+  const connRef = db.collection("patientConnections").doc(id);
+  const existing = await tx.get(connRef);
+
+  await deactivateOtherActiveConnections(db, ctx.patientUid, id, ctx.now, tx);
+
+  const payload = {
+    patientUid: ctx.patientUid,
+    ownerUid: ctx.ownerUid,
+    patientId: ctx.patientId,
+    status: "ativa" as PatientConnectionStatus,
+    isActive: true,
+    linkedAt: existing.exists ? (existing.data()?.linkedAt as string) || ctx.now : ctx.now,
+    lastActivatedAt: ctx.now,
+    deactivatedAt: null,
+    disconnectedAt: null,
+    profissionalNome,
+    profissionalEmail,
+    patientRecordNome,
+    updatedAt: ctx.now,
+  };
+
+  tx.set(connRef, payload, { merge: true });
+  tx.set(
+    db.collection("patientAccounts").doc(ctx.patientUid),
+    {
+      email,
+      ownerUid: ctx.ownerUid,
+      patientId: ctx.patientId,
+      activeConnectionId: id,
+      updatedAt: ctx.now,
+    },
+    { merge: true }
+  );
+  tx.set(patientRef, { patientAuthUid: ctx.patientUid, updatedAt: ctx.now }, { merge: true });
+
+  return { ownerUid: ctx.ownerUid, patientId: ctx.patientId, connectionId: id };
+}
+
+export async function acceptPortalInviteAndConnect(params: {
+  db: Firestore;
+  inviteToken: string;
+  patientUid: string;
+  email: string;
+}) {
+  const inviteRef = params.db.collection("portalInvites").doc(params.inviteToken);
+  const now = new Date().toISOString();
+  const nowMs = Date.now();
+
+  const result = await params.db.runTransaction(async (tx) => {
+    const inviteSnap = await tx.get(inviteRef);
+    if (!inviteSnap.exists) throw new Error("convite_invalido");
+    const invite = inviteSnap.data() || {};
+    const expiresAtMillis = Number(invite.expiresAtMillis) || 0;
+    if (expiresAtMillis && expiresAtMillis <= nowMs) throw new Error("convite_expirado");
+    if (invite.usedAtMillis) throw new Error("convite_usado");
+
+    const ownerUid = typeof invite.ownerUid === "string" ? invite.ownerUid : "";
+    const patientId = typeof invite.patientId === "string" ? invite.patientId : "";
+    if (!ownerUid || !patientId) throw new Error("convite_invalido");
+
+    const linkResult = await writePatientConnectionInTransaction(params.db, tx, {
+      patientUid: params.patientUid,
+      email: params.email,
+      ownerUid,
+      patientId,
+      now,
+    });
+
+    tx.set(inviteRef, { usedAt: now, usedAtMillis: nowMs }, { merge: true });
+    return linkResult;
+  });
+
+  await setPatientCustomClaims(params.patientUid, result.ownerUid, result.patientId);
+  return result;
+}
+
 export async function redeemPatientLinkCodeAndConnect(params: {
   db: Firestore;
   codeInput: string;
@@ -316,7 +423,6 @@ export async function redeemPatientLinkCodeAndConnect(params: {
   const codeHash = hashLinkCode(params.codeInput);
   const now = new Date().toISOString();
   const nowMs = Date.now();
-  const email = normalizeEmail(params.email);
 
   const result = await params.db.runTransaction(async (tx) => {
     const codeRef = params.db.collection("patientLinkCodes").doc(codeHash);
@@ -331,60 +437,16 @@ export async function redeemPatientLinkCodeAndConnect(params: {
       throw new Error("codigo_invalido");
     }
 
-    const patientRef = params.db.collection("patients").doc(patientId);
-    const patientSnap = await tx.get(patientRef);
-    if (!patientSnap.exists || patientSnap.data()?.ownerUid !== ownerUid) {
-      throw new Error("codigo_invalido");
-    }
-    if (patientSnap.data()?.portalAtivo !== true) {
-      throw new Error("codigo_invalido");
-    }
-
-    const memberRef = params.db.collection("members").doc(ownerUid);
-    const memberSnap = await tx.get(memberRef);
-    const memberData = memberSnap.data() || {};
-    const profissionalNome = typeof memberData.nome === "string" ? memberData.nome : "Profissional";
-    const profissionalEmail = typeof memberData.email === "string" ? memberData.email : "";
-    const patientRecordNome = typeof patientSnap.data()?.nome === "string" ? patientSnap.data()!.nome : "";
-
-    const id = connectionId(params.patientUid, ownerUid, patientId);
-    const connRef = params.db.collection("patientConnections").doc(id);
-    const existing = await tx.get(connRef);
-
-    await deactivateOtherActiveConnections(params.db, params.patientUid, id, now, tx);
-
-    const payload = {
+    const linkResult = await writePatientConnectionInTransaction(params.db, tx, {
       patientUid: params.patientUid,
+      email: params.email,
       ownerUid,
       patientId,
-      status: "ativa" as PatientConnectionStatus,
-      isActive: true,
-      linkedAt: existing.exists ? (existing.data()?.linkedAt as string) || now : now,
-      lastActivatedAt: now,
-      deactivatedAt: null,
-      disconnectedAt: null,
-      profissionalNome,
-      profissionalEmail,
-      patientRecordNome,
-      updatedAt: now,
-    };
+      now,
+    });
 
     tx.set(codeRef, { status: "vinculado", usedAt: now, usedByUid: params.patientUid }, { merge: true });
-    tx.set(connRef, payload, { merge: true });
-    tx.set(
-      params.db.collection("patientAccounts").doc(params.patientUid),
-      {
-        email,
-        ownerUid,
-        patientId,
-        activeConnectionId: id,
-        updatedAt: now,
-      },
-      { merge: true }
-    );
-    tx.set(patientRef, { patientAuthUid: params.patientUid, updatedAt: now }, { merge: true });
-
-    return { ownerUid, patientId, connectionId: id };
+    return linkResult;
   });
 
   await setPatientCustomClaims(params.patientUid, result.ownerUid, result.patientId);
