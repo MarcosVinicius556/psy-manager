@@ -16,6 +16,10 @@ export default function PatientPortalPanel({ patient }: { patient: Patient }) {
   const { user } = useAuth();
   const [portalAtivo, setPortalAtivo] = useState(Boolean(patient.portalAtivo));
   const [inviteLink, setInviteLink] = useState("");
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [linkCodeShareUrl, setLinkCodeShareUrl] = useState("");
+  const [linkCodeExpires, setLinkCodeExpires] = useState("");
+  const [portalLinked, setPortalLinked] = useState(Boolean(patient.patientAuthUid));
   const [insights, setInsights] = useState<Insights | null>(null);
   const [taskTitle, setTaskTitle] = useState("");
   const [muralText, setMuralText] = useState("");
@@ -37,7 +41,8 @@ export default function PatientPortalPanel({ patient }: { patient: Patient }) {
 
   useEffect(() => {
     setPortalAtivo(Boolean(patient.portalAtivo));
-  }, [patient.portalAtivo]);
+    setPortalLinked(Boolean(patient.patientAuthUid));
+  }, [patient.portalAtivo, patient.patientAuthUid]);
 
   useEffect(() => {
     void loadInsights();
@@ -56,6 +61,56 @@ export default function PatientPortalPanel({ patient }: { patient: Patient }) {
     }
     setPortalAtivo(next);
     toast.success(next ? "Portal ativado." : "Portal desativado.");
+  }
+
+  async function generateLinkCode() {
+    const headers = await authHeaders();
+    const res = await fetch("/api/patient-portal/link-code", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ patientId: patient.id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error("Não foi possível gerar o código.");
+      return;
+    }
+    setLinkCode(data.code);
+    setLinkCodeShareUrl(data.link);
+    setLinkCodeExpires(data.expiresAt);
+    toast.success("Código de vínculo gerado.");
+  }
+
+  async function revokeLinkCode() {
+    const headers = await authHeaders();
+    const res = await fetch("/api/patient-portal/link-code", {
+      method: "DELETE",
+      headers,
+      body: JSON.stringify({ patientId: patient.id }),
+    });
+    if (!res.ok) {
+      toast.error("Não foi possível revogar.");
+      return;
+    }
+    setLinkCode(null);
+    setLinkCodeShareUrl("");
+    toast.success("Códigos pendentes revogados.");
+  }
+
+  async function unlinkPortalAccount() {
+    if (!window.confirm("Desvincular a conta do portal deste paciente?")) return;
+    const headers = await authHeaders();
+    const res = await fetch("/api/patient-portal/unlink-account", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ patientId: patient.id }),
+    });
+    if (!res.ok) {
+      toast.error("Não foi possível desvincular.");
+      return;
+    }
+    setPortalLinked(false);
+    toast.success("Conta do portal desvinculada.");
   }
 
   async function createInvite() {
@@ -125,14 +180,45 @@ export default function PatientPortalPanel({ patient }: { patient: Patient }) {
     <Card className="mb-6">
       <h2 className="mb-2 text-2xl font-medium text-teal">Portal do paciente</h2>
       <p className="mb-4 text-sm text-muted">
-        Área PWA em <code className="text-ink">/paciente</code> com login sem senha (link por e-mail) ou convite. O paciente não acessa prontuário.
+        O paciente pode criar conta em <code className="text-ink">/paciente</code> e vincular-se com código, convite ou e-mail. Não acessa prontuário.
       </p>
+      {portalLinked && (
+        <p className="mb-3 text-sm text-teal">Conta do portal vinculada a este prontuário.</p>
+      )}
       <label className="mb-4 flex items-center gap-2 text-sm">
         <input type="checkbox" checked={portalAtivo} onChange={(e) => void togglePortal(e.target.checked)} />
         Portal ativo para este paciente
       </label>
       {portalAtivo && (
         <div className="space-y-4">
+          <div className="mb-4 space-y-2 rounded-surface border border-[var(--color-border-subtle)] p-3">
+            <h3 className="font-medium text-teal">Código de vínculo</h3>
+            <p className="text-xs text-muted">Código de uso único, válido por 7 dias. Compartilhe com o paciente.</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-primary" onClick={() => void generateLinkCode()}>
+                Gerar código de vínculo
+              </button>
+              <button type="button" className="btn-text" onClick={() => void revokeLinkCode()}>
+                Revogar pendentes
+              </button>
+              {portalLinked && (
+                <button type="button" className="btn-text text-accent" onClick={() => void unlinkPortalAccount()}>
+                  Desvincular conta do portal
+                </button>
+              )}
+            </div>
+            {linkCode && (
+              <div className="text-sm">
+                <p className="font-medium">Código: {linkCode}</p>
+                <p className="text-xs text-muted">Expira em {linkCodeExpires?.slice(0, 10)}</p>
+                {linkCodeShareUrl && (
+                  <button type="button" className="btn-text mt-1 text-xs" onClick={() => navigator.clipboard.writeText(linkCodeShareUrl)}>
+                    Copiar link com código
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn-primary" onClick={() => void createInvite()}>
               Gerar link de convite

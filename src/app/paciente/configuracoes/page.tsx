@@ -9,7 +9,7 @@ export default function PatientSettingsPage() {
   const { signOutPatient } = usePatientAuth();
 
   async function deleteAccount() {
-    if (!window.confirm("Excluir sua conta do portal? Você poderá voltar com um novo convite.")) return;
+    if (!window.confirm("Excluir sua conta do portal? Isso desvincula todos os espaços e remove seus dados de acesso (LGPD). O prontuário do profissional permanece no consultório.")) return;
     await patientFetch("/api/patient/account", { method: "DELETE" });
     await signOutPatient();
     window.location.href = "/paciente/login";
@@ -18,6 +18,10 @@ export default function PatientSettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-medium text-teal">Configurações</h1>
+      <section className="rounded-surface border border-[var(--color-border-subtle)] bg-white p-4">
+        <h2 className="mb-2 font-medium">Conta e conexões</h2>
+        <Link href="/paciente/conexoes" className="btn-text block">Minhas conexões e aparência</Link>
+      </section>
       <section className="rounded-surface border border-[var(--color-border-subtle)] bg-white p-4">
         <h2 className="mb-2 font-medium">Notificações</h2>
         <PatientPushCard />

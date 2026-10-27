@@ -1114,6 +1114,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /patientConnections/{connectionId} {
+      allow read, write: if false;
+    }
+
+    match /patientLinkCodes/{codeHash} {
+      allow read, write: if false;
+    }
+
+    match /patientLinkCodeAudit/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /apiPatientLinkCodeRateLimits/{key} {
+      allow read, write: if false;
+    }
+
     match /portalInvites/{token} {
       allow read, write: if false;
     }

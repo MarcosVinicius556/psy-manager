@@ -1,8 +1,13 @@
 import { getAdminAuth } from "@/lib/firebase-admin";
+import {
+  type FirebaseTokenIdentity,
+  identityFromDecodedToken,
+  signInProviderFromClaims,
+} from "@/lib/server/firebase-token-identity";
 
-type LookupUser = { localId?: string; email?: string };
+type LookupUser = { localId?: string; email?: string; emailVerified?: boolean };
 
-async function lookupWithRest(idToken: string) {
+async function lookupWithRest(idToken: string): Promise<FirebaseTokenIdentity | null> {
   const key = process.env.NEXT_PUBLIC_API_KEY;
   if (!key) return null;
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${key}`, {
@@ -14,15 +19,25 @@ async function lookupWithRest(idToken: string) {
   const data = (await response.json()) as { users?: LookupUser[] };
   const user = data.users?.[0];
   if (!user?.localId) return null;
-  return { uid: user.localId, email: user.email?.toLowerCase() || "" };
+  return {
+    uid: user.localId,
+    email: user.email?.toLowerCase() || "",
+    emailVerified: user.emailVerified === true,
+    signInProvider: "",
+  };
 }
 
-export async function verifyFirebaseIdToken(idToken: string) {
+export async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseTokenIdentity | null> {
   const auth = getAdminAuth();
   if (auth) {
     try {
       const decoded = await auth.verifyIdToken(idToken);
-      return { uid: decoded.uid, email: decoded.email?.toLowerCase() || "" };
+      return identityFromDecodedToken({
+        uid: decoded.uid,
+        email: decoded.email,
+        email_verified: decoded.email_verified,
+        firebase: decoded.firebase as { sign_in_provider?: string } | undefined,
+      });
     } catch {
       return null;
     }
@@ -35,3 +50,5 @@ export function bearerToken(request: Request) {
   if (!header.startsWith("Bearer ")) return "";
   return header.slice(7).trim();
 }
+
+export { signInProviderFromClaims };

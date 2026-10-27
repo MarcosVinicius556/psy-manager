@@ -5,7 +5,13 @@ export type PatientAccountLink = {
   ownerUid: string;
   patientId: string;
   email: string;
+  profileComplete?: boolean;
 };
+
+export type PatientPortalTheme = "sistema" | "claro" | "escuro";
+export type PatientPortalMotion = "sistema" | "completo" | "reduzido";
+
+export const LINK_CODE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type PatientJournalComment = {
   id: string;

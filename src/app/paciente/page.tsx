@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { patientFetch } from "@/lib/patient/api";
+import { usePatientAuth } from "@/lib/patient/auth-context";
 
 type Dashboard = {
   nextSession: {
@@ -18,16 +19,50 @@ type Dashboard = {
 };
 
 export default function PatientHomePage() {
+  const { profile } = usePatientAuth();
   const [data, setData] = useState<Dashboard | null>(null);
+  const [loadError, setLoadError] = useState("");
+
+  const today = useMemo(() => new Date(), []);
+  const monthLabel = today.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   useEffect(() => {
-    void patientFetch("/api/patient/dashboard").then(setData);
-  }, []);
+    if (!profile?.active) return;
+    void patientFetch("/api/patient/dashboard")
+      .then(setData)
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "erro"));
+  }, [profile?.active]);
+
+  if (!profile?.active) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-medium text-teal">Início</h1>
+          <Link href="/paciente/conexoes" className="btn-row text-sm">Conexões</Link>
+        </div>
+        <p className="rounded-surface border border-[var(--color-border-subtle)] bg-white p-4 text-sm text-muted">
+          {profile?.linked
+            ? "Sua conexão atual está desativada ou o portal foi pausado pelo profissional. Ajuste em Minhas conexões."
+            : "Conecte-se ao espaço do seu psicólogo(a) com o código de vínculo."}
+        </p>
+        <Link href="/paciente/conexoes" className="btn-primary inline-block">Ir para Minhas conexões</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-medium text-teal">Início</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-medium text-teal">Início</h1>
+        <Link href="/paciente/conexoes" className="btn-row text-sm">Conexões</Link>
+      </div>
+      <p className="text-sm text-muted capitalize">{monthLabel}</p>
+      <section className="rounded-surface border border-[var(--color-border-subtle)] bg-white p-4">
+        <h2 className="mb-2 font-medium">Hoje</h2>
+        <p className="text-sm text-muted">Sem tarefas nesta data.</p>
+      </section>
       <p className="text-sm text-muted">{data?.cvvNote}</p>
+      {loadError && <p className="text-sm text-accent">{loadError}</p>}
       <section className="rounded-surface border border-[var(--color-border-subtle)] bg-white p-4">
         <h2 className="mb-2 font-medium">Próxima sessão</h2>
         {data?.nextSession ? (
@@ -54,10 +89,6 @@ export default function PatientHomePage() {
           <p className="font-medium">Pagamentos</p>
           <p className="text-muted">{data?.pendingPayments ?? 0} em aberto</p>
         </Link>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/paciente/diario" className="btn-text text-center">Diário de humor</Link>
-        <Link href="/paciente/tarefas" className="btn-text text-center">Tarefas</Link>
       </div>
     </div>
   );

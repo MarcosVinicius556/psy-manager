@@ -1124,8 +1124,18 @@ async function upsertPsychologistOnce(uid: string, email: string, extras?: { nom
   const db = getFirebaseDb();
   const userRef = doc(db, "users", uid);
   const profile = await getDoc(userRef);
-  const role = profile.data()?.role === "super_admin" ? "super_admin" : "psicologo";
+  const existingRole = profile.data()?.role;
+  const role =
+    existingRole === "super_admin"
+      ? "super_admin"
+      : existingRole === "paciente"
+        ? "paciente"
+        : "psicologo";
   let trialEligible = trialEligibleFromUserDoc(profile.data());
+
+  if (existingRole === "paciente") {
+    return { trialEligible: false };
+  }
 
   if (!profile.exists()) {
     trialEligible = await reserveTrial(normalized, uid);
