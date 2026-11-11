@@ -209,7 +209,9 @@ function FinanceContent() {
                       )
                     }
                     amount={formatMoney(agreedAmount(payment))}
-                    secondary={`Vence ${formatDate(payment.dueDate)} · ${payment.descricao}`}
+                    secondary={`Vence ${formatDate(payment.dueDate)} · ${payment.descricao}${
+                      payment.regraFalta ? ` · Regra: ${payment.regraFalta.descricao}` : ""
+                    }`}
                     status={
                       <Pill tone={payment.status === "pago" ? "teal" : isUnpaid(payment) ? "accent" : "sage"}>
                         {labelPaymentStatus(payment.status)}
@@ -278,6 +280,11 @@ function FinanceContent() {
                       </Td>
                       <Td>
                         <span>{payment.descricao}</span>
+                        {payment.regraFalta ? (
+                          <span className="mt-1 block text-xs text-muted" title="Regra de falta aplicada">
+                            Regra: {payment.regraFalta.descricao}
+                          </span>
+                        ) : null}
                         {payment.origem === "externo" && (
                           <span className="mt-1 block">
                             <Pill tone="muted">Renda externa</Pill>

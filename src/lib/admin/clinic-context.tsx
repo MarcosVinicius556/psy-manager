@@ -17,6 +17,7 @@ import {
   createPatient,
   createPayment,
   createPayments,
+  removeNoShowPayment,
   findDirectoryUser,
   grantAccess,
   getAppointmentById,
@@ -88,6 +89,13 @@ import {
 } from "./schedule";
 import { assertGoogleScheduleFree } from "@/lib/google-calendar/check-conflict-client";
 import { syncAppointmentWithGoogle } from "@/lib/google-calendar/sync-client";
+
+function noShowPaymentTitle(codigo: string) {
+  if (codigo === "sem_justificativa") return "Falta sem justificativa";
+  if (codigo === "justificada_acima_limite") return "Falta justificada (acima do limite)";
+  if (codigo === "justificada") return "Falta justificada";
+  return "Falta sem aviso";
+}
 
 async function refreshPublicBookingAvailability() {
   try {
@@ -165,9 +173,15 @@ type ClinicContextValue = {
     id: string,
     status: Appointment["status"],
     clinical?: ClinicalRecord,
-    faltaJustificativa?: string
+    faltaJustificativa?: string,
+    faltaJustificada?: boolean
   ) => Promise<void>;
-  createNoShowCharge: (appointmentId: string) => Promise<void>;
+  /** Cria a cobrança da falta. `valor` sobrescreve o valor calculado pela regra (ajuste manual). */
+  createNoShowCharge: (appointmentId: string, override?: { valor?: number }) => Promise<void>;
+  /** Dispensa a cobrança da falta (remove a cobrança não paga e registra a decisão). */
+  waiveNoShowCharge: (appointmentId: string) => Promise<void>;
+  /** Corrige justificativa/flag de uma falta já registrada. Não mexe na cobrança: ela é revisada no card. */
+  updateAbsenceJustification: (appointmentId: string, justificada: boolean, texto: string) => Promise<void>;
   cancelAppointment: (id: string) => Promise<void>;
   savePackage: (
     input: {
@@ -222,6 +236,7 @@ type ClinicContextValue = {
     valorSocial: number;
     workHours: { weekday: number; startTime: string; endTime: string }[];
     politicaFalta?: { horas: number; percentual: number };
+    regrasFalta?: import("./no-show-rules").NoShowRules;
   }) => Promise<void>;
   issueFiscalReceipt: (paymentId: string, options?: { replace?: boolean }) => Promise<void>;
   issueFiscalReceiptBatch: (paymentIds: string[]) => Promise<{ issued: number; failed: string[] }>;
@@ -538,6 +553,93 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     const uid = getFirebaseAuth().currentUser?.uid;
     if (!uid) throw new Error("Entre novamente para continuar.");
     return uid;
+  }
+
+  function noShowMemberFor(appointment: Appointment) {
+    return (
+      members.find((item) => item.id === appointment.professionalId) ||
+      members.find((item) => item.uid === getFirebaseAuth().currentUser?.uid) ||
+      null
+    );
+  }
+
+  function noShowPaymentFor(appointmentId: string) {
+    return (
+      payments.find(
+        (payment) =>
+          payment.appointmentId === appointmentId &&
+          (Boolean(payment.regraFalta) || payment.descricao.toLowerCase().includes("falta"))
+      ) || null
+    );
+  }
+
+  /** Aplica as regras de falta do profissional logo depois de registrar a falta. */
+  async function applyNoShowRules(appointment: Appointment, justificada: boolean) {
+    const member = noShowMemberFor(appointment);
+    const { evaluateNoShow } = await import("./no-show-rules");
+    const avaliadoEm = new Date().toISOString();
+    if (!member) {
+      toast.success("Falta registrada.");
+      return;
+    }
+    const decision = evaluateNoShow({ appointment, justificada, member, history: appointments });
+    const existing = noShowPaymentFor(appointment.id);
+    if (existing) {
+      toast.success("Falta registrada. Esta falta já tinha cobrança; revise no card abaixo.");
+      return;
+    }
+    if (!decision.automatico) {
+      await updateAppointment(appointment.id, {
+        faltaCobranca: {
+          codigo: decision.codigo,
+          descricao: decision.descricao,
+          valor: decision.valor,
+          paymentId: null,
+          situacao: decision.cobrar ? "pendente" : "sem_cobranca",
+          manual: false,
+          avaliadoEm,
+        },
+      });
+      toast.success("Falta registrada.");
+      return;
+    }
+    if (!decision.cobrar) {
+      await updateAppointment(appointment.id, {
+        faltaCobranca: {
+          codigo: decision.codigo,
+          descricao: decision.descricao,
+          valor: 0,
+          paymentId: null,
+          situacao: "sem_cobranca",
+          manual: false,
+          avaliadoEm,
+        },
+      });
+      toast.success("Falta registrada. Pela sua regra, esta falta não gera cobrança.");
+      return;
+    }
+    const paymentId = await createPayment({
+      patientId: appointment.patientId,
+      appointmentId: appointment.id,
+      descricao: noShowPaymentTitle(decision.codigo),
+      valor: decision.valor,
+      dueDate: todayISO(),
+      formaPagamento: "pix",
+      status: "nao_pago",
+      regraFalta: { codigo: decision.codigo, descricao: decision.descricao, manual: false },
+    });
+    await updateAppointment(appointment.id, {
+      faltaCobranca: {
+        codigo: decision.codigo,
+        descricao: decision.descricao,
+        valor: decision.valor,
+        paymentId: paymentId || null,
+        situacao: "cobrada",
+        manual: false,
+        avaliadoEm,
+      },
+    });
+    toast.success("Falta registrada e cobrança criada pela sua regra.");
   }
 
   function viewersFor(locationId: string | null) {
@@ -966,15 +1068,22 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         await refresh();
         return due.length;
       },
-      async setAppointmentStatus(id, status, clinical, faltaJustificativa) {
+      async setAppointmentStatus(id, status, clinical, faltaJustificativa, faltaJustificada) {
         const appointment = appointments.find((item) => item.id === id);
         if (clinical && appointment) {
           await saveClinicalRecord(id, appointment.patientId, clinical);
         }
+        const texto = (faltaJustificativa || "").trim();
+        const justificada = typeof faltaJustificada === "boolean" ? faltaJustificada : Boolean(texto);
         await updateAppointment(id, {
           status,
-          ...(status === "faltou" ? { faltaJustificativa: (faltaJustificativa || "").trim() } : {}),
+          ...(status === "faltou" ? { faltaJustificativa: texto, faltaJustificada: justificada } : {}),
         });
+        if (status === "faltou" && appointment) {
+          await applyNoShowRules(appointment, justificada);
+          await refresh();
+          return;
+        }
         if (status === "concluido") {
           trackActivation("primeira_sessao_concluida");
           try {
@@ -1001,26 +1110,76 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         }
         await refresh();
       },
-      async createNoShowCharge(appointmentId) {
+      async createNoShowCharge(appointmentId, override) {
         const appointment = appointments.find((item) => item.id === appointmentId);
         if (!appointment) throw new Error("Atendimento não encontrado.");
-        const member =
-          members.find((item) => item.id === appointment.professionalId) ||
-          members.find((item) => item.uid === currentUid());
+        const member = noShowMemberFor(appointment);
         if (!member) throw new Error("Profissional não encontrado.");
-        const { computeNoShowCharge } = await import("./no-show-policy");
-        const suggestion = computeNoShowCharge(appointment, member);
-        if (!suggestion) throw new Error("Não há política de falta configurada para gerar cobrança.");
-        await createPayment({
+        const existing = noShowPaymentFor(appointment.id);
+        if (existing) throw new Error("Esta falta já tem uma cobrança.");
+        const { evaluateNoShow } = await import("./no-show-rules");
+        const decision = evaluateNoShow({
+          appointment,
+          justificada: appointment.faltaJustificada === true,
+          member,
+          history: appointments,
+        });
+        const manualValue = override?.valor;
+        const manual = typeof manualValue === "number" && Math.abs(manualValue - decision.valor) > 0.004;
+        const valor = typeof manualValue === "number" ? manualValue : decision.valor;
+        if (!(valor > 0)) throw new Error("Informe um valor maior que zero para cobrar a falta.");
+        const descricaoRegra = manual ? `Ajuste manual (regra: ${decision.descricao})` : decision.descricao;
+        const paymentId = await createPayment({
           patientId: appointment.patientId,
           appointmentId: appointment.id,
-          descricao: "Falta sem aviso",
-          valor: suggestion.valor,
+          descricao: noShowPaymentTitle(decision.codigo),
+          valor,
           dueDate: todayISO(),
           formaPagamento: "pix",
           status: "nao_pago",
+          regraFalta: { codigo: manual ? "manual" : decision.codigo, descricao: descricaoRegra, manual },
+        });
+        await updateAppointment(appointment.id, {
+          faltaCobranca: {
+            codigo: manual ? "manual" : decision.codigo,
+            descricao: descricaoRegra,
+            valor,
+            paymentId: paymentId || null,
+            situacao: "cobrada",
+            manual: true,
+            avaliadoEm: new Date().toISOString(),
+          },
         });
         toast.success("Cobrança por falta criada.");
+        await refresh();
+      },
+      async waiveNoShowCharge(appointmentId) {
+        const appointment = appointments.find((item) => item.id === appointmentId);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        const existing = noShowPaymentFor(appointment.id);
+        if (existing && existing.status === "pago") {
+          throw new Error("Esta cobrança já foi paga. Registre o estorno no financeiro, se for o caso.");
+        }
+        if (existing) await removeNoShowPayment(existing.id);
+        await updateAppointment(appointment.id, {
+          faltaCobranca: {
+            codigo: "manual",
+            descricao: "Cobrança dispensada manualmente",
+            valor: 0,
+            paymentId: null,
+            situacao: "dispensada",
+            manual: true,
+            avaliadoEm: new Date().toISOString(),
+          },
+        });
+        toast.success("Cobrança da falta dispensada.");
+        await refresh();
+      },
+      async updateAbsenceJustification(appointmentId, justificada, texto) {
+        const appointment = appointments.find((item) => item.id === appointmentId);
+        if (!appointment) throw new Error("Atendimento não encontrado.");
+        await updateAppointment(appointment.id, { faltaJustificada: justificada, faltaJustificativa: texto.trim() });
+        toast.success("Justificativa atualizada. Revise a cobrança abaixo, se precisar.");
         await refresh();
       },
       async cancelAppointment(id) {
@@ -1395,6 +1554,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           valorSocial: input.valorSocial,
           workHours: input.workHours,
           ...(input.politicaFalta ? { politicaFalta: input.politicaFalta } : {}),
+          ...(input.regrasFalta ? { regrasFalta: input.regrasFalta } : {}),
         });
         if (input.workHours.length > 0) trackActivation("horarios_definidos");
         await updateAuthProfile({ displayName: nome, ...(foto ? { photoURL: foto } : {}) });

@@ -160,6 +160,10 @@ export interface Appointment {
   packageVersao: number | null;
   creditoEmHaver: boolean;
   faltaJustificativa: string;
+  /** true = falta justificada; false = sem justificativa; null = registro antigo (antes das regras). */
+  faltaJustificada?: boolean | null;
+  /** Decisão das regras de falta aplicada a este atendimento. */
+  faltaCobranca?: NoShowChargeOutcome | null;
   recurring: boolean;
   seriesId: string | null;
   status: AppointmentStatus;
@@ -206,6 +210,8 @@ export interface ClinicMember {
   workHours: WorkShift[];
   contratoModelo: string;
   politicaFalta?: { horas: number; percentual: number };
+  /** Regras de cobrança por falta (Configurações > Valores da consulta). */
+  regrasFalta?: import("./no-show-rules").NoShowRules;
   ativo: boolean;
   createdAt: string;
 }
@@ -291,8 +297,28 @@ export interface Payment {
   pixTxid: string;
   lembretesEnviados: number;
   comprovantePaciente: ClinicAttachment | null;
+  /** Regra de falta que gerou esta cobrança (só em cobranças de falta). */
+  regraFalta?: NoShowPaymentRule | null;
   demo?: boolean;
   createdAt: string;
+}
+
+export interface NoShowPaymentRule {
+  codigo: string;
+  descricao: string;
+  manual: boolean;
+}
+
+export interface NoShowChargeOutcome {
+  codigo: string;
+  descricao: string;
+  /** Valor calculado pela regra (0 quando a regra não cobra). */
+  valor: number;
+  paymentId: string | null;
+  /** "cobrada" | "dispensada" | "sem_cobranca" | "pendente" */
+  situacao: "cobrada" | "dispensada" | "sem_cobranca" | "pendente";
+  manual: boolean;
+  avaliadoEm: string;
 }
 
 export interface PaymentNotification {

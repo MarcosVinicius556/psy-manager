@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { isPaymentMethod, normalizePatientStatus } from "./format";
 import { normalizePoliticaFalta } from "./no-show-policy";
+import { normalizeNoShowRules } from "./no-show-rules";
 import { dueDateMillis } from "./due-date-millis";
 import type { MonthClosingRecord, ReceitaSaudeMonthSummary } from "./receita-saude-report";
 import { monthClosingDocId } from "./receita-saude-report";
@@ -86,6 +87,8 @@ import {
   type PatientInput,
   type Payment,
   type PaymentEvent,
+  type NoShowChargeOutcome,
+  type NoShowPaymentRule,
   type PaymentInput,
   type PaymentMethod,
   type PaymentNotification,
@@ -246,6 +249,8 @@ function mapAppointment(id: string, data: DocumentData): Appointment {
     packageVersao: Number(data.packageVersao) > 0 ? Number(data.packageVersao) : null,
     creditoEmHaver: Boolean(data.creditoEmHaver),
     faltaJustificativa: text(data.faltaJustificativa),
+    faltaJustificada: typeof data.faltaJustificada === "boolean" ? data.faltaJustificada : null,
+    faltaCobranca: mapNoShowOutcome(data.faltaCobranca),
     recurring: Boolean(data.recurring),
     seriesId: data.seriesId ? text(data.seriesId) : null,
     status: ["agendado", "em_andamento", "concluido", "cancelado", "faltou"].includes(status)
@@ -328,7 +333,34 @@ export function mapPayment(id: string, data: DocumentData): Payment {
     pixTxid: text(data.pixTxid),
     lembretesEnviados: typeof data.lembretesEnviados === "number" ? data.lembretesEnviados : 0,
     comprovantePaciente: mapAttachment(data.comprovantePaciente),
+    regraFalta: mapNoShowPaymentRule(data.regraFalta),
     createdAt: text(data.createdAt),
+  };
+}
+
+function mapNoShowPaymentRule(value: unknown): NoShowPaymentRule | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  const descricao = text(data.descricao);
+  if (!descricao) return null;
+  return { codigo: text(data.codigo) || "manual", descricao, manual: Boolean(data.manual) };
+}
+
+function mapNoShowOutcome(value: unknown): NoShowChargeOutcome | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  const situacao = text(data.situacao);
+  return {
+    codigo: text(data.codigo) || "manual",
+    descricao: text(data.descricao),
+    valor: Number(data.valor) || 0,
+    paymentId: data.paymentId ? text(data.paymentId) : null,
+    situacao:
+      situacao === "cobrada" || situacao === "dispensada" || situacao === "sem_cobranca" || situacao === "pendente"
+        ? situacao
+        : "pendente",
+    manual: Boolean(data.manual),
+    avaliadoEm: text(data.avaliadoEm),
   };
 }
 
@@ -698,6 +730,7 @@ function mapMember(id: string, data: DocumentData, privateFields = emptyMemberPr
       : [],
     contratoModelo: text(data.contratoModelo),
     politicaFalta: data.politicaFalta ? normalizePoliticaFalta(data.politicaFalta) : undefined,
+    regrasFalta: data.regrasFalta ? normalizeNoShowRules(data.regrasFalta) : undefined,
     ativo: data.ativo !== false,
     createdAt: text(data.createdAt),
   };
@@ -1110,6 +1143,15 @@ export async function updateNotification(id: string, patch: Partial<PaymentNotif
   assertClinicWrite();
   const { id: _id, ...rest } = patch;
   await updateDoc(doc(getFirebaseDb(), "notifications", id), rest);
+}
+
+/** Remove uma cobrança de falta ainda não paga (dispensa manual pela(o) psicóloga(o)). */
+export async function removeNoShowPayment(id: string) {
+  assertClinicWrite();
+  if (isDelegatedTenantAccess()) {
+    throw new Error("Só a(o) psicóloga(o) responsável pode dispensar uma cobrança de falta.");
+  }
+  await deleteDoc(doc(getFirebaseDb(), "payments", id));
 }
 
 export async function removeNotification(id: string) {

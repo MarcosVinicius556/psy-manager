@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { HiOutlineMenu } from "react-icons/hi";
+import HelpTourButton from "@/components/help/HelpTourButton";
 
 export default function MobileHeader({
   title,
@@ -29,13 +30,18 @@ export default function MobileHeader({
           </button>
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-serif text-lg font-semibold leading-tight text-teal">{title}</p>
+          <p className="truncate font-serif text-lg font-semibold leading-tight text-teal" data-tour="page-title-mobile">
+            {title}
+          </p>
         </div>
         {action ? (
-          <div className="flex shrink-0 items-center gap-1 [&_.btn-primary]:min-h-11 [&_.btn-primary]:px-3 [&_.btn-primary]:py-2 [&_.btn-primary]:text-sm">
+          <div
+            data-tour="page-actions-mobile"
+            className="flex shrink-0 items-center gap-1 [&_.btn-primary]:min-h-11 [&_.btn-primary]:px-3 [&_.btn-primary]:py-2 [&_.btn-primary]:text-sm">
             {action}
           </div>
         ) : null}
+        <HelpTourButton variant="header" />
       </div>
     </header>
   );

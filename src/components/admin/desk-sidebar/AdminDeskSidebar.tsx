@@ -391,6 +391,7 @@ export function AdminDeskSidebar({
 
   return (
     <motion.aside
+      data-tour="nav"
       data-testid={sidebarTestId}
       data-collapsed={collapsed ? "true" : "false"}
       initial={false}

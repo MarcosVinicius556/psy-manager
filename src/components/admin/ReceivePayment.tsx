@@ -79,6 +79,7 @@ export default function ReceivePayment({ payment, onClose }: { payment: Payment;
             <p className="mt-1 text-muted">
               {patientName(payment.patientId)} · {payment.descricao}
             </p>
+            {payment.regraFalta ? <p className="mt-1 text-sm text-muted">Regra aplicada: {payment.regraFalta.descricao}</p> : null}
           </div>
           <button type="button" className="btn-text" onClick={onClose}>
             Fechar
