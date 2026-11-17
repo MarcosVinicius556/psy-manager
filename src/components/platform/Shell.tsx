@@ -7,6 +7,7 @@ import { HiOutlineShieldCheck } from "react-icons/hi";
 import { AdminPageMotion } from "@/components/admin/motion/AdminPageMotion";
 import { AdminDeskSidebar, sidebarMainPadding } from "@/components/admin/desk-sidebar/AdminDeskSidebar";
 import MobileHeader from "@/components/admin/mobile/MobileHeader";
+import HelpTourButton from "@/components/help/HelpTourButton";
 import PlatformMobileTabBar from "@/components/platform/PlatformMobileTabBar";
 import MfaEncouragementBanner from "@/components/platform/MfaEncouragementBanner";
 import { useAuth } from "@/lib/admin/auth-context";
@@ -140,11 +141,12 @@ function PlatformShellInner({ children, role }: { children: React.ReactNode; rol
       <div
         className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out desk:pb-8 ${sidebarMainPadding(collapsed, wide)}`}
       >
-        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 desk:py-8">
+        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 desk:py-8" data-tour="page-content">
           <MfaEncouragementBanner />
           <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>
       </div>
+      <HelpTourButton variant="floating" />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import HelpTourButton from "@/components/help/HelpTourButton";
 import BrandLogo from "@/components/BrandLogo";
 import { PatientPortalThemeProvider } from "@/components/patient/PatientPortalTheme";
 import { usePatientAuth } from "@/lib/patient/auth-context";
@@ -63,7 +64,7 @@ export default function PatientPortalShell({ children }: { children: React.React
         <header className="border-b border-[var(--color-border-subtle)] bg-white px-4 py-3 patient-header">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <BrandLogo className="h-8" />
-            <div className="text-right text-sm">
+            <div className="ml-auto text-right text-sm">
               <p className="font-medium text-teal">Olá, {greetingName}</p>
               {profile?.active && profile.profissionalNome ? (
                 <p className="text-muted">Conexão ativa com {profile.profissionalNome}</p>
@@ -71,10 +72,14 @@ export default function PatientPortalShell({ children }: { children: React.React
                 <p className="text-muted">Portal do paciente</p>
               )}
             </div>
+            <HelpTourButton variant="header" />
           </div>
         </header>
-        <main className="mx-auto max-w-3xl px-4 py-4 pb-24">{children}</main>
+        <main className="mx-auto max-w-3xl px-4 py-4 pb-24" data-tour="page-content">
+          {children}
+        </main>
         <nav
+          data-tour="patient-nav"
           className="fixed inset-x-0 bottom-0 border-t border-[var(--color-border-subtle)] bg-white px-2 py-2 patient-nav"
           aria-label="Navegação do portal"
         >

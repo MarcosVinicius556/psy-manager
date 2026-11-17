@@ -34,7 +34,7 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
   return (
     <>
       <div className="mb-4 flex flex-col items-stretch gap-3 desk:mb-6 desk:flex-row desk:flex-wrap desk:items-end desk:justify-between desk:gap-4">
-        <div className={desktopTitleClass}>
+        <div className={desktopTitleClass} data-tour="page-title">
           <h1 className="text-[clamp(1.7rem,1.2rem+2vw,2.4rem)] font-medium leading-tight text-teal">{title}</h1>
           {subtitle && <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">{subtitle}</p>}
         </div>
@@ -42,7 +42,7 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
           {subtitle ? <p className="text-sm leading-relaxed text-muted">{subtitle}</p> : null}
         </div>
         {action ? (
-          <div className="admin-desktop-only admin-desktop-flex w-full flex-col gap-2 desk:w-auto desk:flex-row desk:flex-wrap [&>*]:w-full desk:[&>*]:w-auto">
+          <div data-tour="page-actions" className="admin-desktop-only admin-desktop-flex w-full flex-col gap-2 desk:w-auto desk:flex-row desk:flex-wrap [&>*]:w-full desk:[&>*]:w-auto">
             {action}
           </div>
         ) : null}

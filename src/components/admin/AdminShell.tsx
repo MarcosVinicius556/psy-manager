@@ -16,6 +16,7 @@ import { useWorkspace } from "@/lib/team/workspace-context";
 import { useCookieConsent } from "@/components/legal/CookieConsentProvider";
 import { ADMIN_MOBILE_TABBAR_MEDIA, isNarrowDeskViewport } from "@/lib/admin/layout-breakpoints";
 import PwaBootstrap from "@/components/admin/PwaBootstrap";
+import HelpTourButton from "@/components/help/HelpTourButton";
 
 function AdminShellInner({ children }: { children: React.ReactNode }) {
   const { meta, actionRef, setMeta } = useAdminPageMeta();
@@ -122,10 +123,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       <div
         className={`pb-[calc(5.75rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out desk:pb-8 ${sidebarMainPadding(collapsed, wide)}`}
       >
-        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 desk:py-8">
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-5 sm:py-6 desk:py-8" data-tour="page-content">
           <AdminPageMotion routeKey={pathname}>{children}</AdminPageMotion>
         </div>
       </div>
+      <HelpTourButton variant="floating" />
     </div>
   );
 }

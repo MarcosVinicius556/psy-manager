@@ -134,6 +134,7 @@ export default function PlatformMobileTabBar({
         navConfig={platformShellNavConfig}
       />
       <nav
+        data-tour="nav-mobile"
         className={`admin-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-30 transition-transform duration-300 ease-out desk:hidden ${
           hidden ? "translate-y-[120%]" : "translate-y-0"
         }`}

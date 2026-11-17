@@ -12,15 +12,23 @@ import { useAuth } from "@/lib/admin/auth-context";
 import { useClinic } from "@/lib/admin/clinic-context";
 import { moneyInput, parseMoney, WEEKDAY_OPTIONS } from "@/lib/admin/format";
 import Select from "@/components/admin/Select";
-import { CRP_REGIONS, formatCrp } from "@/lib/admin/crp";
+import { CRP_REGIONS, crpRegionForUf, crpUfMismatch, formatCrp } from "@/lib/admin/crp";
 import { maskCep, maskCpf, maskPhone } from "@/lib/masks";
 import { shiftsToSlotKeys, slotKeysToShifts, timelineSlots } from "@/lib/admin/schedule";
 import IntegrationsSettingsCard from "@/components/admin/IntegrationsSettingsCard";
 import PushNotificationsCard from "@/components/admin/PushNotificationsCard";
 import SecuritySettingsCard from "@/components/auth/SecuritySettingsCard";
 import { DEFAULT_POLITICA_FALTA, normalizePoliticaFalta } from "@/lib/admin/no-show-policy";
+import NoShowRulesEditor from "@/components/admin/NoShowRulesEditor";
+import { effectiveNoShowRules, normalizeNoShowRules, DEFAULT_NO_SHOW_RULES, type NoShowRules } from "@/lib/admin/no-show-rules";
 import { PIX_KEY_TYPE_OPTIONS } from "@/lib/pix/keys";
 import type { PixKeyType } from "@/lib/admin/types";
+
+function legacyPercentFromRules(rules: NoShowRules) {
+  const rule = rules.semJustificativa;
+  if (!rule.cobrar) return 0;
+  return rule.tipo === "percentual" ? rule.valor : 100;
+}
 
 export default function SettingsPage() {
   const { user, sendPasswordReset } = useAuth();
@@ -44,7 +52,8 @@ export default function SettingsPage() {
   const [valorBase, setValorBase] = useState("");
   const [valorSocial, setValorSocial] = useState("");
   const [politicaHoras, setPoliticaHoras] = useState(String(DEFAULT_POLITICA_FALTA.horas));
-  const [politicaPercentual, setPoliticaPercentual] = useState(String(DEFAULT_POLITICA_FALTA.percentual));
+  const [regrasFalta, setRegrasFalta] = useState<NoShowRules>(DEFAULT_NO_SHOW_RULES);
+  const [regrasLegado, setRegrasLegado] = useState(false);
   const [openSlots, setOpenSlots] = useState<string[]>([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [nextPassword, setNextPassword] = useState("");
@@ -82,9 +91,15 @@ export default function SettingsPage() {
     setOpenSlots(shiftsToSlotKeys(me?.workHours || []));
     const policy = normalizePoliticaFalta(me?.politicaFalta);
     setPoliticaHoras(String(policy.horas));
-    setPoliticaPercentual(String(policy.percentual));
+    if (me) {
+      const effective = effectiveNoShowRules(me);
+      // Quem vem da política antiga começa com a regra antiga, já com aplicação automática sugerida.
+      setRegrasFalta(effective.legado ? { ...effective.rules, automatico: true, comJustificativa: DEFAULT_NO_SHOW_RULES.comJustificativa } : effective.rules);
+      setRegrasLegado(effective.legado);
+    }
   }, [me, user]);
 
+  const crpMismatch = crpUfMismatch(crpRegiao, enderecoUf);
   const hours = timelineSlots();
   const enabled = new Set(openSlots);
 
@@ -109,8 +124,10 @@ export default function SettingsPage() {
       workHours: slotKeysToShifts(openSlots),
       politicaFalta: normalizePoliticaFalta({
         horas: Number.parseInt(politicaHoras, 10),
-        percentual: Number.parseInt(politicaPercentual, 10),
+        // Mantém {{POLITICA_FALTA}} do contrato e clientes antigos coerentes com a regra "sem justificativa".
+        percentual: legacyPercentFromRules(normalizeNoShowRules(regrasFalta)),
       }),
+      regrasFalta: normalizeNoShowRules(regrasFalta),
     };
   }
 
@@ -329,6 +346,7 @@ export default function SettingsPage() {
               onChange={(event) => setCpf(maskCpf(event.target.value))}
             />
           </Field>
+          <div data-tour="crp" className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
           <Field label="CRP (região)">
             <Select
               value={crpRegiao}
@@ -346,8 +364,22 @@ export default function SettingsPage() {
               onChange={(event) => setCrpNumero(event.target.value.replace(/\D/g, "").slice(0, 10))}
             />
           </Field>
-          <div className="flex items-end text-sm text-muted sm:col-span-2">
-            {formatCrp(crpNumero, crpRegiao) ? `Exibição: ${formatCrp(crpNumero, crpRegiao)}` : "Informe região e número do CRP."}
+          </div>
+          <div className="flex flex-col gap-1 text-sm text-muted sm:col-span-2">
+            <span>
+              {formatCrp(crpNumero, crpRegiao) ? `Exibição: ${formatCrp(crpNumero, crpRegiao)}` : "Informe região e número do CRP."}
+            </span>
+            {crpMismatch ? (
+              <span className="flex flex-col items-start gap-2 text-accent" role="status">
+                <span>
+                  A UF {enderecoUf} pertence ao CRP {crpMismatch.expected.value} ({crpMismatch.expected.estados}). Confira a região
+                  selecionada: a lista antiga do sistema tinha números trocados.
+                </span>
+                <button type="button" className="btn-chip" onClick={() => setCrpRegiao(crpMismatch.expected.value)}>
+                  Usar CRP {crpMismatch.expected.value}
+                </button>
+              </span>
+            ) : null}
           </div>
           <div className="sm:col-span-2">
             <Field label="Endereço profissional">
@@ -367,7 +399,11 @@ export default function SettingsPage() {
               className={fieldClass}
               value={enderecoUf}
               maxLength={2}
-              onChange={(event) => setEnderecoUf(event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))}
+              onChange={(event) => {
+                const nextUf = event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+                setEnderecoUf(nextUf);
+                if (!crpRegiao && crpRegionForUf(nextUf)) setCrpRegiao(crpRegionForUf(nextUf));
+              }}
             />
           </Field>
           <Field label="CEP">
@@ -386,7 +422,7 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="mt-6">
-        <h2 className="text-2xl font-medium text-teal">Pix para cobrança</h2>
+        <h2 className="text-2xl font-medium text-teal" data-tour="pix">Pix para cobrança</h2>
         <p className="mt-2 text-sm text-muted">
           Gera QR Code e Pix copia e cola nas cobranças, sem gateway. O pagamento é confirmado manualmente por você após o paciente pagar.
         </p>
@@ -420,7 +456,7 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="mt-6">
-        <h2 className="text-2xl font-medium text-teal">Valores da consulta</h2>
+        <h2 className="text-2xl font-medium text-teal" data-tour="valores">Valores da consulta</h2>
         <p className="mt-2 text-sm text-muted">O valor base entra no agendamento. O valor social entra quando a sessão é marcada como social.</p>
         <form onSubmit={onValues} className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field label="Valor base da consulta">
@@ -450,18 +486,10 @@ export default function SettingsPage() {
               placeholder="24"
             />
           </Field>
-          <Field label="Política de falta — percentual da sessão (%)">
-            <input
-              className={fieldClass}
-              inputMode="numeric"
-              value={politicaPercentual}
-              onChange={(event) => setPoliticaPercentual(event.target.value.replace(/\D/g, "").slice(0, 3))}
-              placeholder="100"
-            />
-          </Field>
           <p className="text-sm text-muted sm:col-span-2">
-            Usada na sugestão de cobrança ao marcar falta e na variável {"{{POLITICA_FALTA}}"} do contrato.
+            O aviso mínimo entra na variável {"{{POLITICA_FALTA}}"} do contrato.
           </p>
+          <NoShowRulesEditor rules={regrasFalta} onChange={setRegrasFalta} legado={regrasLegado} />
           <button className="btn-primary justify-self-start" disabled={savingValues}>
             {savingValues ? "Salvando..." : "Salvar valores"}
           </button>
@@ -469,7 +497,7 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="mt-6">
-        <h2 className="text-2xl font-medium text-teal">Horários de atendimento</h2>
+        <h2 className="text-2xl font-medium text-teal" data-tour="horarios">Horários de atendimento</h2>
         <p className="mt-2 text-sm text-muted">
           A agenda só oferece os horários marcados. Sem nenhum marcado, permanece das 7h às 21h.
         </p>
